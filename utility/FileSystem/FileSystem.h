@@ -42,6 +42,17 @@ FileSystem* filesystem_copy(FileSystem* filesystem);
 //	ret        : (claimed) The path to the root directory of the filesystem
 char* filesystem_get_root_path(FileSystem* filesystem);
 
+// Serializes the provided filesystem to save it to disk or send over the network.
+//	filesystem : (not claimed) The filesystem to serialize
+//	data	   : (not claimed) The serialized data
+//	length	   : (not claimed) The length of the serialized data
+void filesystem_serialize(FileSystem* filesystem, char** data, int* length);
+
+// Takes some data and deserializes it into a filesystem.
+//	data   : (not claimed) The data to deserialize
+//	ret	   : (not claimed) The returned filesystem
+FileSystem* filesystem_deserialize(char* data);
+
 // Destroys a filesystem
 //	fs : (claimed) The filesystem to destroy
 void filesystem_destroy(FileSystem* fs);
