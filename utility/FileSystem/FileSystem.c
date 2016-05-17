@@ -465,6 +465,7 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 
 // ******************************** Main ********************************
 
+/*
 int main()
 {
 	FileSystem* fs = filesystem_new("/Users/jacob/Dropbox");
@@ -500,7 +501,7 @@ int main()
 	
 	return 0;
 }
-
+*/
 
 
 
