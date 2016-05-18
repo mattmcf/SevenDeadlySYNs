@@ -11,4 +11,7 @@
 // clients listen here for connections from other clients
 #define CLIENT_LISTENING_PORT 7681
 
+// defined DART_SYNC directory that will be syncronized across peers
+#define DARTSYNC_DIR "~/dart_sync/"
+
 #endif // _CONSTANTS_H

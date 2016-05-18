@@ -8,17 +8,23 @@
 #ifndef _PEER_TABLE_H
 #define _PEER_TABLE_H
 
+#include <time.h>
+
+#define ALL_PEERS 999
 #define IP_LEN 16 	// IPv6 address
+#define INITIAL_SIZE 10
 
 typedef struct peer {
-	char ip_addr[IP_LEN]; 
-	int socketfd;
-	int id;  
+	char ip_addr[IP_LEN];	// IP address of client
+	int socketfd; 	// -1 if there's no open connection
+	int id;  // assigned by tracker
+	time_t time_last_alive;
 } peer_t;
 
 
 typedef struct peer_table {
 	peer_t ** table;
+	int count;
 	int size;
 } peer_table_t;
 
