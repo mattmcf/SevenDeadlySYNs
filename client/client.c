@@ -9,6 +9,7 @@
 /* ------------------------- System Libraries -------------------------- */
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 
 /* -------------------------- Local Libraries -------------------------- */
@@ -16,42 +17,78 @@
 #include "network_client.h"
 
 /* ----------------------------- Constants ----------------------------- */
+pthread_t clt_net_t;
+FILE *metadata;
+FILE *
+
+ClientNetworkThread* cnt;
 
 /* ------------------------- Global Variables -------------------------- */
 
 
 /* ---------------------- Private Function Headers --------------------- */
 
-
-
 /* ----------------------- Public Function Bodies ---------------------- */
 
-int connectToNetwork(){
-
-	/* create the network thread */
-	
+int MonitorFilesystem(){
 
 }
 
-int dropFromNetwork(){
+int RequestUpdate(){
 
 }
 
-int monitorFilesystem(){
+int UpdateClientTable(){
 
 }
 
-int requestUpdate(){
+int DropFromNetwork(){
+	/* call Matt's drop from network function */
+	// dropFromNetwork(cnt);
 
-}
-
-int updateClientTable(){
-
+	/* close our files and free our memory */
 }
 
 /* ----------------------- Private Function Bodies --------------------- */
 
 
-int main(){
+/* ------------------------------- main -------------------------------- */
+int main(int argv, char* argc[]){
 
+	/* arg check */
+	if (2 != argv){
+		printf("CLIENT MAIN: need to pass the tracker IP address\n");
+		exit(0);
+	} 
+
+	/* start the client connection to the tracker and network */
+	if (NULL == (cnt = StartClientNetwork(argc[1], argv))){
+		printf("CLIENT MAIN: StartClientNetwork failed\n");
+		exit(0);
+	}
+
+	/* catch sig int so that we can politely close networks on kill */
+	signal(SIGINT, dropFromNetwork);
+
+	/* open the metadata, if it exists then you are rejoining the network,
+	 * else you are joining for the first time and should make the file and
+	 * make a request for every file in the network */
+	if (0 == access(DARTSYNC_METADATA, (F_OK))){	// if it exists
+		/* open the file */
+		if (0 != fopen(DARTSYNC_METADATA, "r")){
+			printf("CLIENT MAIN: couldn't open metadata file, 
+					probably permission issue\n");
+			exit(0);
+		}
+		
+	} else {	// else it doesn't exist
+
+	}
+
+	// Start using cnt and doing things
+
+	// getNextThing(cnt);
 }
+
+
+
