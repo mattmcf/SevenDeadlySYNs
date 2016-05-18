@@ -12,7 +12,11 @@
 
 typedef struct CNT CNT;
 
+// starts client network
 CNT * StartClientNetwork(char * ip_addr, int ip_len);
+
+// nicely ends network
+void EndNetwork();
 
 /* ###################################
  * 

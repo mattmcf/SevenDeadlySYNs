@@ -127,6 +127,10 @@ void EndNetwork() {
 /* ----- receiving ----- */
 
 // receive transaction update
+FileSystem * recv_diff(CNT * thread) {
+
+	return NULL;
+}
 
 // receive acq status update
 
@@ -139,6 +143,11 @@ void EndNetwork() {
 // receive chunk from peer
 
 /* ----- sending ----- */
+
+int send_status(CNT * thread, FileSystem * fs) {
+
+	return -1;
+}
 
 /* 
  * this queue must do the following things
