@@ -39,6 +39,6 @@ typedef struct clt_network_arg {
 
 	//AsyncQueue ** tkr_queues_from_client; 	// from logic to tracker
 	//AsyncQueue ** clt_queues_from_client; 	// from logic to clients
-}
+} clt_network_arg;
 
  #endif _NETWORK_CLIENT_H
