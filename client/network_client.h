@@ -8,37 +8,44 @@
  #ifndef _NETWORK_CLIENT_H
  #define _NETWORK_CLIENT_H
 
-/*
- * -- tracker 2 client --
- * tkr_queues_to_client[0] -> transaction update queue (JFS of updated files)
- * tkr_queues_to_client[1] -> file acquisition status queue
- * tkr_queues_to_client[2] -> peer added queue
- * tkr_queues_to_client[3] -> peer deleted queue
+#define IP_MAX_LEN 16
+
+
+
+typedef struct ClientNetworkThread ClientNetworkThread;
+
+ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
+
+/* ###################################
  * 
- * -- client 2 client --
- * clt_queues_to_client[0] -> receive request for chunk
- * clt_queues_to_client[1] -> receive chunk from peer (can be error)
- * 
- */ 
+ * Functions that the client logic will call
+ *
+ * ################################### */
 
-typedef struct clt_network_arg {
-	AsyncQueue ** tkr_queues_to_client; 	// to logic from tracker
-	AsyncQueue ** clt_queues_to_client; 	// to logic from client
+/* ----- receiving ----- */
 
-	/* 
-	 * this queue must do the following things
-	 * 	- send a current status update (JFS)
-	 * 	- send a request for a file chunk
-	 * 	- send a file chunk
-	 * 	- send an error (associated with an attempt to get a chunk)
-	 * 	- send an update to tracker about acquired chunk
-	 * 	- send a "I'm quitting message"
-	 */
+// receive transaction update
 
-	AsyncQueue * queue_from_client; 	
+// receive acq status update
 
-	//AsyncQueue ** tkr_queues_from_client; 	// from logic to tracker
-	//AsyncQueue ** clt_queues_from_client; 	// from logic to clients
-}
+// get peer added message
+
+// get peer deleted message
+
+// receive request for chunk
+
+// receive chunk from peer
+
+/* ----- sending ----- */
+
+/* 
+ * this queue must do the following things
+ * 	- send a current status update (JFS)
+ * 	- send a request for a file chunk
+ * 	- send a file chunk
+ * 	- send an error (associated with an attempt to get a chunk)
+ * 	- send an update to tracker about acquired chunk
+ * 	- send a "I'm quitting message"
+ */
 
  #endif _NETWORK_CLIENT_H
