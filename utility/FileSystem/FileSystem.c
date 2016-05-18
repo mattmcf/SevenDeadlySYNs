@@ -360,7 +360,7 @@ void filesystem_print(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	
-	printf("Printing filesystem at: %s\n", fs->root_path);
+	printf("Printing filesystem at: %s\n", fs->root_path == NULL ? "NULL" : fs->root_path);
 	folder_print(fs->root, 0);
 }
 void filesystem_diff(FileSystem* filesystem, FileSystem** additions, FileSystem** deletions)
@@ -370,6 +370,108 @@ void filesystem_diff(FileSystem* filesystem, FileSystem** additions, FileSystem*
 	
 	filesystem_subtract(*deletions, *additions);
 	filesystem_subtract(*additions, filesystem);
+}
+
+#define FILE_MARKER (0xFF)
+#define FOLDER_START (0xFE)
+#define FOLDER_END (0xFD)
+
+void push_string(Queue* queue, char* str)
+{
+	for (char* ptr = str; *ptr; ptr++)
+	{
+		queue_push(queue, (void*)(long)(*ptr));
+	}
+	queue_push(queue, (void*)0);
+}
+void filesystem_serialize_helper(_Folder* folder, Queue* data)
+{
+	queue_push(data, (void*)FOLDER_START);
+	push_string(data, folder->name);
+	for (int i = 0; i < queue_length(folder->files); i++)
+	{
+		_File* file = queue_get(folder->files, i);
+		queue_push(data, (void*)FILE_MARKER);
+		push_string(data, file->name);
+		char buf[128];
+		sprintf(buf, "%ld %ld", file->size, file->last_modified);
+		push_string(data, buf);
+	}
+	for (int i = 0; i < queue_length(folder->folders); i++)
+	{
+		_Folder* f = queue_get(folder->folders, i);
+		filesystem_serialize_helper(f, data);
+	}
+	queue_push(data, (void*)FOLDER_END);
+}
+
+void filesystem_serialize(FileSystem* filesystem, char** data, int* length)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	Queue* buffer = queue_new();
+	filesystem_serialize_helper((_Folder*)fs->root, buffer);
+	
+	int l = queue_length(buffer);
+	char* serialized = (char*)malloc(l * sizeof(char));
+	for (int i = 0; i < l; i++)
+	{
+		serialized[i] = (char)queue_get(buffer, i);
+	}
+	
+	queue_destroy(buffer);
+	
+	*data = serialized;
+	*length = l;
+}
+
+_Folder* filesystem_deserialize_helper(char** data)
+{	
+	_Folder* folder = create_new(_Folder);
+	folder->files = queue_new();
+	folder->folders = queue_new();
+	folder->name = copy_string(*data);
+	
+	*data += strlen(folder->name) + 1;
+	
+	while (1)
+	{
+		switch ((unsigned char)(**data))
+		{
+			case FOLDER_START:
+			{
+				*data += 1;
+				queue_push(folder->folders, filesystem_deserialize_helper(data));
+				break;
+			}
+			case FILE_MARKER:
+			{
+				*data += 1;
+				_File* file = create_new(_File);
+				file->name = copy_string(*data);
+				*data += strlen(file->name) + 1;
+				int numRead;
+				sscanf(*data, "%ld %ld%n", &(file->size), &(file->last_modified), &numRead);
+				queue_push(folder->files, file);
+				*data += numRead + 1;
+				break;
+			}
+			case FOLDER_END:
+			{
+				*data += 1;
+				return folder;
+				break;
+			}
+		}
+	}
+}
+
+FileSystem* filesystem_deserialize(char* data)
+{
+	_FileSystem* fs = create_new(_FileSystem);
+	fs->root_path = NULL;
+	char* d = data + 1;
+	fs->root = (Folder*)filesystem_deserialize_helper(&d);
+	return (FileSystem*)fs;
 }
 
 // ******************************** Iterator ********************************
@@ -465,10 +567,19 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 
 // ******************************** Main ********************************
 
-/*
 int main()
 {
 	FileSystem* fs = filesystem_new("/Users/jacob/Dropbox");
+	
+	char* serializedFs;
+	int length;
+	printf("Serializing!\n");
+	filesystem_serialize(fs, &serializedFs, &length);
+	printf("Deserializing %d bytes!\n", length);
+	FileSystem* deserialized = filesystem_deserialize(serializedFs);
+	
+	filesystem_print(deserialized);
+	
 	sleep(10);
 	
 	FileSystem* additions;
@@ -501,7 +612,7 @@ int main()
 	
 	return 0;
 }
-*/
+
 
 
 
