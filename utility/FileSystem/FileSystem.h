@@ -27,10 +27,11 @@ FileSystem* filesystem_new(char* path);
 void filesystem_print(FileSystem* fs);
 
 // Performs a diff between the provided filesystem and the current state of said filesystem.
-//	filesystem : (not claimed) The filesystem to diff on
+//	old        : (not claimed) The previous state of the filesystem.
+//	new        : (not claimed) The current state of a filesystem.
 //	additions  : (not claimed) After returning, contains a filesystem describing any files that were added.
 //	deletions  : (not claimed) After returning, contains a filesystem describing any files that were deleted.
-void filesystem_diff(FileSystem* filesystem, FileSystem** additions, FileSystem** deletions);
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions);
 
 // Performs a deep copy of the given filesystem.
 //	filesystem : (not claimed) The filesystem to copy.

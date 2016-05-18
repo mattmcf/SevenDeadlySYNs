@@ -17,7 +17,7 @@
 typedef struct peer {
 	char ip_addr[IP_LEN];	// IP address of client
 	int socketfd; 	// -1 if there's no open connection
-	int id;  // assigned by tracker
+	int id;  
 	time_t time_last_alive;
 } peer_t;
 

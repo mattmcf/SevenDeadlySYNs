@@ -72,6 +72,7 @@ typedef struct
 	char* name;
 	unsigned long size;
 	time_t last_modified;
+	int is_folder;
 } _File;
 
 File* file_new(char* path, char* name)
@@ -83,7 +84,7 @@ File* file_new(char* path, char* name)
 	file->name = copy_string(name);
 	file->size = st.st_size;
 	file->last_modified = st.st_mtime;
-	
+	file->is_folder = 0;
 	return (File*)file;
 }
 void file_destroy(File* file)
@@ -112,7 +113,14 @@ void file_print(File* file, int nameWidth, int digitsWidth, int depth)
 		printf("  |");
 	}
 		
-	printf("-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+	if (f->is_folder)
+	{
+		printf("-%-*s\n", nameWidth, f->name);
+	}
+	else
+	{
+		printf("-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+	}
 }
 File* file_copy(File* file)
 {
@@ -121,6 +129,7 @@ File* file_copy(File* file)
 	copy->name = copy_string(f->name);
 	copy->size = f->size;
 	copy->last_modified = f->last_modified;
+	copy->is_folder = f->is_folder;
 	return (File*)copy;
 }
 int file_equals(void* elementp, void* keyp)
@@ -128,7 +137,7 @@ int file_equals(void* elementp, void* keyp)
 	_File* f0 = (_File*)elementp;
 	_File* f1 = (_File*)keyp;
 	
-	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified;
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified && (f0->is_folder == f1->is_folder);
 }
 
 // ******************************** Folder ********************************
@@ -165,10 +174,16 @@ Folder* folder_new(char* path, char* name)
 		{
 		    if (S_ISDIR(path_stat.st_mode))
 			{
-				Folder* child = folder_new(path_to_content, dir->d_name);
+				_Folder* child = (_Folder*)folder_new(path_to_content, dir->d_name);
 				if (child)
 				{
 					queue_push(folder->folders, child);
+					_File* file = create_new(_File);
+					file->name = copy_string(child->name);
+					file->size = 0;
+					file->last_modified = 0;
+					file->is_folder = 1;
+					queue_push(folder->files, file);
 				}
 			}
 			else
@@ -208,15 +223,8 @@ int folder_equals(void* elementp, void* keyp)
 }
 void folder_print(Folder* folder, int depth)
 {
-	for (int i = 0; i < depth; i++)
-	{
-		printf("  |");
-	}
-	
 	_Folder* f = (_Folder*)folder;
-	
-	printf("-%s\n", f->name);
-	
+		
 	int maxLength = 0;
 	int maxDigits = 0;
 	for (int i = 0; i < queue_length(f->files); i++)
@@ -363,13 +371,13 @@ void filesystem_print(FileSystem* filesystem)
 	printf("Printing filesystem at: %s\n", fs->root_path == NULL ? "NULL" : fs->root_path);
 	folder_print(fs->root, 0);
 }
-void filesystem_diff(FileSystem* filesystem, FileSystem** additions, FileSystem** deletions)
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
 {
-	*additions = filesystem_new(((_FileSystem*)filesystem)->root_path);
-	*deletions = filesystem_copy(filesystem);
+	*additions = filesystem_copy(old);
+	*deletions = filesystem_copy(new);
 	
 	filesystem_subtract(*deletions, *additions);
-	filesystem_subtract(*additions, filesystem);
+	filesystem_subtract(*additions, new);
 }
 
 #define FILE_MARKER (0xFF)
@@ -394,7 +402,7 @@ void filesystem_serialize_helper(_Folder* folder, Queue* data)
 		queue_push(data, (void*)FILE_MARKER);
 		push_string(data, file->name);
 		char buf[128];
-		sprintf(buf, "%ld %ld", file->size, file->last_modified);
+		sprintf(buf, "%ld %ld %d", file->size, file->last_modified, file->is_folder);
 		push_string(data, buf);
 	}
 	for (int i = 0; i < queue_length(folder->folders); i++)
@@ -450,7 +458,7 @@ _Folder* filesystem_deserialize_helper(char** data)
 				file->name = copy_string(*data);
 				*data += strlen(file->name) + 1;
 				int numRead;
-				sscanf(*data, "%ld %ld%n", &(file->size), &(file->last_modified), &numRead);
+				sscanf(*data, "%ld %ld %d%n", &(file->size), &(file->last_modified), &(file->is_folder), &numRead);
 				queue_push(folder->files, file);
 				*data += numRead + 1;
 				break;
@@ -516,14 +524,17 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	
+	// If there is a path that has been set, then free it.
 	if (fsi->path)
 	{
 		free(fsi->path);
 		fsi->path = NULL;
 	}
 	
+	// If the we have iterated through all the files in the current directory...
 	if (fsi->file_index == queue_length(fsi->current_files))
 	{
+		// Get the next folder from the folder stack. Return if it is NULL.
 		Folder* folder = queue_spop(fsi->folder_stack);
 		if (folder == NULL)
 		{
@@ -531,7 +542,8 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		}
 		
 		char* current_path = queue_spop(fsi->path_stack);
-	
+		
+		// Iterate through the subfolders of the next folder and push them onto the stack
 		Queue* subfolders = folder_get_folders(folder);			
 		for (int i = 0; i < queue_length(subfolders); i++)
 		{
@@ -540,8 +552,9 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 			queue_push(fsi->path_stack, add_strings(3, current_path, "/", folder_get_name(f)));
 		}
 	
+		// Reset the file index
 		fsi->file_index = 0;
-			
+		
 		free(current_path);
 		
 		Folder* next_folder = queue_speek(fsi->folder_stack);
@@ -551,10 +564,8 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		}
 		fsi->current_files = folder_get_files(next_folder);
 		
-		char* path = queue_speek(fsi->path_stack);
-		assert(path);
-		fsi->path = add_strings(2, path, "/");
-		return fsi->path;
+		fsi->path = NULL;
+		return filesystemiterator_next(iterator);
 	}
 	
 	char* path = queue_speek(fsi->path_stack);
@@ -580,13 +591,16 @@ int main()
 	
 	filesystem_print(deserialized);
 	
-	sleep(10);
+	sleep(5);
 	
 	FileSystem* additions;
 	FileSystem* deletions;
-	filesystem_diff(fs, &additions, &deletions);
+	FileSystem* new = filesystem_new("/Users/jacob/Dropbox");
+	filesystem_diff(fs, new, &additions, &deletions);
+	filesystem_destroy(new);
+	
+	
 	printf("Additions:\n");
-	filesystem_print(additions);
 	
 	FileSystemIterator* fsi = filesystemiterator_new(additions);
 	char* path;
@@ -597,7 +611,6 @@ int main()
 	filesystemiterator_destroy(fsi);
 	
 	printf("\nDeletions:\n");
-	filesystem_print(deletions);
 	
 	fsi = filesystemiterator_new(deletions);
 	while ((path = filesystemiterator_next(fsi)))

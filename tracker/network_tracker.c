@@ -43,15 +43,9 @@ void * tkr_network_start(void * arg) {
 	// open connection on listening port
 
 
-
 	// accept incoming connections -> put new client request onto queues_to_tracker[0]; add to peer table
 
 	// poll open 
-
-
-
-
-
 
 		// wait for incoming peer connections 
 		// handle inquisitive peers when they connect 
