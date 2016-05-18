@@ -112,6 +112,12 @@ ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len) {
 	return (ClientNetworkThread *)client_thread;
 }
 
+// nicely ends network
+void EndNetwork() {
+	printf("Client Network Thread ending network (badly right now)\n");
+	exit(1);
+}
+
 /* ###################### *
  * 
  * Things that the client should do to interact with network thread
