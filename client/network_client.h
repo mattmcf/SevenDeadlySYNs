@@ -10,9 +10,9 @@
 
 #define IP_MAX_LEN 16
 
-typedef struct ClientNetworkThread ClientNetworkThread;
+typedef struct CNT CNT;
 
-ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
+CNT * StartClientNetwork(char * ip_addr, int ip_len);
 
 /* ###################################
  * 
@@ -23,6 +23,9 @@ ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
 /* ----- receiving ----- */
 
 // receive transaction update
+// 	thread : (not claimed) network thread block
+// 	ret : (not claimed) diffed File System (null if no update available)
+FileSystem * recv_diff(CNT * thread);
 
 // receive acq status update
 
@@ -35,6 +38,12 @@ ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
 // receive chunk from peer
 
 /* ----- sending ----- */
+
+// sends a file system update to tracker
+// 	thread : (not claimed) network thread block
+// 	fs : (not claimed) current JFS
+// 	return : (static) 1 on success, -1 on failure
+int send_status(CNT * thread, FileSystem * fs);
 
 /* 
  * this queue must do the following things

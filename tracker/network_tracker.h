@@ -11,6 +11,19 @@
 #include "../utility/AsyncQueue.h"
 #include "../utility/FileSystem.h"
 
+typedef struct TrackerNetworkThread TrackerNetworkThread;
+
+TrackerNetworkThread * StartTrackerNetwork();
+
+/* ###################################
+ * 
+ * Functions that the client logic will call
+ *
+ * ################################### */
+
+/* ----- receiving ----- */
+
+// 
 
 /*
  * queues_to_tracker[0] -> a new client is trying to join, contains current JFS state (to logic)
