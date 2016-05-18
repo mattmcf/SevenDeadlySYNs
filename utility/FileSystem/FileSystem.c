@@ -619,6 +619,10 @@ int main()
 	}
 	filesystemiterator_destroy(fsi);
 	
+	printf("Serializing!\n");
+	filesystem_serialize(additions, &serializedFs, &length);
+	filesystem_print(filesystem_deserialize(serializedFs));
+	
 	filesystem_destroy(fs);
 	filesystem_destroy(additions);
 	filesystem_destroy(deletions);
