@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct
 {
@@ -14,7 +15,7 @@ ChunkyFile* chunkyfile_new_from_path(char* path)
     struct stat st;
     stat(path, &st);
 	
-	if (!S_ISREG(path))
+	if (!S_ISREG(st.st_mode))
 	{
 		return NULL;
 	}
@@ -37,7 +38,6 @@ ChunkyFile* chunkyfile_new_from_path(char* path)
 ChunkyFile* chunkyfile_new_empty(int size)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)malloc(sizeof(_ChunkyFile));
-	cf->path = NULL;
 	cf->data = (char*)malloc(size * sizeof(char));
 	cf->size = size;
 	return (ChunkyFile*)cf;
@@ -50,10 +50,10 @@ void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 	
 	for (int i = 0; i < cf->size; i++)
 	{
-		fputc(file, cf->data[i]);
+		fputc(cf->data[i], file);
 	}
 	
-	fcose(path);
+	fclose(file);
 }
 
 int chunkyfile_num_chunks(ChunkyFile* chunkyfile)
