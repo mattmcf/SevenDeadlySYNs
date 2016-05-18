@@ -12,11 +12,6 @@
 
 typedef struct ClientNetworkThread ClientNetworkThread;
 
-// initiates the client network thread and all datastructures
-//	ip_addr : (not claimed) 16 bytes for ip address
-// 	ip_len : (static) length of bytes
-// 	ret : (claimed) 
-
 ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
 
 /* ###################################
@@ -50,5 +45,6 @@ ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len);
  * 	- send an update to tracker about acquired chunk
  * 	- send a "I'm quitting message"
  */
+
 
  #endif _NETWORK_CLIENT_H
