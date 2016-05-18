@@ -21,9 +21,12 @@
 #include <netdb.h>
 
 #include "network_client.c"
+#include "../common/peer_table.h"
 #include "../utility/AsyncQueue.h"
 
-typedef struct _ClientNetworkThread {
+#define INIT_PEER_SIZE 10
+
+typedef struct _CNT {
 
 	/*
 	 * *** INCOMING QUEUES ***
@@ -65,18 +68,19 @@ typedef struct _ClientNetworkThread {
 	pthread_t thread_id;
 	char * ip_addr;
 	int ip_len;
+	peer_table_t * peer_table;
 
-} _ClientNetworkThread_t;
+} _CNT_t;
 
 
-ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len) {
+CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 
 	if (!ip_addr) {
 		fprintf(stderr,"StartClientNetwork: bad ip address\n");
 		return NULL;
 	}
 
-	_ClientNetworkThread_t * client_thread = (_ClientNetworkThread_t *)calloc(1,sizeof(_ClientNetworkThread_t));
+	_CNT_t * client_thread = (_CNT_t *)calloc(1,sizeof(_CNT_t));
 
 	/* -- incoming client to tracker -- */
 	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(4, sizeof(AsyncQueue *));
@@ -106,10 +110,16 @@ ClientNetworkThread * StartClientNetwork(char * ip_addr, int ip_len) {
 	memcpy(client_thread->ip_addr, ip_addr, ip_len);
 	client_thread->ip_len = ip_len;
 
+	client_thread->peer_table = init_peer_table(INIT_PEER_SIZE);
+	if (!client_thread->peer_table) {
+		fprintf(stderr,"client network thread failed to create peer table\n");
+		return NULL;
+	}
+
 	/* -- spin off network thread -- */
 	pthread_create(client_thread, NULL, clt_network_start, client_thread);
 
-	return (ClientNetworkThread *)client_thread;
+	return (CNT *)client_thread;
 }
 
 // nicely ends network
@@ -126,7 +136,7 @@ void EndNetwork() {
 
 /* ----- receiving ----- */
 
-// receive transaction update
+// receive transaction update ->
 FileSystem * recv_diff(CNT * thread) {
 
 	return NULL;
@@ -143,8 +153,11 @@ FileSystem * recv_diff(CNT * thread) {
 // receive chunk from peer
 
 /* ----- sending ----- */
-
 int send_status(CNT * thread, FileSystem * fs) {
+
+	// serialize file system
+
+	// forward to tracker
 
 	return -1;
 }
@@ -159,11 +172,8 @@ int send_status(CNT * thread, FileSystem * fs) {
  * 	- send a "I'm quitting message"
  */
 
-// sends current file system to network which will send to tracker
-int send_client_state(FileSystem * fs);
 
-// send an acquisition update to tracker letting it know that a file has been acquired
-int send_acq_update(/* what does this struct look like */);
+
 
 /* ###################### *
  * 
@@ -216,3 +226,13 @@ int connect_to_tracker(int ip_len, char * ip_addr) {
 
 	return sockfd;
 }
+
+// receive update transaction from tracker
+
+// receive acq status message from tracker
+
+// get peer deleted from tracker
+
+// get peer added from tracker
+
+// get chunk from peer

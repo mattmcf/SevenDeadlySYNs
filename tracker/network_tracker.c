@@ -21,18 +21,135 @@
 #include <netdb.h>
 
 #include "network_tracker.h"
+#include "../utility/AsyncQueue/AsyncQueue.h"
+#include "../common/peer_table.h"
+
+#define INIT_CLIENT_NUM 10
+
+typedef struct _TNT {
+
+	/* 
+	 * *** INCOMING QUEUES ****
+	 *
+	 * -- client to tracker --
+	 * queues_to_tracker[0] -> a new client is trying to join, contains current JFS state (to logic)
+ 	 * queues_to_tracker[1] -> client has just updated a file (to logic)
+ 	 * queues_to_tracker[2] -> client disconnected queue (to logic)
+ 	 * queues_to_tracker[3] -> client successful get queue (to logic)
+ 	 * queues_to_tracker[4] -> client failed to get queue (to logic)
+ 	 *
+ 	 */
+ 	AsyncQueue ** queues_to_tracker; 		// to logic
+
+ 	/*
+ 	 * *** OUGOING QUEUES ***
+ 	 *
+ 	 * -- tracker to client --
+ 	 * queues_from_tracker[0] -> transaction update queue
+ 	 * queues_from_tracker[1] -> file acquisition status update queue
+ 	 * queues_from_tracker[2] -> peer added messages to distribute
+ 	 * queues_from_tracker[3] -> peer removed messages to distribute
+ 	 *
+ 	 */
+ 	AsyncQueue ** queues_from_tracker;  	// from logic
+
+ 	/*
+ 	 * networking monitoring information
+ 	 */
+ 	pthread_t thread_id;
+ 	peer_table_t * peer_table;
+
+} _TNT_t;
+
+TNT * StartTrackerNetwork() {
+
+	_TNT_T * tracker_thread = (_TNT_T *)calloc(1,sizeof(_TNT_T));
+
+	/* -- incoming from client to tracker -- */
+	tracker_thread->queues_to_tracker = (AsyncQueue **)calloc(5,sizeof(AsyncQueue *));
+	tracker_thread->queues_to_tracker[0] = asyncqueue_new();
+	tracker_thread->queues_to_tracker[1] = asyncqueue_new();
+	tracker_thread->queues_to_tracker[2] = asyncqueue_new();
+	tracker_thread->queues_to_tracker[3] = asyncqueue_new();
+	tracker_thread->queues_to_tracker[4] = asyncqueue_new();
+
+	/* -- outgoing from tracker to client -- */
+	tracker_thread->queues_from_tracker = (AsyncQueue **)calloc(4,sizeof(AsyncQueue *));
+	tracker_thread->queues_from_tracker[0] = asyncqueue_new();
+	tracker_thread->queues_from_tracker[1] = asyncqueue_new();
+	tracker_thread->queues_from_tracker[2] = asyncqueue_new();
+	tracker_thread->queues_from_tracker[3] = asyncqueue_new();
+
+	/* -- set up auxillary information -- */
+	tracker_thread->peer_table = init_peer_table(int size);
+	if (!tracker_thread->peer_table) {
+		fprintf(stderr,"StartTrackerNetwork failed to create peer table\n");
+		return NULL:
+	}
+
+	/* -- spin off network thread -- */
+	pthread_create(tracker_thread, NULL, tkr_network_start, tracker_thread);
+
+	return (TNT *)tracker_thread;
+}
+
+void EndNetwork() {
+	printf("Tracker Network Thread ending network (badly right now)\n");
+	exit(1);
+}
+
+/* ###################### *
+ * 
+ * Things that the client can do to interact with network
+ *
+ * ###################### */
+
+/* ----- receiving ----- */
+
+// Receives a "current state" fs message from client 
+//	fs : (not claimed) pointer that will reference deserialized client JFS
+// 	clientid : (not claimed) pointer to int that will be filled with client id
+// 	ret : (static) 1 is success, -1 is failure (communications broke) 
+int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid);
+
+// client file system update (got and failed to get)
+// 	tnt : (not claimed) thread block 
+//	clientid : (not claimed) space for client id that will be filled if update is there
+// 	ret : (not claimed) client's update JFS (new minus original)
+FileSystem * receive_client_update(TNT * tnt, int * clientid);
+
+// client added
+
+// client deleted
+
+/* ----- sending ----- */
+
+// Sends a serialized filesystem of diffs to client
+// 	fs : (not claimed) pointer to diff FileSystem
+// 	clientid : (static) which client to send to
+// 	ret : (static) 1 is success, -1 is failure ()
+int send_transaction_update(FileSystem * fs, int clientid);
+
+// Sends file system update
+int send_FS_update();
+
+// send to all peers to notify that a new peer has appeared
+send_peer_added(TNT * tnt);
+
+// send to all peers to notify that peer has disappeared
+send_peer_removed(TNT * tnt);
+
+/* ###################### *
+ * 
+ * The Tracker Network thread functions are below
+ *
+ * ###################### */
 
 // returns listening socket fd
 int open_listening_port();
 
 // spins up a secondary thread to accept new peer connections
 void * accept_connections(void * listening_socket);
-
-/* ###################### *
- * 
- * Working loop...
- *
- * ###################### */
 
 void * tkr_network_start(void * arg) {
 

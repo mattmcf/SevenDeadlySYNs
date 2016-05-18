@@ -5,8 +5,8 @@
  *
  */
 
- #ifndef _NETWORK_CLIENT_H
- #define _NETWORK_CLIENT_H
+#ifndef _NETWORK_CLIENT_H
+#define _NETWORK_CLIENT_H
 
 #define IP_MAX_LEN 16
 
@@ -50,8 +50,8 @@ FileSystem * recv_diff(CNT * thread);
 int send_status(CNT * thread, FileSystem * fs);
 
 /* 
- * this queue must do the following things
- * 	- send a current status update (JFS)
+ * Must be able to do the following
+ * 	- send a current status update (JFS) -> send_status()
  * 	- send a request for a file chunk
  * 	- send a file chunk
  * 	- send an error (associated with an attempt to get a chunk)
