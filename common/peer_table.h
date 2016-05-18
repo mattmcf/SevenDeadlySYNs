@@ -23,14 +23,15 @@ typedef struct peer {
 
 
 typedef struct peer_table {
-	peer_t ** table;
+	peer_t ** peer_list;
 	int count;
 	int size;
+	int id_counter;
 } peer_table_t;
 
 peer_table_t * init_peer_table(int size);
 
-peer_t * add_peer(peer_table_t * table, char * ip_addr);
+peer_t * add_peer(peer_table_t * table, char * ip_addr, int socketfd);
 
 void delete_peer(peer_table_t * table, int id);
 

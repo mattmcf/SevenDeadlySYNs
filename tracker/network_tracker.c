@@ -22,8 +22,6 @@
 
 #include "network_tracker.h"
 
-int id_counter = 0;
-
 // returns listening socket fd
 int open_listening_port();
 
