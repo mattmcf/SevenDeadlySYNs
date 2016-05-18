@@ -14,4 +14,8 @@
 // defined DART_SYNC directory that will be syncronized across peers
 #define DARTSYNC_DIR "~/dart_sync/"
 
+// metadata file that contains the most recent serialized 
+// version of the filesystem received from the tracker
+#define DARTSYNC_METADATA "~/.dart_sync_metadata.txt"
+
 #endif // _CONSTANTS_H

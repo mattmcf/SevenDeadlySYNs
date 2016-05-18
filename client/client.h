@@ -26,27 +26,14 @@ typedef struct networkrequest{
 
 /* -------------------------- Function Headers ------------------------- */
 
-/* Start the network thread to connect to the tracker and initialize 
- * queues used to communicate with the network thread
- * 	net_thread_id	:	(not claimed) the network thread identifier 
- *	peer_t_net_q	:	(not claimed) the queue used to pass requests to
- *						the network thread
- */
-int connectToNetwork();
-
-/* close connections with tracker and any active client connections,
- * free structures 
- * 	net_thread_id	:	(claimed) the network thread identifier 
- *	peer_t_net_q	:	(claimed) the queue used to pass requests to
- *						the network thread
- */
-int dropFromNetwork();
-
 /* monitor filesystem */
-int monitorFilesystem();
+int MonitorFilesystem();
 
 /* request chunk */
-int requestUpdate();
+int RequestUpdate();
 
 /* update client table */
-int updateClientTable();
+int UpdateClientTable();
+
+/* drop from network */
+int DropFromNetwork();
