@@ -333,7 +333,8 @@ void * tkr_network_start(void * arg) {
 			tracker_data_t * queue_item;
 			peer_t * client;
 
-			queue_item = (tracker_data_t *)asyncqueue_pop(thread_block->queues_from_tracker[4]); // -> send master file system to client
+			/* --- deal with requests for master file system --- */
+			queue_item = (tracker_data_t *)asyncqueue_pop(thread_block->queues_from_tracker[4]);
 			if (queue_item != NULL) {
 				client = get_peer_by_id(thread_block->peer_table, queue_item->client_id);
 
