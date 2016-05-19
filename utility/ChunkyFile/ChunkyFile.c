@@ -105,5 +105,41 @@ void chunkyfile_set_chunk(ChunkyFile* chunkyfile, int chunkNum, char*  chunk, in
 	memcpy(cf->data + chunkNum * CHUNKYFILE_CHUNK_SIZE, chunk, chunkSize);
 }
 
+/*
+int main()
+{
+	ChunkyFile* cf = chunkyfile_new_from_path("/Users/jacob/markov.txt");
+	int nc = chunkyfile_num_chunks(cf);
+	
+	for (int i = 0; i < nc; i++)
+	{
+		char* chunk;
+		int length;
+		chunkyfile_get_chunk(cf, i, &chunk, &length);
+		for (int j = 0; j < length; j++)
+		{
+			putchar(chunk[j]);
+		}
+	}
+	
+	printf("Num Chunks: %d\n", chunkyfile_num_chunks(cf));
+	return 0;
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
