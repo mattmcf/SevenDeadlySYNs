@@ -38,8 +38,16 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid);
 FileSystem * receive_client_update(TNT * tnt, int * clientid);
 
 // client added
+// 	tnt : (not claimed) thread block
+//	ret : client id (-1 on failure, id on success)
+int receive_new_client(TNT * tnt);
 
 // client deleted
+
+// receive client request
+// 	tnt : (not claimed) thread block
+// 	ret : (static) client id if there's an outstanding request, else -1
+int receive_master_request(TNT * tnt);
 
 /* ----- sending ----- */
 
@@ -50,13 +58,15 @@ FileSystem * receive_client_update(TNT * tnt, int * clientid);
 int send_transaction_update(TNT * tnt, FileSystem * fs, int clientid);
 
 // Sends file system update
-int send_FS_update();
+int send_FS_update(TNT * tnt);
 
 // send to all peers to notify that a new peer has appeared
-int send_peer_added();
+int send_peer_added(TNT * tnt);
 
 // send to all peers to notify that peer has disappeared
-int send_peer_removed();
+int send_peer_removed(TNT * tnt);
 
+// send master JFS to client
+int send_master(TNT * tnt, int client_id, FileSystem * fs);
 
 #endif // _NETWORK_TRACKER_H 

@@ -13,7 +13,7 @@
 /*
  * How to send a packet with an arbitrary amount of data attached:
  * 	1) send type + data len
- * 	2) send data buffer 
+ * 	2) send data  
  *
  * Splitting up packet is necessary because we can't allocate a struct that will
  * be guaranteed to hold all of the data. 
@@ -23,18 +23,6 @@
  * 	2) recv() data into an allocated buffer of data_len size
  */
 
-typedef enum {
-	CLIENT_STATE,
-	CLIENT_UPDATE,
-} client_to_tracker_t;
-
-typedef enum {
-	TRANSACTION_UPDATE,
-	FILE_ACQ_UPDATE,
-	PEER_ADDED,
-	PEER_DELETED,
-} tracker_to_client_t;
-
 /*
  * data field will be structured as follows:
  * 	TRANSACTION_UPDATE -> a serialized FileSystem
@@ -43,11 +31,49 @@ typedef enum {
  * 	PEER_DELETED -> N ints (ids) to delete where N = len / sizeof(int)
  */
 
+/* ----- TRACKER TO CLIENT ----- */
+
+typedef enum {
+	TRANSACTION_UPDATE,
+	FILE_ACQ_UPDATE,
+	MASTER_STATUS,
+	PEER_ADDED,
+	PEER_DELETED,
+} tracker_to_client_t;
+
 typedef struct tracker_pkt {
 	tracker_to_client_t type;
 	int data_len;
-	char * data;
+	//char * data;
 } tracker_pkt_t;
 
+// use this struct to put data onto the queue from logic
+typedef struct tracker_data {
+	int client_id;
+	int data_len;
+	void * data;
+} tracker_data_t;
+
+/* ----- CLIENT TO TRACKER ----- */
+
+typedef enum {
+	CLIENT_STATE,
+	CLIENT_UPDATE,
+	REQUEST_MASTER,
+
+} client_to_tracker_t;
+
+typedef struct client_pkt {
+	client_to_tracker_t type;
+	int data_len;
+	//char * data;
+} client_pkt_t;
+
+// Use this struct to put data onto the queue to logic
+typedef struct client_data {
+	int client_id;
+	int data_len;
+	void * data;
+} client_data_t;
 
 #endif // _PACKETS_H

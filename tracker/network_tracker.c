@@ -24,6 +24,7 @@
 #include "../utility/AsyncQueue/AsyncQueue.h"
 #include "../common/constant.h"
 #include "../common/peer_table.h"
+#include "../common/packets.h"
 
 #define INIT_CLIENT_NUM 10
 
@@ -39,6 +40,7 @@ typedef struct _TNT {
  	 * queues_to_tracker[3] -> client disconnected queue (to logic)
  	 * queues_to_tracker[4] -> client successful get queue (to logic)
  	 * queues_to_tracker[5] -> client failed to get queue (to logic)
+ 	 * queues_to_tracker[6] -> client requests for master file system
  	 *
  	 */
  	AsyncQueue ** queues_to_tracker; 		// to logic
@@ -51,6 +53,7 @@ typedef struct _TNT {
  	 * queues_from_tracker[1] -> file acquisition status update queue
  	 * queues_from_tracker[2] -> peer added messages to distribute
  	 * queues_from_tracker[3] -> peer removed messages to distribute
+ 	 * queues_from_tracker[4] -> send master file system to client
  	 *
  	 */
  	AsyncQueue ** queues_from_tracker;  	// from logic
@@ -72,20 +75,22 @@ TNT * StartTrackerNetwork() {
 	_TNT_t * tracker_thread = (_TNT_t *)calloc(1,sizeof(_TNT_t));
 
 	/* -- incoming from client to tracker -- */
-	tracker_thread->queues_to_tracker = (AsyncQueue **)calloc(6,sizeof(AsyncQueue *));
+	tracker_thread->queues_to_tracker = (AsyncQueue **)calloc(7,sizeof(AsyncQueue *));
 	tracker_thread->queues_to_tracker[0] = asyncqueue_new();
 	tracker_thread->queues_to_tracker[1] = asyncqueue_new();
 	tracker_thread->queues_to_tracker[2] = asyncqueue_new();
 	tracker_thread->queues_to_tracker[3] = asyncqueue_new();
 	tracker_thread->queues_to_tracker[4] = asyncqueue_new();
 	tracker_thread->queues_to_tracker[5] = asyncqueue_new();
+	tracker_thread->queues_to_tracker[6] = asyncqueue_new();
 
 	/* -- outgoing from tracker to client -- */
-	tracker_thread->queues_from_tracker = (AsyncQueue **)calloc(4,sizeof(AsyncQueue *));
+	tracker_thread->queues_from_tracker = (AsyncQueue **)calloc(5,sizeof(AsyncQueue *));
 	tracker_thread->queues_from_tracker[0] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[1] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[2] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[3] = asyncqueue_new();
+	tracker_thread->queues_from_tracker[4] = asyncqueue_new();
 
 	/* -- set up auxillary information -- */
 	tracker_thread->peer_table = init_peer_table(INIT_CLIENT_NUM);
@@ -114,10 +119,16 @@ void EndNetwork() {
 /* ----- receiving ----- */
 
 // Receives a "current state" fs message from client 
-//	fs : (not claimed) pointer that will reference deserialized client JFS
+//	fs : (not claimed) pointer that will reference deserialized client JFS -- need to be claimed by logic
 // 	clientid : (not claimed) pointer to int that will be filled with client id
 // 	ret : (static) 1 is success, -1 is failure (communications broke) 
-int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid);
+int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
+	_TNT_t * thread_block = (_TNT_t *)tnt;
+	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[0]);
+	*fs = data_pkt->data;
+	*clientid = data_pkt->client_id;
+	return 1;
+}
 
 // client file system update (got and failed to get)
 // 	tnt : (not claimed) thread block 
@@ -127,25 +138,39 @@ FileSystem * receive_client_update(TNT * tnt, int * clientid);
 
 // client added
 // 	tnt : (not claimed) thread block
-//	ret : client id (-1 on failure, 1 on success)
+//	ret : client id (-1 on failure, id on success)
 int receive_new_client(TNT * tnt) {
 	_TNT_t * thread_block = (_TNT_t *) tnt;
-	int id = (int)asyncqueue_pop(thread_block->queues_to_tracker[2]);
+	int id = (int)(long)asyncqueue_pop(thread_block->queues_to_tracker[2]);
 	return (id > 0) ? id : -1;
 }
 
 // client deleted
 
+// receive client request for master JFS
+// 	tnt : (not claimed) thread block
+// 	ret : (static) client id if there's an outstanding request, else -1
+int receive_master_request(TNT * tnt) {
+	_TNT_t * thread_block = (_TNT_t *)tnt;
+	int id = (int)(long)asyncqueue_pop(thread_block->queues_to_tracker[6]);
+	return (id > 0) ? id : -1;
+}
+
 /* ----- sending ----- */
 
 // Sends a serialized filesystem of diffs to client
-// 	fs : (not claimed) pointer to diff FileSystem
+// 	fs : (claimed) pointer to diff FileSystem
 // 	clientid : (static) which client to send to
 // 	ret : (static) 1 is success, -1 is failure ()
-int send_transaction_update(TNT * tnt, FileSystem * fs, int clientid);
+int send_transaction_update(TNT * tnt, FileSystem * fs, int clientid) {
+	if (!tnt || !fs)
+		return -1;
+
+	return 1;
+}
 
 // Sends file system update
-int send_FS_update();
+int send_FS_update(TNT * tnt);
 
 // send to all peers to notify that a new peer has appeared
 int send_peer_added(TNT * tnt);
@@ -153,27 +178,56 @@ int send_peer_added(TNT * tnt);
 // send to all peers to notify that peer has disappeared
 int send_peer_removed(TNT * tnt);
 
+// send the master file system to client
+// 	returns 1 if successful else -1
+int send_master(TNT * tnt, int client_id, FileSystem * fs) {
+	_TNT_t * thread_block = (_TNT_t *)tnt;
+	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
+	queue_item->client_id = client_id;
+
+	filesystem_serialize(fs, queue_item->data, &queue_item->data_len);
+
+	asyncqueue_push(thread_block->queues_from_tracker[4], (void *)queue_item);
+	return 1;
+}
+
 /* ###################### *
  * 
  * Things the network can do to interact with the tracker
  *
  * ###################### */
 
+// notify logic about client status update
+//	tnt : (not claimed) thead block
+// 	data : (not claimed)
+//	returns 1 on success and -1 on failure
+// 	
+int notify_client_status(_TNT_t * tnt, client_data_t * data) {
+	if (!tnt || !data) 
+		return -1;
+
+	asyncqueue_push(tnt->queues_to_tracker[0],(void *)data);
+	return 1;
+}
+
+// notify logic that client has updated a file
+
 // notify logic about new client
+// 	tnt : (not claimed) thread block
+// 	new_client : (not claimed) don't claim this!
 // 	returns 1 on success and -1 on failure
 int notify_new_client(_TNT_t * tnt, peer_t * new_client) {
 	if (!tnt || !new_client)
 		return -1;
 
-	asyncqueue_push(tnt->queues_to_tracker[2],(void *)new_client->id);
+	asyncqueue_push(tnt->queues_to_tracker[2],(void *)(long)new_client->id);
 	return 1;
 }
 
 // notify about client lost
 
-// notify client status update
+// notify about file acquiring update (success and failure)
 
-// notify about file acquiring update
 
 /* ###################### *
  * 
@@ -183,6 +237,12 @@ int notify_new_client(_TNT_t * tnt, peer_t * new_client) {
 
 // returns listening socket fd
 int open_listening_port();
+
+// sends a message to client
+int send_client_message(_TNT_t * tnt, tracker_data_t * data, tracker_to_client_t type);
+
+// processes existing client message
+int handle_client_msg(int sockfd, _TNT_t * tnt);
 
 // spins up a secondary thread to accept new peer connections
 void * accept_connections(void * listening_socket);
@@ -232,7 +292,6 @@ void * tkr_network_start(void * arg) {
 			continue;
 		}
 
-
 		printf("network polling connections...\n");
 		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
@@ -260,10 +319,33 @@ void * tkr_network_start(void * arg) {
 				// existing connection
 				} else {
 
-					// handle connection on existing socket
+					handle_client_msg(i, thread_block);
 
 				}
 			}
+
+
+			// poll queues
+			//tracker_thread->queues_from_tracker[0]; // -> transaction update queue
+			//tracker_thread->queues_from_tracker[1]; // -> file acquisition status update queue
+			//tracker_thread->queues_from_tracker[2]; // -> peer added messages to distribute
+			//tracker_thread->queues_from_tracker[3]; // -> peer removed messages to distribute
+			tracker_data_t * queue_item;
+			peer_t * client;
+
+			queue_item = (tracker_data_t *)asyncqueue_pop(thread_block->queues_from_tracker[4]); // -> send master file system to client
+			if (queue_item != NULL) {
+				client = get_peer_by_id(thread_block->peer_table, queue_item->client_id);
+
+				printf("NETWORK -- sending master JFS to client %d\n", queue_item->client_id);
+				if (send_client_message(thread_block, queue_item, MASTER_STATUS) != 1) {
+					fprintf(stderr,"failed to send master status update to client %d\n", queue_item->client_id);
+				}
+				free(queue_item);
+			}
+			 
+
+
 
 		}
         
@@ -283,6 +365,70 @@ void * tkr_network_start(void * arg) {
 
 	printf("network tracker ending\n");
 	return (void *)1;
+}
+
+// processes existing client message
+// 	if successful, returns 1
+int handle_client_msg(int sockfd, _TNT_t * tnt) {
+	if (!tnt)
+		return -1;
+
+	client_pkt_t pkt;
+	char * buf;
+	peer_t * client = get_peer_by_socket(tnt->peer_table, sockfd);
+	if (!client) {
+		fprintf(stderr,"failed to get client on socket %d\n", sockfd);
+		return -1;
+	}
+
+	// get type and data length
+	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
+		fprintf(stderr,"error receiving header data from client %d\n", client->id);
+		return -1;
+	}
+
+	// set up data buffer
+	buf = (char *)calloc(1,pkt.data_len);
+	if (!buf) {
+		fprintf(stderr, "error receiving data -- could not allocate buffer\n");
+		return -1;
+	}
+
+	// receive data
+	if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
+		fprintf(stderr,"error receiving data from client %d\n", client->id);
+		return -1;
+	}
+
+	// set up data to pass to logic
+	client_data_t * client_data = malloc(sizeof(client_data_t));
+	client_data->client_id = client->id;
+
+	int rc = -1;
+	switch(pkt.type) {
+		case CLIENT_STATE:
+			printf("NETWORK -- received state update from client %d\n", client->id);
+			FileSystem * fs = filesystem_deserialize(buf);
+			if (!fs) {
+				printf("error deserializing client state update\n");
+				break;
+			}
+			client_data->data = (void *)fs;
+			notify_client_status(tnt, client_data);
+			rc = 1;
+			break;
+
+
+		case CLIENT_UPDATE:
+			break;
+
+		default:
+			printf("Unknown packet type (%d) from client id %d\n", pkt.type, client->id);
+
+	}
+
+	free(buf);
+	return rc;
 }
 
 /* ###################### *
@@ -367,4 +513,27 @@ int open_listening_port() {
 	freeaddrinfo(servinfo); 	// free filled out structure
 
 	return listening_sockfd;
+}
+
+// returns 1 if successfully sent, else -1
+int send_client_message(_TNT_t * tnt, tracker_data_t * data, tracker_to_client_t type) {
+
+	if (!tnt || !data)
+		return -1;
+
+	tracker_pkt_t pkt; 
+	peer_t * client = get_peer_by_id(tnt->peer_table, data->client_id);
+	if (!client)
+		return -1;
+
+	if (client->socketfd < 0)
+		return -1;
+
+	pkt.type = type;
+	pkt.data_len = data->data_len;
+
+	send(client->socketfd, &pkt, sizeof(pkt), 0);
+	send(client->socketfd, data->data, data->data_len, 0);
+
+	return 1;
 }

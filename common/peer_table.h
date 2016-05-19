@@ -39,6 +39,12 @@ peer_t * get_peer_by_id(peer_table_t * table, int id);
 
 peer_t * get_peer_by_socket(peer_table_t * table, int fd);
 
+// returns 
+char * serialize_peer_table(peer_table_t * table, int * len);
+
+// claims buffer
+peer_table_t * deserialize_peer_table(char * buffer, int length);
+
 void destroy_table(peer_table_t * table);
 
 void print_table(peer_table_t * table);

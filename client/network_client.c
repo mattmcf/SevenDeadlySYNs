@@ -202,6 +202,60 @@ void * clt_network_start(void * arg) {
 		sleep(5);
 	}
 
+	// set up timer
+	struct timeval timeout;
+	timeout.tv_sec = 3;
+	timeout.tv_usec = 0;
+
+	// select fd sets
+	fd_set read_fd_set, active_fd_set;
+	FD_ZERO(&active_fd_set);
+
+	// add listening socket to fd set
+	FD_SET(tracker_fd, &active_fd_set);
+
+	/* need to open peer listening socket */
+	int peer_listening_fd = -1;
+
+	int connected = 1;
+	while (connected) {
+
+		read_fd_set = active_fd_set;
+		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout) < 0) {
+			fprintf(stderr, "network client failed to select amongst inputs\n");
+			connected = 0;
+			continue;
+		}
+
+		printf("client network polling connections...\n");
+		for (int i = 0; i < FD_SETSIZE; i++) {
+			if (FD_ISSET(i, &read_fd_set)) {
+
+				// new connection
+				if (i == tracker_fd) {
+
+					printf("Receiving message from tracker\n");
+					handle_tracker_msg(tracker_fd, cnt);
+					
+
+				// existing connection
+				} else if (i == peer_listening_fd) {
+
+					printf("Receiving new connection from peer\n");
+					handle_peer_msg(i, cnt);
+
+					// new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
+					// if (new_sockfd < 0) {
+					// 	fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+					// 	continue;
+					// }
+
+				}
+			}
+
+		}
+
+	}
 
 	return (void *)1;
 }
@@ -222,11 +276,11 @@ int connect_to_tracker(int ip_len, char * ip_addr) {
 	}
 
 	// fill out server struct
-	struct sockaddr_in servaddr;
+	struct sockaddr_in6 servaddr;
 	memset(&servaddr, 0, sizeof(servaddr));
-	memcpy(&servaddr.sin_addr.s_addr, ip_addr, ip_len);
-	servaddr.sin_family = AF_INET6;
-	servaddr.sin_port = htons(TRACKER_LISTENING_PORT); 
+	memcpy(&servaddr.sin6_addr, ip_addr, ip_len);
+	servaddr.sin6_family = AF_INET6;
+	servaddr.sin6_port = htons(TRACKER_LISTENING_PORT); 
 
 	// connect
 	if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
@@ -237,12 +291,35 @@ int connect_to_tracker(int ip_len, char * ip_addr) {
 	return sockfd;
 }
 
-// receive update transaction from tracker
+int handle_tracker_msg(int tracker_fd, _CNT_t * cnt) {
+	if (!cnt)
+		return -1;
 
-// receive acq status message from tracker
+	tracker_pkt_t pkt;
+	if (recv(tracker_fd, &pkt, sizeof(tracker_pkt_t)) != sizeof(tracker_pkt_t)){
+		fprintf(stderr,"client network failed to get message from tracker\n");
+		return -1;
+	}
 
-// get peer deleted from tracker
+	char * buf = malloc(pkt.data_len);
 
-// get peer added from tracker
+	switch (pkt.type) {
+		case TRANSACTION_UPDATE:
+			if (recv(tracker_fd, buf, pkt.data_len) != pkt.data_len) {
+				fprintf(stderr, "client network has error receiving data in transaction update\n");
+				break;
+			}
+			
 
-// get chunk from peer
+			break;
+
+		case FILE_ACQ_UPDATE:
+		case PEER_ADDED:
+		case PEER_DELETED:
+		default:
+			printf("CLIENT NETWORK received unhandled packet of type %d\n", pkt.type);
+			break;
+	}
+
+
+}
