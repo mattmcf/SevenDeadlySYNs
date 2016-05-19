@@ -33,6 +33,18 @@ void filesystem_print(FileSystem* fs);
 //	deletions  : (not claimed) After returning, contains a filesystem describing any files that were deleted.
 void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions);
 
+// Subtracts one filesystem1 from filesystem0, filesystem0 -= filesystem1
+// filesystem0 : (not claimed) The filesystem that should have things removed from it. THIS IS MODIFIED!!!
+// filesystem1 : (not claimed) The other filesystem. Not modified. This argument should come from the
+//							   deletions return value of filesystem_diff.
+void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1);
+
+// Adds one filesystem1 to filesystem0, filesystem0 += filesystem1
+// filesystem0 : (not claimed) The filesystem that should have things added to it. THIS IS MODIFIED!!!
+// filesystem1 : (not claimed) The other filesystem. Not modified. This argument should come from the
+//							   additions return value of filesystem_diff.
+void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1);
+
 // Performs a deep copy of the given filesystem.
 //	filesystem : (not claimed) The filesystem to copy.
 //	ret        : (not claimed) The copy of the provided filesystem. 
@@ -50,9 +62,10 @@ char* filesystem_get_root_path(FileSystem* filesystem);
 void filesystem_serialize(FileSystem* filesystem, char** data, int* length);
 
 // Takes some data and deserializes it into a filesystem.
-//	data   : (not claimed) The data to deserialize
-//	ret	   : (not claimed) The returned filesystem
-FileSystem* filesystem_deserialize(char* data);
+//	data      : (not claimed) The data to deserialize
+//  bytesRead : (not claimed) The number of bytes read by the deserializer
+//	ret	      : (not claimed) The returned filesystem
+FileSystem* filesystem_deserialize(char* data, int* bytesRead);
 
 // Destroys a filesystem
 //	fs : (claimed) The filesystem to destroy
