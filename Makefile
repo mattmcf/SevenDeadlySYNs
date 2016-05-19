@@ -1,12 +1,11 @@
-UTILITY_DIR = utility/
-UTILITY_FILES = $(UTILITY_DIR)/AsyncQueue/AsyncQueue.h $(UTILITY_DIR)/AsyncQueue/AsyncQueue.c \
-	$(UTILITY_DIR)/FileSystem/FileSystem.h $(UTILITY_DIR)/FileSystem/FileSystem.c \
-	$(UTILITY_DIR)/HashTable/HashTable.h $(UTILITY_DIR)/HashTable/HashTable.c \
-	$(UTILITY_DIR)/LinkedList/LinkedList.h $(UTILITY_DIR)/LinkedList/LinkedList.c \
-	$(UTILITY_DIR)/Queue/Queue.h $(UTILITY_DIR)/Queue/Queue.c \
-	$(UTILITY_DIR)/SDSet/SDSet.h $(UTILITY_DIR)/SDSet/SDSet.c 
-
-UTILITY_OBJS = $(UTILITY_FILES:.c=.0)
+# UTILITY_DIR = utility/
+# UTILITY_FILES = $(UTILITY_DIR)/AsyncQueue/AsyncQueue.h $(UTILITY_DIR)/AsyncQueue/AsyncQueue.c \
+# 	$(UTILITY_DIR)/FileSystem/FileSystem.h $(UTILITY_DIR)/FileSystem/FileSystem.c \
+# 	$(UTILITY_DIR)/HashTable/HashTable.h $(UTILITY_DIR)/HashTable/HashTable.c \
+# 	$(UTILITY_DIR)/LinkedList/LinkedList.h $(UTILITY_DIR)/LinkedList/LinkedList.c \
+# 	$(UTILITY_DIR)/Queue/Queue.h $(UTILITY_DIR)/Queue/Queue.c \
+# 	$(UTILITY_DIR)/SDSet/SDSet.h $(UTILITY_DIR)/SDSet/SDSet.c 
+# UTILITY_OBJS = $(UTILITY_FILES:.c=.0)
 
 HEADER_FILES = common/constant.h 
 
