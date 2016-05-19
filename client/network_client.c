@@ -20,9 +20,11 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "network_client.c"
+#include "network_client.h"
+#include "../common/constant.h"
 #include "../common/peer_table.h"
-#include "../utility/AsyncQueue.h"
+#include "../utility/AsyncQueue/AsyncQueue.h" 
+#include "../utility/FileSystem/FileSystem.h" 
 
 #define INIT_PEER_SIZE 10
 
@@ -72,6 +74,8 @@ typedef struct _CNT {
 
 } _CNT_t;
 
+// network thread start point
+void * clt_network_start(void * arg);
 
 CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 
@@ -117,7 +121,7 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 	}
 
 	/* -- spin off network thread -- */
-	pthread_create(client_thread, NULL, clt_network_start, client_thread);
+	pthread_create(&client_thread->thread_id, NULL, clt_network_start, client_thread);
 
 	return (CNT *)client_thread;
 }
@@ -177,33 +181,39 @@ int send_status(CNT * thread, FileSystem * fs) {
 
 /* ###################### *
  * 
- * Things that the network thread will do
+ * Network Thread functions
  *
  * ###################### */
+
+/* ------------------------ FUNCTION DECLARATIONS ------------------------ */
 
 // returns listening socket fd
 int connect_to_tracker();
 
+/* ------------------------ NETWORK THREAD ------------------------ */
+
 void * clt_network_start(void * arg) {
 
-	_ClientNetworkThread_t * cnt = (_ClientNetworkThread_t *)arg;
+	_CNT_t * cnt = (_CNT_t *)arg;
 
 	int tracker_fd;
-	while ( (tracker_fd = connect_to_tracker) < 0) {
+	while ( (tracker_fd = connect_to_tracker()) < 0) {
 		printf("Failed to connect with tracker...\n");
 		sleep(5);
 	}
 
 
-
+	return (void *)1;
 }
+
+/* ------------------------ FUNCTION DEFINITIONS ------------------------ */
 
 // connects to the tracker
 //	returns connected socket if successful
 // 	else returns -1
 int connect_to_tracker(int ip_len, char * ip_addr) {
 	if (!ip_addr)
-		return -1
+		return -1;
 
 	int sockfd;
 	if ((sockfd = socket(AF_INET6, SOCK_STREAM, 6)) < 0) {

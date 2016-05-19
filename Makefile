@@ -1,4 +1,3 @@
-
 UTILITY_DIR = utility/
 UTILITY_FILES = $(UTILITY_DIR)/AsyncQueue/AsyncQueue.h $(UTILITY_DIR)/AsyncQueue/AsyncQueue.c \
 	$(UTILITY_DIR)/FileSystem/FileSystem.h $(UTILITY_DIR)/FileSystem/FileSystem.c \
@@ -9,15 +8,15 @@ UTILITY_FILES = $(UTILITY_DIR)/AsyncQueue/AsyncQueue.h $(UTILITY_DIR)/AsyncQueue
 
 UTILITY_OBJS = $(UTILITY_FILES:.c=.0)
 
-HEADER_FILES = $(COMMON_DIR)constant.h 
+HEADER_FILES = common/constant.h 
 
 OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utility/AsyncQueue/asyncqueue.o \
 	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/SDSet/SDSet.o \
 	common/peer_table.o
 
 all: tracker/tracker_app client/client_app
-	
-	
+
+
 tracker/tracker_app: tracker/tracker.c tracker/tracker.h tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc -Wall -pedantic -std=c99 -g tracker/tracker.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/tracker_app
 
@@ -25,10 +24,10 @@ client/client_app: client/client.c client/client.h client/network_client.o $(OBJ
 	gcc -Wall -pedantic -std=c99 -g client/client.c client/network_client.o $(OBJ_FILES) -o client/client_app
 
 tracker/network_tracker.o: tracker/network_tracker.c tracker/network_tracker.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread -Wall -pedantic -std=c99 -g -c tracker/network_tracker.c $(OBJ_FILES) -o tracker/network_tracker.o
+	gcc -pthread -Wall -pedantic -std=c99 -g -c tracker/network_tracker.c utility/FileSystem/FileSystem.o -o tracker/network_tracker.o
 
 client/network_client.o: client/network_client.c client/network_client.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread -Wall -pedantic -std=c99 -g -c client/network_client.c $(OBJ_FILES) -o client/network_client.o
+	gcc -pthread -Wall -pedantic -std=c99 -g -c client/network_client.c utility/FileSystem/FileSystem.o utility/AsyncQueue/asyncqueue.o -o client/network_client.o
 
 common/peer_table.o: common/peer_table.h common/peer_table.c $(HEADER_FILES)
 	gcc -Wall -pedantic -std=c99 -g -c common/peer_table.c -o common/peer_table.o
@@ -43,7 +42,7 @@ utility/HashTable/HashTable.o: utility/HashTable/HashTable.c utility/HashTable/H
 	gcc -Wall -pedantic -std=c99 -g -c utility/HashTable/HashTable.c -o utility/HashTable/HashTable.o 
 
 utility/LinkedList/LinkedList.o: utility/LinkedList/LinkedList.c utility/LinkedList/LinkedList.h
-	gcc -Wall -pedantic -std=c99 -g -c utility/LinkedList/LinkedList.c -o LinkedList/LinkedList.o 
+	gcc -Wall -pedantic -std=c99 -g -c utility/LinkedList/LinkedList.c -o utility/LinkedList/LinkedList.o 
 
 utility/AsyncQueue/asyncqueue.o: utility/AsyncQueue/AsyncQueue.c utility/AsyncQueue/AsyncQueue.h utility/Queue/queue.o
 	gcc -pthread -g -c utility/AsyncQueue/AsyncQueue.c -o utility/AsyncQueue/asyncqueue.o

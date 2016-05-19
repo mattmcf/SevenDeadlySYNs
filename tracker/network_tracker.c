@@ -22,6 +22,7 @@
 
 #include "network_tracker.h"
 #include "../utility/AsyncQueue/AsyncQueue.h"
+#include "../common/constant.h"
 #include "../common/peer_table.h"
 
 #define INIT_CLIENT_NUM 10
@@ -61,9 +62,12 @@ typedef struct _TNT {
 
 } _TNT_t;
 
+// launches network thread
+void * tkr_network_start(void * arg);
+
 TNT * StartTrackerNetwork() {
 
-	_TNT_T * tracker_thread = (_TNT_T *)calloc(1,sizeof(_TNT_T));
+	_TNT_t * tracker_thread = (_TNT_t *)calloc(1,sizeof(_TNT_t));
 
 	/* -- incoming from client to tracker -- */
 	tracker_thread->queues_to_tracker = (AsyncQueue **)calloc(5,sizeof(AsyncQueue *));
@@ -81,14 +85,14 @@ TNT * StartTrackerNetwork() {
 	tracker_thread->queues_from_tracker[3] = asyncqueue_new();
 
 	/* -- set up auxillary information -- */
-	tracker_thread->peer_table = init_peer_table(int size);
+	tracker_thread->peer_table = init_peer_table(INIT_CLIENT_NUM);
 	if (!tracker_thread->peer_table) {
 		fprintf(stderr,"StartTrackerNetwork failed to create peer table\n");
-		return NULL:
+		return NULL;
 	}
 
 	/* -- spin off network thread -- */
-	pthread_create(tracker_thread, NULL, tkr_network_start, tracker_thread);
+	pthread_create(&tracker_thread->thread_id, NULL, tkr_network_start, tracker_thread);
 
 	return (TNT *)tracker_thread;
 }
@@ -128,16 +132,16 @@ FileSystem * receive_client_update(TNT * tnt, int * clientid);
 // 	fs : (not claimed) pointer to diff FileSystem
 // 	clientid : (static) which client to send to
 // 	ret : (static) 1 is success, -1 is failure ()
-int send_transaction_update(FileSystem * fs, int clientid);
+int send_transaction_update(TNT * tnt, FileSystem * fs, int clientid);
 
 // Sends file system update
 int send_FS_update();
 
 // send to all peers to notify that a new peer has appeared
-send_peer_added(TNT * tnt);
+int send_peer_added(TNT * tnt);
 
 // send to all peers to notify that peer has disappeared
-send_peer_removed(TNT * tnt);
+int send_peer_removed(TNT * tnt);
 
 /* ###################### *
  * 
@@ -171,11 +175,14 @@ void * tkr_network_start(void * arg) {
 	// continue to poll open thread connections
 		// "heartbeat messages"
 		// receive transaction update messages from peers
+
+	return (void *)1;
 }
 
 void * accept_connections(void * listening_socket_arg) {
-	int listenfd = (int *)listening_socket;
+	int listenfd = *(int *)listening_socket_arg;
 
+	return (void *)1;
 }
 
 // http://beej.us/guide/bgnet/output/html/multipage/syscalls.html#getaddrinfo
@@ -200,7 +207,7 @@ int open_listening_port() {
 	int listening_sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 	if (listening_sockfd < 0) {
 		fprintf(stderr, "tracker - open_listening_port: socket error\n");
-		exit(1)	
+		exit(1);
 	}
 
 	if (bind(listening_sockfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0) {

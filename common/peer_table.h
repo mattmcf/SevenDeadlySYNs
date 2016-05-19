@@ -40,3 +40,4 @@ void destroy_table(peer_table_t * table);
 void print_table(peer_table_t * table);
 
 #endif // _PEER_TABLE_H
+
