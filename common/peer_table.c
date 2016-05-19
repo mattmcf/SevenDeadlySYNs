@@ -43,7 +43,7 @@ peer_table_t * init_peer_table(int size) {
 	return table;	
 }
 
-peer_t * add_peer(peer_table_t * table, char * ip_addr, int socketfd) {
+peer_t * add_peer(peer_table_t * table, struct in6_addr * ip_addr, int socketfd) {
 	if (!table || !ip_addr)
 		return NULL;
 

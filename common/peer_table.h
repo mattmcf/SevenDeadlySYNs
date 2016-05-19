@@ -31,7 +31,7 @@ typedef struct peer_table {
 
 peer_table_t * init_peer_table(int size);
 
-peer_t * add_peer(peer_table_t * table, char * ip_addr, int socketfd);
+peer_t * add_peer(peer_table_t * table, struct in6_addr * ip_addr, int socketfd);
 
 void delete_peer(peer_table_t * table, int id);
 

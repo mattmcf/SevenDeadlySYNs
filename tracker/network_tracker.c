@@ -161,7 +161,7 @@ int send_peer_removed(TNT * tnt);
 
 // notify logic about new client
 // 	returns 1 on success and -1 on failure
-int notify_new_client(_TNT * tnt, peer_t * new_client) {
+int notify_new_client(_TNT_t * tnt, peer_t * new_client) {
 	if (!tnt || !new_client)
 		return -1;
 
@@ -193,7 +193,7 @@ void * tkr_network_start(void * arg) {
 
 	// for receiving new connections
 	struct sockaddr_in6 clientaddr;
-	int addrlen = sizeof(addr);
+	unsigned int addrlen = sizeof(clientaddr);
 	peer_t * new_client;
 	int new_sockfd;
 
@@ -203,8 +203,8 @@ void * tkr_network_start(void * arg) {
 
 	// set up timer
 	struct timeval timeout;
-	timeout.tv_seconds = 3;
-	timeout.tv_usecs = 0;
+	timeout.tv_sec = 3;
+	timeout.tv_usec = 0;
 
 	// open connection on listening port
 	thread_block->listening_sockfd = open_listening_port();
@@ -234,7 +234,7 @@ void * tkr_network_start(void * arg) {
 
 
 		printf("network polling connections...\n");
-		for (i = 0; i < FD_SETSIZE; i++) {
+		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
 
 				// new connection
@@ -291,48 +291,48 @@ void * tkr_network_start(void * arg) {
  *
  * ###################### */
 
-void * accept_connections(void * listening_socket_arg) {
+// void * accept_connections(void * listening_socket_arg) {
 
-	_TNT_t * thread_block = (_TNT_t*)arg;
-	struct sockaddr_in6 clientaddr;
-	int addrlen = sizeof(addr);
-	peer_t * new_client;
+// 	_TNT_t * thread_block = (_TNT_t*)arg;
+// 	struct sockaddr_in6 clientaddr;
+// 	int addrlen = sizeof(addr);
+// 	peer_t * new_client;
 
-	int connected = 1, new_sockfd;
+// 	int connected = 1, new_sockfd;
 
-	// listen on it
-	if (listen(thread_block->listening_sockfd, INIT_CLIENT_NUM) != 0) {
-		perror("network tracker accept_connections thread failed to listen on socket");
-		return (void *)1;
-	}
+// 	// listen on it
+// 	if (listen(thread_block->listening_sockfd, INIT_CLIENT_NUM) != 0) {
+// 		perror("network tracker accept_connections thread failed to listen on socket");
+// 		return (void *)1;
+// 	}
 
-	while (connected) {
-		new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
-		if (new_sockfd < 0) {
-			fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
-			connected = 0;
-			continue;
-		}
+// 	while (connected) {
+// 		new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
+// 		if (new_sockfd < 0) {
+// 			fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+// 			connected = 0;
+// 			continue;
+// 		}
 
-		// add new peer to table
-		if ((new_client = add_peer(thread_block->peer_table, &clientaddr.sin6_addr, sizeof(in6_addr))) == NULL) {
-			fprintf(stderr,"network tracker accept_connections thread received peer connection but couldn't add it to the table\n");
-			continue;
-		}
+// 		// add new peer to table
+// 		if ((new_client = add_peer(thread_block->peer_table, &clientaddr.sin6_addr, sizeof(in6_addr))) == NULL) {
+// 			fprintf(stderr,"network tracker accept_connections thread received peer connection but couldn't add it to the table\n");
+// 			continue;
+// 		}
 
-		new_client->socketfd = new_sockfd;
-		new_client->time_last_last = time();
+// 		new_client->socketfd = new_sockfd;
+// 		new_client->time_last_last = time();
 
-		// notify tracker
-		notify_new_client(thread_block, new_client);
+// 		// notify tracker
+// 		notify_new_client(thread_block, new_client);
 
-		// TODO queue how to add new socket to list of tracked sockets???
-	}
+// 		// TODO queue how to add new socket to list of tracked sockets???
+// 	}
 
-	printf("network tracker accept_connections thread is ending\n");
-	close(thread_block->listening_sockfd);
-	return (void *)1;
-}
+// 	printf("network tracker accept_connections thread is ending\n");
+// 	close(thread_block->listening_sockfd);
+// 	return (void *)1;
+// }
 
 // http://beej.us/guide/bgnet/output/html/multipage/syscalls.html#getaddrinfo
 int open_listening_port() {
