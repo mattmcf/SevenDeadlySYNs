@@ -52,7 +52,7 @@ void filesystem_serialize(FileSystem* filesystem, char** data, int* length);
 // Takes some data and deserializes it into a filesystem.
 //	data   : (not claimed) The data to deserialize
 //	ret	   : (not claimed) The returned filesystem
-FileSystem* filesystem_deserialize(char* data);
+FileSystem* filesystem_deserialize(char* data, int* bytesRead);
 
 // Destroys a filesystem
 //	fs : (claimed) The filesystem to destroy
