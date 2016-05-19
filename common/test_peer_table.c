@@ -28,7 +28,7 @@ int main() {
 
 	print_table(table);	
 
-	for (int i = 0; i < 15; i++) {
+	for (int i = 0; i < 16; i++) {
 		delete_peer(table, i);
 	}
 

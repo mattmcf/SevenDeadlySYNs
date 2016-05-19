@@ -8,6 +8,8 @@
 #ifndef _NETWORK_CLIENT_H
 #define _NETWORK_CLIENT_H
 
+#include "../utility/FileSystem/FileSystem.h"
+
 #define IP_MAX_LEN 16
 
 typedef struct CNT CNT;
@@ -60,4 +62,4 @@ int send_status(CNT * thread, FileSystem * fs);
  */
 
 
- #endif _NETWORK_CLIENT_H
+ #endif // _NETWORK_CLIENT_H

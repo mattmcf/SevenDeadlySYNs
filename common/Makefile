@@ -3,3 +3,4 @@ test: test_peer_table.c peer_table.c
 
 clean:
 	rm -rf ./test
+	rm -rf *.dSYM

@@ -31,12 +31,17 @@ typedef struct peer_table {
 
 peer_table_t * init_peer_table(int size);
 
-peer_t * add_peer(peer_table_t * table, char * ip_addr, int socketfd);
+peer_t * add_peer(peer_table_t * table, struct in6_addr * ip_addr, int socketfd);
 
 void delete_peer(peer_table_t * table, int id);
+
+peer_t * get_peer_by_id(peer_table_t * table, int id);
+
+peer_t * get_peer_by_socket(peer_table_t * table, int fd);
 
 void destroy_table(peer_table_t * table);
 
 void print_table(peer_table_t * table);
 
 #endif // _PEER_TABLE_H
+

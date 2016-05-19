@@ -38,12 +38,12 @@ peer_table_t * init_peer_table(int size) {
 
 	table->size = size;
 	table->count = 0;
-	table->id_counter = 0;
+	table->id_counter = 1;
 
 	return table;	
 }
 
-peer_t * add_peer(peer_table_t * table, char * ip_addr, int socketfd) {
+peer_t * add_peer(peer_table_t * table, struct in6_addr * ip_addr, int socketfd) {
 	if (!table || !ip_addr)
 		return NULL;
 
@@ -87,6 +87,30 @@ void delete_peer(peer_table_t * table, int id) {
 			break;
 		}
 	}
+}
+
+peer_t * get_peer_by_id(peer_table_t * table, int id) {
+	if (!table || id < 1)
+		return NULL;
+
+	for (int i = 0; i < table->count; i++) {
+		if (table->peer_list[i]->id == id)
+			return table->peer_list[i];
+	}
+
+	return NULL;
+}
+
+peer_t * get_peer_by_socket(peer_table_t * table, int fd) {
+	if (!table || fd < 0)
+		return NULL;
+
+	for (int i = 0; i < table->count; i++) {
+		if (table->peer_list[i]->socketfd == fd)
+			return table->peer_list[i];
+	}
+
+	return NULL;
 }
 
 void destroy_table(peer_table_t * table) {

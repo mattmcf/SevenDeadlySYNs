@@ -77,3 +77,4 @@ void filesystemiterator_destroy(FileSystemIterator* iterator);
 
 
 #endif
+
