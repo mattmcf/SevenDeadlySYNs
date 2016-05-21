@@ -10,9 +10,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 #include "network_client.h"
-
+#include "../common/constant.h"
 
 int main() {
 	char server_name[1000] = "";
@@ -22,6 +24,8 @@ int main() {
 
 	struct addrinfo hints;
   struct addrinfo *result, *rp;
+
+  struct sockaddr_in6 servaddr;
 
   memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET6;    /* IPv6 */
@@ -36,17 +40,20 @@ int main() {
 	getaddrinfo(server_name, NULL, &hints, &result);
 
 	if (!result) {
-		fprintf("failed to find any matching results.\n");
+		fprintf(stderr,"failed to find any matching results\n");
 		return 1;
 	}
 
-	char ip6_addr[100] = "";
-	inet_ntop(AF_INET6, result->ai_addr, ip6_addr, result->ai_addr);
-	printf("Trying to connect to %s\n...", ip6_addr);
+	memcpy(&servaddr, result->ai_addr, result->ai_addrlen);
+	servaddr.sin6_port = htons(TRACKER_LISTENING_PORT);
+	servaddr.sin6_family = AF_INET6;
 
+	char ip_addr[100] = "";
+	inet_ntop(result->ai_family, &servaddr.sin6_addr, ip_addr, 100);
+	printf("Trying to connect to %s\n...", ip_addr);
 
 	// starts client network
-	CNT * cnt = StartClientNetwork(result->ai_addr, result->ai_addr);
+	CNT * cnt = StartClientNetwork((char *)&servaddr.sin6_addr, 16);
 
 	freeaddrinfo(result);
 
