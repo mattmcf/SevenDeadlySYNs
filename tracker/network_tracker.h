@@ -45,7 +45,7 @@ int receive_new_client(TNT * tnt);
 // receive notice that client should be removed from network : CLT_2_TKR_REMOVE_CLIENT
 // 	tnt : (not claimed) thread block
 // 	ret : client id (-1 if no id, id if client should be removed)
-int receive_lost_client(TNT * tnt)
+int receive_lost_client(TNT * tnt);
 
 // receive client request
 // 	tnt : (not claimed) thread block

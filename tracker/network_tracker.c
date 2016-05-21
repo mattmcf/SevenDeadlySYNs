@@ -144,16 +144,16 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 	_TNT_t * thread_block = (_TNT_t *)tnt;
 	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[CLT_2_TKR_CUR_STATE]);
 
-	if (!data_pkt != null) {
+	if (data_pkt != NULL) {
 
 		*fs = data_pkt->data;
 		*clientid = data_pkt->client_id;
 		free(data_pkt);
-		return 1
+		return 1;
 
-	} else {
-		return -1;
-	}
+	} 
+
+	return -1;
 }
 
 // Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
@@ -515,7 +515,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		case HEARTBEAT:
 			printf("NETWORK -- received heartbeat from client %d\n", client->id);
 			// update time last heard from client
-			client->time_last_alive = time();
+			client->time_last_alive = time(NULL);
 			free(client_data);
 			break;
 
@@ -553,7 +553,7 @@ void check_liveliness(_TNT_t * tnt) {
 
 	peer_table_t * pt = tnt->peer_table;
 
-	time_t current_time = time();
+	time_t current_time = time(NULL);
 	for (int i = 0; i < pt->size; i++) {
 		if (pt->peer_list[i] != NULL) {
 			if (pt->peer_list[i]->time_last_alive - current_time > DIASTOLE) {

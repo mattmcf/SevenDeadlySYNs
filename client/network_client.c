@@ -258,18 +258,27 @@ int notify_master_received(_CNT_t * cnt, client_data_t * queue_item) {
 	return 1;
 }
 
-int notify_file_acq_update();
+int notify_file_acq_update() {
 
-int notify_peer_added();
+	return -1;
+}
 
-int notify_peer_removed();
+int notify_peer_added() {
+
+	return -1;
+}
+
+int notify_peer_removed() {
+
+	return -1;
+}
 
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
 
 /* --- Network Side Packet Functions --- */
 
 // returns listening socket fd
-int connect_to_tracker();
+int connect_to_tracker(char * ip_addr, int ip_len);
 
 int handle_tracker_msg(_CNT_t * cnt);
 int handle_peer_msg(int sockfd, _CNT_t * cnt);
@@ -277,7 +286,6 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt);
 int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_tracker_t type);
 int send_peer_message(_CNT_t * cnt, int peer_id);
 
-// send heartbeat 
 void send_heartbeat(_CNT_t * cnt);
 
 /* --- Network Side Queue functions --- */
@@ -290,22 +298,26 @@ void check_req_chunk_q(_CNT_t * cnt);
 void check_send_chunk_q(_CNT_t * cnt);
 void check_req_error_q(_CNT_t * cnt);
 
-
 /* ------------------------ NETWORK THREAD ------------------------ */
 
 void * clt_network_start(void * arg) {
 
 	_CNT_t * cnt = (_CNT_t *)arg;
+	if (!cnt) {
+		fprintf(stderr,"cannot start client network thread because argument is null\n");
+		return (void *)-1;
+	}
+
 
 	int tracker_fd;
-	while ( (tracker_fd = connect_to_tracker()) < 0) {
+	while ( (tracker_fd = connect_to_tracker(cnt->ip_addr, cnt->ip_len)) < 0) {
 		printf("Failed to connect with tracker...\n");
 		sleep(5);
 	}
 
 	// set up timer
 	struct timeval timeout;
-	timeout.tv_sec = 3;
+	timeout.tv_sec = NETWORK_WAIT;
 	timeout.tv_usec = 0;
 
 	// select fd sets
@@ -329,7 +341,7 @@ void * clt_network_start(void * arg) {
 			continue;
 		}
 
-		printf("client network polling connections...\n");
+		printf("\nclient network polling connections...\n");
 		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
 
@@ -375,7 +387,7 @@ void * clt_network_start(void * arg) {
 // connects to the tracker
 //	returns connected socket if successful
 // 	else returns -1
-int connect_to_tracker(int ip_len, char * ip_addr) {
+int connect_to_tracker(char * ip_addr, int ip_len) {
 	if (!ip_addr)
 		return -1;
 
@@ -411,25 +423,24 @@ int handle_tracker_msg(_CNT_t * cnt) {
 		return -1;
 	}
 
-	char * buf = malloc(pkt.data_len);
+	char * buf = NULL;
+	if (pkt.data_len > 0) {
+		buf = calloc(1,pkt.data_len);
+		if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
+			fprintf(stderr, "client network has error receiving data\n");
+			break;
+		}
+	}
 
 	switch (pkt.type) {
 		case TRANSACTION_UPDATE:
 			printf("NETWORK -- received transaction update from tracker\n");
-			if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
-				fprintf(stderr, "client network has error receiving data in transaction update\n");
-				break;
-			}
+			// process transaction update
 			
 			break;
 
 		case MASTER_STATUS:
 			printf("NETWORK -- received master JFS from tracker\n");
-			if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
-				fprintf(stderr,"client network had an error receiving master jfs data\n");
-				break;
-			}
-
 			client_data_t * master_update = malloc(sizeof(client_data_t));		
 			master_update->data = (void*)filesystem_deserialize(buf, &master_update->data_len);
 			notify_master_received(cnt, master_update);
@@ -444,11 +455,11 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			break;
 	}
 
-	if (buf != NULL)
+	if (buf != NULL) {
 		free(buf);
-
+	}
+		
 	return 1;
-
 }
 
 int handle_peer_msg(int sockfd, _CNT_t * cnt) {
@@ -486,6 +497,7 @@ int send_peer_message(_CNT_t * cnt, int peer_id) {
 /* ------------------------ HANDLE QUEUES TO NETWORK FROM LOGIC ------------------------ */
 
 void poll_queues(_CNT_t * cnt) {
+	printf("\nclient network is polling queues\n");
 	check_cur_status_q(cnt);
 	check_file_acq_q(cnt);
 	check_quit_q(cnt);
