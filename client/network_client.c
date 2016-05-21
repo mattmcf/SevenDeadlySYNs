@@ -428,7 +428,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 		buf = calloc(1,pkt.data_len);
 		if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
 			fprintf(stderr, "client network has error receiving data\n");
-			break;
+			return -1;
 		}
 	}
 

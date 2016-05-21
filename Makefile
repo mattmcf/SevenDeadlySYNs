@@ -15,6 +15,7 @@ OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utilit
 
 all: tracker/tracker_app client/client_app
 
+test: tracker/test_tracker_network client/test_client_network
 
 tracker/tracker_app: tracker/tracker.c tracker/tracker.h tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc -Wall -pedantic -std=c99 -g tracker/tracker.c tracker/network_tracker.o -o tracker/tracker_app
@@ -24,6 +25,9 @@ tracker/test_tracker_network: tracker/test_tracker_network.c tracker/network_tra
 
 client/client_app: client/client.c client/client.h client/network_client.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc -Wall -pedantic -std=c99 -g client/client.c client/network_client.o $(OBJ_FILES) -o client/client_app
+
+client/test_client_network: client/test_client_network.c client/network_client.o $(OBJ_FILES) $(HEADER_FILES)
+	gcc -Wall -pedantic -std=c99 -g client/test_client_network.c client/network_client.o $(OBJ_FILES) -o client/test_client_network
 
 tracker/network_tracker.o: tracker/network_tracker.c tracker/network_tracker.h $(OBJ_FILES) $(HEADER_FILES)
 	gcc -pthread -Wall -pedantic -std=c99 -g -c tracker/network_tracker.c utility/FileSystem/FileSystem.o -o tracker/network_tracker.o
@@ -61,4 +65,8 @@ clean:
 	rm -rf client/network_client.o
 	rm -rf client/client_app
 	rm -rf tracker/tracker_app
+	rm -rf tracker/*.dSYM
+	rm -rf tracker/test_tracker_network
+	rm -rf client/*.dSYM
+	rm -rf client/test_client_network
 
