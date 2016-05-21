@@ -11,6 +11,9 @@
 // clients listen here for connections from other clients
 #define CLIENT_LISTENING_PORT 7681
 
+// minimum time (seconds) that a client needs to talk to tracker before being considered dead
+#define DIASTOLE 10 
+
 // defined DART_SYNC directory that will be syncronized across peers
 #define DARTSYNC_DIR "~/dart_sync/"
 

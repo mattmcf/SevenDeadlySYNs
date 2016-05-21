@@ -42,7 +42,10 @@ FileSystem * receive_client_update(TNT * tnt, int * clientid);
 //	ret : client id (-1 on failure, id on success)
 int receive_new_client(TNT * tnt);
 
-// client deleted
+// receive notice that client should be removed from network : CLT_2_TKR_REMOVE_CLIENT
+// 	tnt : (not claimed) thread block
+// 	ret : client id (-1 if no id, id if client should be removed)
+int receive_lost_client(TNT * tnt)
 
 // receive client request
 // 	tnt : (not claimed) thread block
@@ -55,7 +58,7 @@ int receive_master_request(TNT * tnt);
 // 	fs : (not claimed) pointer to diff FileSystem
 // 	clientid : (static) which client to send to
 // 	ret : (static) 1 is success, -1 is failure ()
-int send_transaction_update(TNT * tnt, FileSystem * fs, int clientid);
+int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * deletions, int clientid);
 
 // Sends file system update
 int send_FS_update(TNT * tnt);

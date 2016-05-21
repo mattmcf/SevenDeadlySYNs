@@ -23,10 +23,30 @@
 #include "network_client.h"
 #include "../common/constant.h"
 #include "../common/peer_table.h"
+#include "../common/packets.h"
 #include "../utility/AsyncQueue/AsyncQueue.h" 
 #include "../utility/FileSystem/FileSystem.h" 
 
 #define INIT_PEER_SIZE 10
+
+/* --- 	queue definitions --- */
+#define TKR_2_ME_TRANSACTION_UPDATE 0
+#define TKR_2_ME_FILE_ACQ 1
+#define TKR_2_ME_PEER_ADDED 2
+#define TKR_2_ME_PEER_DELETED 3
+#define TKR_2_ME_RECEIVE_MASTER_JFS 4
+
+#define CLT_2_ME_REQUEST_CHUNK 0
+#define CLT_2_ME_RECEIVE_CHUNK 1
+
+#define ME_2_TKR_CUR_STATUS 0
+#define ME_2_TKR_ACQ_UPDATE 1
+#define ME_2_TKR_QUIT 2
+#define ME_2_TKR_GET_MASTER 3
+
+#define ME_2_CLT_REQ_CHUNK 0
+#define ME_2_CLT_SEND_CHUNK 1
+#define ME_2_CLT_SEND_ERROR 2
 
 typedef struct _CNT {
 
@@ -38,6 +58,7 @@ typedef struct _CNT {
 	 * tkr_queues_to_client[1] -> file acquisition status queue
 	 * tkr_queues_to_client[2] -> peer added queue
 	 * tkr_queues_to_client[3] -> peer deleted queue
+	 * tkr_queues_to_client[4] -> master JFS
 	 * 
 	 * -- client 2 client --
 	 * clt_queues_to_client[0] -> receive request for chunk
@@ -51,18 +72,19 @@ typedef struct _CNT {
 	 * *** OUTGOING QUEUES ***
 	 * 
 	 * -- client to tracker --
-	 * tkr_queue_from_client[0] -> send current status / (join network)
-	 * tkr_queue_from_client[1] -> send acquisition update to tracker (successful & unsucessful)
-	 * tkr_queue_from_client[2] -> send quit message
+	 * tkr_queues_from_client[0] -> send current status / (join network)
+	 * tkr_queues_from_client[1] -> send acquisition update to tracker (successful & unsucessful)
+	 * tkr_queues_from_client[2] -> send quit message
+	 * tkr_queues_from_client[3] -> send request for master
 	 *
 	 * -- client 2 client --
-	 * clt_queue_from_client[0] -> send request for chunk
-	 * clt_queue_from_client[1] -> send chunk
-	 * clt_queue_from_client[2] -> send an error to client
+	 * clt_queues_from_client[0] -> send request for chunk
+	 * clt_queues_from_client[1] -> send chunk
+	 * clt_queues_from_client[2] -> send an error to client
 	 *
 	 */
-	AsyncQueue ** tkr_queue_from_client; 	// from logic to tracker
-	AsyncQueue ** clt_queue_from_client; 	// from logic to client
+	AsyncQueue ** tkr_queues_from_client; 	// from logic to tracker
+	AsyncQueue ** clt_queues_from_client; 	// from logic to client
 
 	/*
 	 * network monitoring information
@@ -70,6 +92,9 @@ typedef struct _CNT {
 	pthread_t thread_id;
 	char * ip_addr;
 	int ip_len;
+	int tracker_fd;
+	int peer_listening_fd;
+
 	peer_table_t * peer_table;
 
 } _CNT_t;
@@ -87,27 +112,30 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 	_CNT_t * client_thread = (_CNT_t *)calloc(1,sizeof(_CNT_t));
 
 	/* -- incoming client to tracker -- */
-	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(4, sizeof(AsyncQueue *));
-	client_thread->tkr_queues_to_client[0] = asyncqueue_new();
-	client_thread->tkr_queues_to_client[1] = asyncqueue_new();
-	client_thread->tkr_queues_to_client[2] = asyncqueue_new();
+	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(5, sizeof(AsyncQueue *));
+	client_thread->tkr_queues_to_client[TKR_2_ME_TRANSACTION_UPDATE] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_FILE_ACQ] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_ADDED] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_DELETED] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS] = asyncqueue_new();
 
 	/* -- incoming client to client -- */
 	client_thread->clt_queues_to_client = (AsyncQueue **)calloc(2,sizeof(AsyncQueue *));
-	client_thread->clt_queues_to_client[0] = asyncqueue_new();
-	client_thread->clt_queues_to_client[1] = asyncqueue_new();
+	client_thread->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK] = asyncqueue_new();
+	client_thread->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK] = asyncqueue_new();
 
 	/* -- outgoing client to tracker -- */
-	client_thread->tkr_queue_from_client = (AsyncQueue **)calloc(3,sizeof(AsyncQueue *));
-	client_thread->tkr_queue_from_client[0] = asyncqueue_new();
-	client_thread->tkr_queue_from_client[1] = asyncqueue_new();
-	client_thread->tkr_queue_from_client[2] = asyncqueue_new();
+	client_thread->tkr_queues_from_client = (AsyncQueue **)calloc(4,sizeof(AsyncQueue *));
+	client_thread->tkr_queues_from_client[ME_2_TKR_CUR_STATUS] = asyncqueue_new();
+	client_thread->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE] = asyncqueue_new();
+	client_thread->tkr_queues_from_client[ME_2_TKR_QUIT] = asyncqueue_new();
+	client_thread->tkr_queues_from_client[ME_2_TKR_GET_MASTER] = asyncqueue_new();
 
 	/* -- outgoing client to client -- */
-	client_thread->clt_queue_from_client = (AsyncQueue **)calloc(3,sizeof(AsyncQueue *));
-	client_thread->clt_queue_from_client[0] = asyncqueue_new();
-	client_thread->clt_queue_from_client[1] = asyncqueue_new();
-	client_thread->clt_queue_from_client[2] = asyncqueue_new();
+	client_thread->clt_queues_from_client = (AsyncQueue **)calloc(3,sizeof(AsyncQueue *));
+	client_thread->clt_queues_from_client[ME_2_CLT_REQ_CHUNK] = asyncqueue_new();
+	client_thread->clt_queues_from_client[ME_2_CLT_SEND_CHUNK] = asyncqueue_new();
+	client_thread->clt_queues_from_client[ME_2_CLT_SEND_ERROR] = asyncqueue_new();
 
 	/* -- save tracker server arguments -- */
 	client_thread->ip_addr = malloc(ip_len);
@@ -140,55 +168,128 @@ void EndNetwork() {
 
 /* ----- receiving ----- */
 
-// receive transaction update ->
-FileSystem * recv_diff(CNT * thread) {
-
-	return NULL;
-}
-
-// receive acq status update
-
-// get peer added message
-
-// get peer deleted message
-
-// receive request for chunk
-
-// receive chunk from peer
-
-/* ----- sending ----- */
-int send_status(CNT * thread, FileSystem * fs) {
-
-	// serialize file system
-
-	// forward to tracker
+// receive transaction update : TKR_2_ME_TRANSACTION_UPDATE
+int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions) {
 
 	return -1;
 }
 
-/* 
- * this queue must do the following things
- * 	- send a current status update (JFS)
- * 	- send a request for a file chunk
- * 	- send a file chunk
- * 	- send an error (associated with an attempt to get a chunk)
- * 	- send an update to tracker about acquired chunk
- * 	- send a "I'm quitting message"
- */
+// receive acq status update : TKR_2_ME_FILE_ACQ
+
+// receive peer added message : TKR_2_ME_PEER_ADDED
+
+// receive peer deleted message : TKR_2_ME_PEER_DELETED
+
+// receive master JFS from tracker : TKR_2_ME_RECEIVE_MASTER_JFS
+// 	CNT : (not claimed) thread block
+// 	length_deserialized : (not claimed) will be filled in with length deserialized if there was an update
+//	ret : (not claimed) master file system -- needs to be claimed 
+//				null if no update
+FileSystem * recv_master(CNT * thread, int * length_deserialized) {
+	_CNT_t * cnt = (_CNT_t *)thread;
+	client_data_t * queue_item = asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS]);
+
+	FileSystem * fs = NULL;
+	if (queue_item) {
+		fs = filesystem_deserialize(queue_item->data, length_deserialized);
+		free(queue_item->data);
+		free(queue_item);
+	}
+ 	return fs;
+}
+
+// receive request for chunk : CLT_2_ME_REQUEST_CHUNK
+
+// receive chunk from peer : CLT_2_ME_RECEIVE_CHUNK
 
 
+/* ----- sending ----- */
 
+// send current status : ME_2_TKR_CUR_STATUS
+// 	thread : (not claimed) thread block
+// 	fs : (not claimed) filesystem to send
+// 	ret : (static) 1 on success, -1 on failure
+int send_status(CNT * thread, FileSystem * fs) {
+	if (!thread || !fs)
+		return -1;
+	
+	_CNT_t * cnt = (_CNT_t *)thread;
+
+	client_data_t * queue_item = malloc(sizeof(client_data_t));
+	filesystem_serialize(fs, (char **)&queue_item->data, &queue_item->data_len);
+	asyncqueue_push(cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS], (void *)queue_item);
+	return 1;
+}
+
+// send file acquistion update : ME_2_TKR_ACQ_UPDATE
+
+// send quit message to tracker : ME_2_TKR_QUIT
+
+// send request for master JFS to tracker : ME_2_TKR_GET_MASTER
+// returns 1 on success, -1 on failure
+int send_request_for_master(CNT * cnt) {
+	_CNT_t * thread_block = (_CNT_t *) cnt;
+	asyncqueue_push(thread_block->tkr_queues_from_client[ME_2_TKR_GET_MASTER], (void*)(long)1);
+	return 1;
+}
+
+// send request for chunk to peer : ME_2_CLT_REQ_CHUNK
+
+// send chunk to client : ME_2_CLT_SEND_CHUNK
+
+// send chunk request error response : ME_2_CLT_SEND_ERROR
 
 /* ###################### *
  * 
- * Network Thread functions
+ * Things that the network can do to interact with the client
  *
  * ###################### */
 
+// puts transaction update on 
+int notify_transaction_update(_CNT_t * cnt, tracker_pkt_t * pkt);
+
+// pushes received master onto queue
+//	returns 1 on success, -1 on failure
+int notify_master_received(_CNT_t * cnt, client_data_t * queue_item) {
+	if (!cnt || !queue_item)
+		return -1;
+
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS], (void *)queue_item);
+	return 1;
+}
+
+int notify_file_acq_update();
+
+int notify_peer_added();
+
+int notify_peer_removed();
+
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
+
+/* --- Network Side Packet Functions --- */
 
 // returns listening socket fd
 int connect_to_tracker();
+
+int handle_tracker_msg(_CNT_t * cnt);
+int handle_peer_msg(int sockfd, _CNT_t * cnt);
+
+int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_tracker_t type);
+int send_peer_message(_CNT_t * cnt, int peer_id);
+
+// send heartbeat 
+void send_heartbeat(_CNT_t * cnt);
+
+/* --- Network Side Queue functions --- */
+void poll_queues(_CNT_t * cnt);
+void check_cur_status_q(_CNT_t * cnt);
+void check_file_acq_q(_CNT_t * cnt);
+void check_quit_q(_CNT_t * cnt);
+void check_master_req_q(_CNT_t * cnt);
+void check_req_chunk_q(_CNT_t * cnt);
+void check_send_chunk_q(_CNT_t * cnt);
+void check_req_error_q(_CNT_t * cnt);
+
 
 /* ------------------------ NETWORK THREAD ------------------------ */
 
@@ -217,6 +318,7 @@ void * clt_network_start(void * arg) {
 	/* need to open peer listening socket */
 	int peer_listening_fd = -1;
 
+	time_t last_heartbeat = 0, current_time;
 	int connected = 1;
 	while (connected) {
 
@@ -235,8 +337,7 @@ void * clt_network_start(void * arg) {
 				if (i == tracker_fd) {
 
 					printf("Receiving message from tracker\n");
-					handle_tracker_msg(tracker_fd, cnt);
-					
+					handle_tracker_msg(cnt);
 
 				// existing connection
 				} else if (i == peer_listening_fd) {
@@ -253,6 +354,15 @@ void * clt_network_start(void * arg) {
 				}
 			}
 
+			/* send heart beat if necessary */
+			current_time = time(NULL);
+			if (current_time - last_heartbeat > (DIASTOLE / 2)) {
+				send_tracker_message(cnt, NULL, HEARTBEAT);
+				last_heartbeat = current_time;
+			}
+
+			/* poll queues for messages from client logic */
+			poll_queues(cnt);
 		}
 
 	}
@@ -260,7 +370,7 @@ void * clt_network_start(void * arg) {
 	return (void *)1;
 }
 
-/* ------------------------ FUNCTION DEFINITIONS ------------------------ */
+/* ------------------------ HANDLE PACKETS ON NETWORK ------------------------ */
 
 // connects to the tracker
 //	returns connected socket if successful
@@ -291,12 +401,12 @@ int connect_to_tracker(int ip_len, char * ip_addr) {
 	return sockfd;
 }
 
-int handle_tracker_msg(int tracker_fd, _CNT_t * cnt) {
+int handle_tracker_msg(_CNT_t * cnt) {
 	if (!cnt)
 		return -1;
 
 	tracker_pkt_t pkt;
-	if (recv(tracker_fd, &pkt, sizeof(tracker_pkt_t)) != sizeof(tracker_pkt_t)){
+	if (recv(cnt->tracker_fd, &pkt, sizeof(tracker_pkt_t), 0) != sizeof(tracker_pkt_t)){
 		fprintf(stderr,"client network failed to get message from tracker\n");
 		return -1;
 	}
@@ -305,13 +415,26 @@ int handle_tracker_msg(int tracker_fd, _CNT_t * cnt) {
 
 	switch (pkt.type) {
 		case TRANSACTION_UPDATE:
-			if (recv(tracker_fd, buf, pkt.data_len) != pkt.data_len) {
+			printf("NETWORK -- received transaction update from tracker\n");
+			if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
 				fprintf(stderr, "client network has error receiving data in transaction update\n");
 				break;
 			}
 			
-
 			break;
+
+		case MASTER_STATUS:
+			printf("NETWORK -- received master JFS from tracker\n");
+			if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
+				fprintf(stderr,"client network had an error receiving master jfs data\n");
+				break;
+			}
+
+			client_data_t * master_update = malloc(sizeof(client_data_t));		
+			master_update->data = (void*)filesystem_deserialize(buf, &master_update->data_len);
+			notify_master_received(cnt, master_update);
+			break;
+
 
 		case FILE_ACQ_UPDATE:
 		case PEER_ADDED:
@@ -321,5 +444,115 @@ int handle_tracker_msg(int tracker_fd, _CNT_t * cnt) {
 			break;
 	}
 
+	if (buf != NULL)
+		free(buf);
 
+	return 1;
+
+}
+
+int handle_peer_msg(int sockfd, _CNT_t * cnt) {
+
+	return -1;
+}
+
+int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_tracker_t type) {
+	if (!cnt)
+		return -1;
+
+	client_pkt_t pkt;
+
+	switch (type) {
+		case HEARTBEAT:
+			printf("NETWORK -- sending tracker heartbeat\n");
+			pkt.type = HEARTBEAT;
+			pkt.data_len = 0;
+			send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+			break;
+
+		default:
+			printf("network cannot send unknown packet type %d to tracker\n", type);
+			break;
+	}
+
+	return 1;
+}
+
+int send_peer_message(_CNT_t * cnt, int peer_id) {
+
+	return -1;
+}
+
+/* ------------------------ HANDLE QUEUES TO NETWORK FROM LOGIC ------------------------ */
+
+void poll_queues(_CNT_t * cnt) {
+	check_cur_status_q(cnt);
+	check_file_acq_q(cnt);
+	check_quit_q(cnt);
+	check_master_req_q(cnt);
+
+	check_req_chunk_q(cnt);
+	check_send_chunk_q(cnt);
+	check_req_error_q(cnt);
+}
+
+void check_cur_status_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS];
+
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item) {
+
+		printf("NETWORK -- sending current status JFS to tracker\n");
+		client_pkt_t pkt;
+		pkt.type = CLIENT_STATE;
+		pkt.data_len = queue_item->data_len;
+		send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+		send(cnt->tracker_fd, queue_item->data, queue_item->data_len, 0);
+
+		free(queue_item->data);
+		free(queue_item);
+	}
+
+	return;
+}
+
+void check_file_acq_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE];
+	return;
+}
+
+void check_quit_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_QUIT];
+	return;
+}
+
+void check_master_req_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_GET_MASTER];
+	if (1 == (int)(long)asyncqueue_pop(q)) {
+
+		printf("NETWORK -- sending request for master JFS\n");
+		client_pkt_t pkt;
+		pkt.type = REQUEST_MASTER;
+		pkt.data_len = 0;
+		send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+	}
+	return;
+}
+
+void check_req_chunk_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
+
+	return;
+}
+
+void check_send_chunk_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK];
+
+	return;
+}
+
+void check_req_error_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_ERROR];
+
+	return;
 }
