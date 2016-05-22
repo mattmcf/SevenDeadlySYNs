@@ -4,21 +4,27 @@
  * contains functionality for the tracker's network thread
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
+#include <sys/types.h>		// for networking
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <netdb.h>
+
+#include <stdio.h> 		// memory and IO
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <arpa/inet.h>
+
 #include <signal.h>
-#include <netdb.h>
+#include <sys/select.h> 	// for select call
+
+#include <netinet/in.h> 	// in_addr_t struct
+
+#include <arpa/inet.h>
 #include <assert.h>
 #include <sys/utsname.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <netdb.h>
+
+
 
 #include "network_tracker.h"
 #include "../utility/AsyncQueue/AsyncQueue.h"
