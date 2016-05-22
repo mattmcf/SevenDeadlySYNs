@@ -15,7 +15,7 @@ typedef struct TNT TNT;
 TNT * StartTrackerNetwork();
 
 // nicely ends tracker network
-void EndNetwork();
+void EndTrackerNetwork(TNT * tnt);
 
 /* ###################################
  * 

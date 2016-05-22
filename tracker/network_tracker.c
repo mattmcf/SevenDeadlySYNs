@@ -123,9 +123,45 @@ TNT * StartTrackerNetwork() {
 	return (TNT *)tracker_thread;
 }
 
-void EndNetwork() {
-	printf("Tracker Network Thread ending network (badly right now)\n");
-	exit(1);
+void EndTrackerNetwork(TNT * thread_block) {
+
+	if (!thread_block)
+		return;
+
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_CUR_STATE]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_FILE_UPDATE]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_NEW_CLIENT]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_REMOVE_CLIENT]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_GOT]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_GET_FAILED]);
+	asyncqueue_destroy(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_REQ_MASTER]);
+	free(tnt->queues_to_tracker);
+
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_TXN_UPDATE]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_FS_UPDATE]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER]);
+	free(tnt->queues_from_tracker);
+
+	close(tnt->listening_sockfd);
+
+	// close all client connections
+	for (int i = 0; i < tnt->peer_table->size; i++) {
+		if (tnt->peer_table->peer_list[i] && tnt->peer_table->peer_list[i]->socketfd > 0) 
+			close(tnt->peer_table->peer_list[i]->socketfd);
+	}
+
+	destroy_table(tnt->peer_table);
+
+	free(tnt);
+
+	printf("NETWORK -- ending network thread after cleaning up.\n");
+	
+	return;
 }
 
 /* ###################### *
@@ -364,20 +400,19 @@ void * tkr_network_start(void * arg) {
 			continue;
 		}
 
-		printf("network polling connections...\n");
+		//printf("network polling connections...\n");
 		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
 
 				/* client opening new connection */
 				if (i == tnt->listening_sockfd) {
 					printf("network tracker received new client connection\n");
-					new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
+					new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_sockfd < 0) {
-						fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+						perror("network tracker failed to accept new connection");
+						connected = 0;
 						continue;
 					}
-
-					FD_SET(new_sockfd, &active_fd_set);
 
 					// add new peer to table
 					if ((new_client = add_peer(tnt->peer_table, &clientaddr.sin6_addr, new_sockfd)) == NULL) {
@@ -385,13 +420,23 @@ void * tkr_network_start(void * arg) {
 						continue;
 					}
 
+					FD_SET(new_sockfd, &active_fd_set);
+
 					// notify tracker
 					notify_new_client(tnt, new_client);
+					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
 				} else {
 
-					handle_client_msg(i, tnt);
+					printf("network tracker received message from client on socket %d\n", i);
+					if (handle_client_msg(i, tnt) != 1) {
+						fprintf(stderr,"failed to handle client message on socket %d\n", i);
+
+						// don't listen to broken connection
+						FD_CLR(i, &active_fd_set);
+						close(i);
+					}
 
 				}
 			}
@@ -405,6 +450,8 @@ void * tkr_network_start(void * arg) {
 		poll_queues(tnt);		
 	}
 
+	close(tnt->listening_sockfd);
+
 	printf("network tracker ending\n");
 	return (void *)1;
 }
@@ -415,7 +462,7 @@ void * tkr_network_start(void * arg) {
 int open_listening_port() {
 
 	struct addrinfo hints;
-	struct addrinfo *servinfo;
+	struct addrinfo *servinfo, * rp;
 
 	char port_str[10];
 	sprintf(port_str, "%d", TRACKER_LISTENING_PORT);
@@ -423,25 +470,50 @@ int open_listening_port() {
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET6; 			// use IPv6
 	hints.ai_socktype = SOCK_STREAM; 	// tcp
-	hints.ai_flags = AI_PASSIVE; 			// fill ip for me
+	hints.ai_protocol = 6; 	// tcp
+	hints.ai_flags = AI_PASSIVE; 			// fill ip for me -- don't use loopback
 
-	if (getaddrinfo(NULL,port_str,&hints,&servinfo) != 0) {
+	if (getaddrinfo(NULL, port_str, &hints, &servinfo) != 0) {
 		perror("tracker - open_listening_port getaddrinfo error");
 		return -1;
 	}
 
-	int listening_sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+	if (servinfo->ai_next) {
+		printf("using next address...\n");
+		rp = servinfo->ai_next;
+	} else
+		rp = servinfo;
+
+	// scan through returned hosts to see what's available (find external facing)
+	// rp = servinfo;
+	// while ( ((sockaddr_in6)(rp->ai_addr)).sin6_addr
+	// for (rp = servinfo; rp != NULL; rp = rp->ai_next) {
+
+	// }
+
+
+	int listening_sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 	if (listening_sockfd < 0) {
 		fprintf(stderr, "tracker - open_listening_port: socket error\n");
 		return -1;
 	}
 
-	if (bind(listening_sockfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0) {
+	if (bind(listening_sockfd, rp->ai_addr, rp->ai_addrlen) != 0) {
 		perror("tracker - open_listening_port bind error");
 		return -1;
 	}
 
-	freeaddrinfo(servinfo); 	// free filled out structure
+	struct sockaddr_in6 servaddr;
+	memcpy(&servaddr, rp->ai_addr, rp->ai_addrlen);
+
+	char ip_str[INET6_ADDRSTRLEN] = "";
+	if (!inet_ntop(rp->ai_family, &servaddr.sin6_addr, ip_str, INET6_ADDRSTRLEN)) {
+		perror("inet_ntop failed");
+		return -1;
+	}
+	printf("NETWORK -- listening at ip address %s on port %d\n", ip_str, TRACKER_LISTENING_PORT);
+
+	freeaddrinfo(rp); 	// free filled out structure
 
 	return listening_sockfd;
 }
@@ -483,19 +555,29 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		return -1;
 	}
 
+	//printf("client %d on socketd %d -- waiting for header\n", client->id, client->socketfd); 	// debug
+	//fflush(stdout);
+
 	// get type and data length
 	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
 		fprintf(stderr,"error receiving header data from client %d\n", client->id);
 		return -1;
 	}
 
+	//printf("got header\n"); // debug
+	//fflush(stdout);
+
 	// set up data buffer and receive data segment if necessary
 	if (pkt.data_len > 0) {
+		
 		buf = (char *)calloc(1,pkt.data_len);
 		if (!buf) {
 			fprintf(stderr, "error receiving data -- could not allocate buffer\n");
 			return -1;
 		}
+		
+		printf("client %d on socketd %d -- waiting for data\n", client->id, client->socketfd); 	// debug
+		fflush(stdout);
 
 		// receive data
 		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
@@ -505,6 +587,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	} else {
 		buf = NULL;
 	}
+
+	//printf("got header and data\n"); 	// debug
 
 	// set up data to pass to logic (how to set this up so it's only created if necessary?)
 	client_data_t * client_data = malloc(sizeof(client_data_t));
@@ -517,6 +601,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			// update time last heard from client
 			client->time_last_alive = time(NULL);
 			free(client_data);
+
+			rc = 1;
 			break;
 
 		case CLIENT_STATE:
@@ -528,10 +614,14 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			}
 			client_data->data = (void *)fs;
 			notify_client_status(tnt, client_data);
+
 			rc = 1;
 			break;
 
 		case CLIENT_UPDATE:
+			printf("NETWORK -- received client update from client %d\n", client->id);
+
+			rc = 1;
 			break;
 
 		default:

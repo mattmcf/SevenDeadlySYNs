@@ -155,9 +155,53 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 }
 
 // nicely ends network
-void EndNetwork() {
-	printf("Client Network Thread ending network (badly right now)\n");
-	exit(1);
+void EndClientNetwork(CNT * thread_block) {
+	printf("NETWORK -- cleaning up\n");
+
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	if (!cnt)
+		return;
+
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_TRANSACTION_UPDATE]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_FILE_ACQ]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_DELETED]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS]);
+	free(cnt->tkr_queues_to_client);
+
+	asyncqueue_destroy(cnt->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK]);
+	asyncqueue_destroy(cnt->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK]);
+	free(cnt->clt_queues_to_client);
+
+	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS]);
+	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE]);
+	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_QUIT]);
+	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_GET_MASTER]);
+	free(cnt->tkr_queues_from_client);
+
+	asyncqueue_destroy(cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK]);
+	asyncqueue_destroy(cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK]);
+	asyncqueue_destroy(cnt->clt_queues_from_client[ME_2_CLT_SEND_ERROR]);
+	free(cnt->clt_queues_from_client);
+
+	free(cnt->ip_addr);
+
+	// close all peer connections
+	for (int i = 0; i < cnt->peer_table->size; i++) {
+		if (cnt->peer_table->peer_list[i] && cnt->peer_table->peer_list[i]->socketfd > 0) 
+			close(cnt->peer_table->peer_list[i]->socketfd);
+	}
+
+	destroy_table(cnt->peer_table);
+
+	close(cnt->tracker_fd);
+	close(cnt->peer_listening_fd);
+
+	free(cnt);
+
+	printf("NETWORK -- ending client network thread after cleaning up\n");
+	
+	return;
 }
 
 /* ###################### *
@@ -308,9 +352,7 @@ void * clt_network_start(void * arg) {
 		return (void *)-1;
 	}
 
-
-	int tracker_fd;
-	while ( (tracker_fd = connect_to_tracker(cnt->ip_addr, cnt->ip_len)) < 0) {
+	while ( (cnt->tracker_fd = connect_to_tracker(cnt->ip_addr, cnt->ip_len)) < 0) {
 		printf("Failed to connect with tracker...\n");
 		sleep(5);
 	}
@@ -325,7 +367,7 @@ void * clt_network_start(void * arg) {
 	FD_ZERO(&active_fd_set);
 
 	// add listening socket to fd set
-	FD_SET(tracker_fd, &active_fd_set);
+	FD_SET(cnt->tracker_fd, &active_fd_set);
 
 	/* need to open peer listening socket */
 	int peer_listening_fd = -1;
@@ -341,41 +383,54 @@ void * clt_network_start(void * arg) {
 			continue;
 		}
 
-		printf("\nclient network polling connections...\n");
+		//printf("\nclient network polling connections...\n");
 		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
 
-				// new connection
-				if (i == tracker_fd) {
+				// from tracker
+				if (i == cnt->tracker_fd) {
 
-					printf("Receiving message from tracker\n");
-					handle_tracker_msg(cnt);
+					printf("client network received message from tracker (socket %d)\n", i);
+					if (handle_tracker_msg(cnt) != 1) {
+						fprintf(stderr, "failed to handle tracker message. Ending.\n");
+						connected = 0;
+						continue;
+					}
 
-				// existing connection
+				// new peer connection
 				} else if (i == peer_listening_fd) {
 
-					printf("Receiving new connection from peer\n");
-					handle_peer_msg(i, cnt);
+					printf("client network received new connection from peer (socket %d)\n",i);
+					// need to accept peer connection
 
-					// new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
+					// new_sockfd = accept(peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
 					// if (new_sockfd < 0) {
 					// 	fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
 					// 	continue;
 					// }
 
+				// else peer message
+				} else {
+					printf("client network received message from peer on socket %d\n", i);
+					if (handle_peer_msg(i, cnt) != 1) {
+						fprintf(stderr, "failed to handle client message. Ending.\n");
+						connected = 0;
+						continue;
+					}
 				}
 			}
 
-			/* send heart beat if necessary */
-			current_time = time(NULL);
-			if (current_time - last_heartbeat > (DIASTOLE / 2)) {
-				send_tracker_message(cnt, NULL, HEARTBEAT);
-				last_heartbeat = current_time;
-			}
+		} 	// end of socket scan
 
-			/* poll queues for messages from client logic */
-			poll_queues(cnt);
+		/* send heart beat if necessary */
+		current_time = time(NULL);
+		if (current_time - last_heartbeat > (DIASTOLE / 2)) {
+			send_tracker_message(cnt, NULL, HEARTBEAT);
+			last_heartbeat = current_time;
 		}
+
+		/* poll queues for messages from client logic */
+		poll_queues(cnt);
 
 	}
 
@@ -410,6 +465,13 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 		return -1;
 	}
 
+	char ip_str[INET6_ADDRSTRLEN] = "";
+	if (!inet_ntop(AF_INET6, &servaddr.sin6_addr, ip_str, INET6_ADDRSTRLEN)) {
+		perror("inet_ntop failed");
+		return -1;
+	}
+
+	printf("NETWORK connected to tracker at %s on port %d (socket %d)\n", ip_str,TRACKER_LISTENING_PORT,sockfd);
 	return sockfd;
 }
 
@@ -427,7 +489,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 	if (pkt.data_len > 0) {
 		buf = calloc(1,pkt.data_len);
 		if (recv(cnt->tracker_fd, buf, pkt.data_len, 0) != pkt.data_len) {
-			fprintf(stderr, "client network has error receiving data\n");
+			fprintf(stderr, "client network failed to get data from tracker\n");
 			return -1;
 		}
 	}
@@ -478,11 +540,14 @@ int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_trac
 			printf("NETWORK -- sending tracker heartbeat\n");
 			pkt.type = HEARTBEAT;
 			pkt.data_len = 0;
-			send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+			if (send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0) != sizeof(client_pkt_t)) {
+				perror("client network failed to send heartbeat");
+				return -1;
+			}
 			break;
 
 		default:
-			printf("network cannot send unknown packet type %d to tracker\n", type);
+			printf("client network cannot send unknown packet type %d to tracker\n", type);
 			break;
 	}
 
@@ -497,7 +562,7 @@ int send_peer_message(_CNT_t * cnt, int peer_id) {
 /* ------------------------ HANDLE QUEUES TO NETWORK FROM LOGIC ------------------------ */
 
 void poll_queues(_CNT_t * cnt) {
-	printf("\nclient network is polling queues\n");
+	//printf("\nclient network is polling queues\n");
 	check_cur_status_q(cnt);
 	check_file_acq_q(cnt);
 	check_quit_q(cnt);

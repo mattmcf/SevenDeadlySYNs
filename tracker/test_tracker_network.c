@@ -20,7 +20,7 @@ int main() {
 	}
 
 	while (1) {
-		printf("main thread sleeping...\n");
+		//printf("main thread sleeping...\n");
 		sleep(10);
 	}
 }
