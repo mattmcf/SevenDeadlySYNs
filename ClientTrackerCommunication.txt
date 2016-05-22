@@ -1,0 +1,53 @@
+Queues from client to tracker
+	update queue 
+		Contains a jfs that describes an update to the master
+	new clients queue
+		contains information about new clients attempting to join the network
+	client disconnected queue
+		information about clients who disconnected
+	client successful get queue
+		information about files and parts of files that clients successfully received
+	client failed to get queue
+		information about files and parts of files that the client could not acquire
+	
+Queues from tracker to client
+	transaction update queue
+		Contains a jfs of all updated files (client then resets those files/marks them for getting)
+	file acquisition status update queue
+		information about a client who has successfully gotten a part of a file
+	peer added queue
+		peer was added to the tracking
+	peer removed queue
+		peer was removed from the tracking
+
+
+Queues from client to client
+	request chunk queue
+		requests a specific file chunk from a specific peer
+	receive chunk queue
+		the actual file data getting received
+	send chunk queue
+		send file data to a specific peer
+	receive errors queue
+		info about errors receiving chunk
+		
+
+example call of filesystem_serialize...
+
+FileSystem * fs = /* get a file system object */
+char * buffer;
+int len;
+filesystem_serialize(fs, &buffer, &len);
+
+/*
+ * now buffer will point to a block of data (len bytes) that
+ * is the serialized buffer
+ */
+
+
+ Client - Tracker Handshake
+ 		- client connects to listening tracker thread on TRACKER_LISTENING_PORT
+ 		- tracker responds with current peer group
+ 		- client sends their serialized current file system (since last log on) 
+ 		- tracker responds with a transaction update
+ 		- ??? (Does client request information about updated info?) -> or assume that every other peer already has updated info and can randomly ask updates for all peers.

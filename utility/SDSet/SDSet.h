@@ -15,3 +15,4 @@ int sdset_length(SDSet* set);
 void* sdset_get_index(SDSet* set, int index);
 
 #endif
+

@@ -47,6 +47,10 @@ char* add_strings(int count, ...)
 }
 char* copy_string(char* string)
 {
+	if (!string)
+	{
+		return NULL;
+	}
 	int length = strlen(string);
 	char* copy = (char*)malloc(length + 1);
 	memcpy(copy, string, length + 1);
@@ -72,6 +76,7 @@ typedef struct
 	char* name;
 	unsigned long size;
 	time_t last_modified;
+	int is_folder;
 } _File;
 
 File* file_new(char* path, char* name)
@@ -83,7 +88,7 @@ File* file_new(char* path, char* name)
 	file->name = copy_string(name);
 	file->size = st.st_size;
 	file->last_modified = st.st_mtime;
-	
+	file->is_folder = 0;
 	return (File*)file;
 }
 void file_destroy(File* file)
@@ -107,12 +112,15 @@ void file_print(File* file, int nameWidth, int digitsWidth, int depth)
 {
 	_File* f = (_File*)file;
 		
-	for (int i = 0; i < depth; i++)
-	{
-		printf("  |");
-	}
 		
-	printf("-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+	if (!(f->is_folder))
+	{
+		for (int i = 0; i < depth; i++)
+		{
+			printf("  |");
+		}
+		printf("-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+	}
 }
 File* file_copy(File* file)
 {
@@ -121,6 +129,7 @@ File* file_copy(File* file)
 	copy->name = copy_string(f->name);
 	copy->size = f->size;
 	copy->last_modified = f->last_modified;
+	copy->is_folder = f->is_folder;
 	return (File*)copy;
 }
 int file_equals(void* elementp, void* keyp)
@@ -128,7 +137,7 @@ int file_equals(void* elementp, void* keyp)
 	_File* f0 = (_File*)elementp;
 	_File* f1 = (_File*)keyp;
 	
-	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified;
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified && (f0->is_folder == f1->is_folder);
 }
 
 // ******************************** Folder ********************************
@@ -165,10 +174,16 @@ Folder* folder_new(char* path, char* name)
 		{
 		    if (S_ISDIR(path_stat.st_mode))
 			{
-				Folder* child = folder_new(path_to_content, dir->d_name);
+				_Folder* child = (_Folder*)folder_new(path_to_content, dir->d_name);
 				if (child)
 				{
 					queue_push(folder->folders, child);
+					_File* file = create_new(_File);
+					file->name = copy_string(child->name);
+					file->size = 0;
+					file->last_modified = 0;
+					file->is_folder = 1;
+					queue_push(folder->files, file);
 				}
 			}
 			else
@@ -208,13 +223,12 @@ int folder_equals(void* elementp, void* keyp)
 }
 void folder_print(Folder* folder, int depth)
 {
+	_Folder* f = (_Folder*)folder;
+		
 	for (int i = 0; i < depth; i++)
 	{
 		printf("  |");
 	}
-	
-	_Folder* f = (_Folder*)folder;
-	
 	printf("-%s\n", f->name);
 	
 	int maxLength = 0;
@@ -272,7 +286,6 @@ Folder* folder_copy(Folder* folder)
 }
 /*
 folder = folder - toSubtract
-Returns 0 if folder and toSubtract are identical
 */
 void folder_subtract(Folder* folder, Folder* toSubtract)
 {
@@ -304,6 +317,100 @@ void folder_subtract(Folder* folder, Folder* toSubtract)
 				folder_destroy(removed);
 			}
 		}
+	}
+}
+
+
+/*
+folder = folder - toSubtract
+*/
+void folder_remove(Folder* folder, Folder* toSubtract)
+{
+	_Folder* f = (_Folder*)folder;
+	_Folder* toSub = (_Folder*)toSubtract;
+		
+	for (int i = 0; i < queue_length(toSub->files); i++)
+	{
+		_File* removedFile = queue_remove(f->files, file_equals, queue_get(toSub->files, i));
+		if (removedFile)
+		{
+			if (removedFile->is_folder)
+			{
+				_Folder toRemove;
+				toRemove.name = removedFile->name;
+				Folder* removedFolder = queue_remove(f->folders, folder_equals, &toRemove);
+				if (removedFolder)
+				{
+					folder_destroy(removedFolder);
+				}
+			}
+			file_destroy((File*)removedFile);
+		}
+	}
+	
+	for (int i = 0; i < queue_length(toSub->folders); i++)
+	{
+		Folder* toRemove = queue_get(toSub->folders, i);
+		Folder* removed = queue_search(f->folders, folder_equals, toRemove);
+				
+		if (removed)
+		{			
+			folder_subtract(removed, toRemove);
+		}
+	}
+}
+/*
+folder = folder + toAdd
+*/
+void folder_add(Folder* folder, Folder* toPlus)
+{
+	_Folder* f = (_Folder*)folder;
+	_Folder* toAdd = (_Folder*)toPlus;
+		
+	for (int i = 0; i < queue_length(toAdd->files); i++)
+	{
+		_File* fileToAdd = queue_get(toAdd->files, i);
+		
+		if (fileToAdd->is_folder)
+		{
+			_Folder search;
+			search.name = fileToAdd->name;
+			_Folder* folderToAdd = queue_search(toAdd->folders, folder_equals, &search);
+			assert(folderToAdd);
+			
+			_File* fAlreadyContainsFile = queue_search(f->files, file_equals, fileToAdd);
+			_Folder* fAlreadyContainsFolder = queue_search(f->folders, folder_equals, &search);
+			
+			if (fAlreadyContainsFile)
+			{
+				assert(fAlreadyContainsFolder);
+				folder_add((Folder*)fAlreadyContainsFolder, (Folder*)folderToAdd);
+			}
+			else
+			{
+				queue_push(f->files, file_copy((File*)fileToAdd));
+				_Folder* newFolder = create_new(_Folder);
+				newFolder->name = copy_string(fileToAdd->name);
+				newFolder->files = queue_new();
+				newFolder->folders = queue_new();
+				queue_push(f->folders, newFolder);
+			}			
+		}
+		else
+		{
+			_File* fileExists = queue_search(f->files, file_equals, fileToAdd);
+			if (!fileExists)
+			{
+				queue_push(f->files, file_copy((File*)fileToAdd));
+			}
+		}
+	}
+	for (int i = 0; i < queue_length(toAdd->folders); i++)
+	{
+		_Folder* folderToAdd = queue_get(toAdd->folders, i);
+		_Folder* found = queue_search(f->folders, folder_equals, folderToAdd);
+		assert(found);
+		folder_add((Folder*)found, (Folder*)folderToAdd);
 	}
 }
 
@@ -341,13 +448,6 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	return fs->root_path;
 }
-void filesystem_subtract(FileSystem* filesystem0, FileSystem* filesystem1)
-{
-	_FileSystem* fs0 = (_FileSystem*)filesystem0;
-	_FileSystem* fs1 = (_FileSystem*)filesystem1;
-	
-	folder_subtract(fs0->root, fs1->root);
-}
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
@@ -360,16 +460,145 @@ void filesystem_print(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	
-	printf("Printing filesystem at: %s\n", fs->root_path);
+	printf("Printing filesystem at: %s\n", fs->root_path == NULL ? "NULL" : fs->root_path);
 	folder_print(fs->root, 0);
 }
-void filesystem_diff(FileSystem* filesystem, FileSystem** additions, FileSystem** deletions)
+void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1)
 {
-	*additions = filesystem_new(((_FileSystem*)filesystem)->root_path);
-	*deletions = filesystem_copy(filesystem);
+	_FileSystem* fs0 = (_FileSystem*)filesystem0;
+	_FileSystem* fs1 = (_FileSystem*)filesystem1;
 	
-	filesystem_subtract(*deletions, *additions);
-	filesystem_subtract(*additions, filesystem);
+	folder_subtract(fs0->root, fs1->root);
+}
+void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
+{
+	_FileSystem* fs0 = (_FileSystem*)filesystem0;
+	_FileSystem* fs1 = (_FileSystem*)filesystem1;
+	
+	folder_remove(fs0->root, fs1->root);
+}
+void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
+{
+	_FileSystem* fs0 = (_FileSystem*)filesystem0;
+	_FileSystem* fs1 = (_FileSystem*)filesystem1;
+
+	folder_add(fs0->root, fs1->root);
+}
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+{
+	*additions = filesystem_copy(old);
+	*deletions = filesystem_copy(new);
+	
+	filesystem_minus_equals_diff(*deletions, *additions);
+	filesystem_minus_equals_diff(*additions, new);
+	
+	FileSystem* tmp = *additions;
+	*additions = *deletions;
+	*deletions = tmp;
+}
+
+#define FILE_MARKER (0xFF)
+#define FOLDER_START (0xFE)
+#define FOLDER_END (0xFD)
+
+void push_string(Queue* queue, char* str)
+{
+	for (char* ptr = str; *ptr; ptr++)
+	{
+		queue_push(queue, (void*)(long)(*ptr));
+	}
+	queue_push(queue, (void*)0);
+}
+void filesystem_serialize_helper(_Folder* folder, Queue* data)
+{
+	queue_push(data, (void*)FOLDER_START);
+	push_string(data, folder->name);
+	for (int i = 0; i < queue_length(folder->files); i++)
+	{
+		_File* file = queue_get(folder->files, i);
+		queue_push(data, (void*)FILE_MARKER);
+		push_string(data, file->name);
+		char buf[128];
+		sprintf(buf, "%ld %ld %d", file->size, file->last_modified, file->is_folder);
+		push_string(data, buf);
+	}
+	for (int i = 0; i < queue_length(folder->folders); i++)
+	{
+		_Folder* f = queue_get(folder->folders, i);
+		filesystem_serialize_helper(f, data);
+	}
+	queue_push(data, (void*)FOLDER_END);
+}
+
+void filesystem_serialize(FileSystem* filesystem, char** data, int* length)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	Queue* buffer = queue_new();
+	filesystem_serialize_helper((_Folder*)fs->root, buffer);
+	
+	int l = queue_length(buffer);
+	char* serialized = (char*)malloc(l * sizeof(char));
+	for (int i = 0; i < l; i++)
+	{
+		serialized[i] = (char)queue_get(buffer, i);
+	}
+	
+	queue_destroy(buffer);
+	
+	*data = serialized;
+	*length = l;
+}
+
+_Folder* filesystem_deserialize_helper(char** data)
+{	
+	_Folder* folder = create_new(_Folder);
+	folder->files = queue_new();
+	folder->folders = queue_new();
+	folder->name = copy_string(*data);
+	
+	*data += strlen(folder->name) + 1;
+	
+	while (1)
+	{
+		switch ((unsigned char)(**data))
+		{
+			case FOLDER_START:
+			{
+				*data += 1;
+				queue_push(folder->folders, filesystem_deserialize_helper(data));
+				break;
+			}
+			case FILE_MARKER:
+			{
+				*data += 1;
+				_File* file = create_new(_File);
+				file->name = copy_string(*data);
+				*data += strlen(file->name) + 1;
+				int numRead;
+				sscanf(*data, "%ld %ld %d%n", &(file->size), &(file->last_modified), &(file->is_folder), &numRead);
+				queue_push(folder->files, file);
+				*data += numRead + 1;
+				break;
+			}
+			case FOLDER_END:
+			{
+				*data += 1;
+				return folder;
+				break;
+			}
+		}
+	}
+}
+
+FileSystem* filesystem_deserialize(char* data, int* bytesRead)
+{
+	_FileSystem* fs = create_new(_FileSystem);
+	fs->root_path = NULL;
+	char* d = data + 1;
+	fs->root = (Folder*)filesystem_deserialize_helper(&d);
+	*bytesRead = d - data; // Adding one above actually fixes the off by one error
+	
+	return (FileSystem*)fs;
 }
 
 // ******************************** Iterator ********************************
@@ -414,14 +643,17 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	
+	// If there is a path that has been set, then free it.
 	if (fsi->path)
 	{
 		free(fsi->path);
 		fsi->path = NULL;
 	}
 	
+	// If the we have iterated through all the files in the current directory...
 	if (fsi->file_index == queue_length(fsi->current_files))
 	{
+		// Get the next folder from the folder stack. Return if it is NULL.
 		Folder* folder = queue_spop(fsi->folder_stack);
 		if (folder == NULL)
 		{
@@ -429,7 +661,8 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		}
 		
 		char* current_path = queue_spop(fsi->path_stack);
-	
+		
+		// Iterate through the subfolders of the next folder and push them onto the stack
 		Queue* subfolders = folder_get_folders(folder);			
 		for (int i = 0; i < queue_length(subfolders); i++)
 		{
@@ -438,8 +671,9 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 			queue_push(fsi->path_stack, add_strings(3, current_path, "/", folder_get_name(f)));
 		}
 	
+		// Reset the file index
 		fsi->file_index = 0;
-			
+		
 		free(current_path);
 		
 		Folder* next_folder = queue_speek(fsi->folder_stack);
@@ -449,10 +683,8 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		}
 		fsi->current_files = folder_get_files(next_folder);
 		
-		char* path = queue_speek(fsi->path_stack);
-		assert(path);
-		fsi->path = add_strings(2, path, "/");
-		return fsi->path;
+		fsi->path = NULL;
+		return filesystemiterator_next(iterator);
 	}
 	
 	char* path = queue_speek(fsi->path_stack);
@@ -465,41 +697,85 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 
 // ******************************** Main ********************************
 
-int main()
-{
-	FileSystem* fs = filesystem_new("/Users/jacob/Dropbox");
-	sleep(10);
+// int main()
+// {
+// 	printf("Testing serialization and deserialization...\n");
 	
-	FileSystem* additions;
-	FileSystem* deletions;
-	filesystem_diff(fs, &additions, &deletions);
-	printf("Additions:\n");
-	filesystem_print(additions);
+// 	char* path = "/Users/jacob/Downloads/a4handout";
+// 	printf("Loading filesystem at %s\n", path);
+// 	FileSystem* fs = filesystem_new(path);
+// 	filesystem_print(fs);
 	
-	FileSystemIterator* fsi = filesystemiterator_new(additions);
-	char* path;
-	while ((path = filesystemiterator_next(fsi)))
-	{
-		printf("%s\n", path);
-	}
-	filesystemiterator_destroy(fsi);
+// 	char* serializedFs;
+// 	int length;
+// 	printf("Serializing!\n");
+// 	filesystem_serialize(fs, &serializedFs, &length);
+// 	printf("Serialized %d bytes!\n", length);
+// 	printf("Deserializing!\n");
+// 	FileSystem* deserialized = filesystem_deserialize(serializedFs, &length);
+// 	printf("Deserialized %d bytes!\n", length);
+// 	filesystem_print(deserialized);
 	
-	printf("\nDeletions:\n");
-	filesystem_print(deletions);
+// 	FileSystem* additions;
+// 	FileSystem* deletions;
+// 	filesystem_diff(fs, deserialized, &additions, &deletions);
+// 	printf("Printing differences. (There should be no differences)\n");
+// 	filesystem_print(additions);
+// 	filesystem_print(deletions);
 	
-	fsi = filesystemiterator_new(deletions);
-	while ((path = filesystemiterator_next(fsi)))
-	{
-		printf("%s\n", path);
-	}
-	filesystemiterator_destroy(fsi);
+// 	filesystem_destroy(additions);
+// 	filesystem_destroy(deletions);
+// 	filesystem_destroy(deserialized);
 	
-	filesystem_destroy(fs);
-	filesystem_destroy(additions);
-	filesystem_destroy(deletions);
+		
+// 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
+// 	sleep(5);
+		
+// 	FileSystem* changes = filesystem_new(path);
+// 	filesystem_diff(fs, changes, &additions, &deletions);
+// 	printf("Additions\n");
+// 	filesystem_print(additions);
+// 	printf("Deletions\n");
+// 	filesystem_print(deletions);
 	
-	return 0;
-}
+// 	FileSystem* withChanges = filesystem_copy(fs);
+// 	filesystem_minus_equals(withChanges, deletions);	
+// 	filesystem_plus_equals(withChanges, additions);
+	
+// 	printf("Old + additions - deletions\n");
+// 	filesystem_print(withChanges);
+	
+// 	filesystem_destroy(additions);
+// 	filesystem_destroy(deletions);
+	
+// 	filesystem_diff(changes, withChanges, &additions, &deletions);
+	
+// 	printf("Printing differences. (There should be no differences)\n");
+// 	filesystem_print(additions);
+// 	filesystem_print(deletions);
+	
+// 	return 0;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
