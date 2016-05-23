@@ -10,6 +10,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <assert.h>
+#include <wordexp.h>
 
 #define create_new(type) ((type*)malloc(sizeof(type)))
 #define max(a,b)	(a > b ? a : b)
@@ -154,6 +155,7 @@ Folder* folder_new(char* path, char* name)
 	DIR* d = opendir(path);
 	if (!d)
 	{
+		fprintf(stderr, "Bad folder path\n");
 		return NULL;
 	}
 		
@@ -424,9 +426,12 @@ typedef struct
 
 FileSystem* filesystem_new(char* path)
 {
+    wordexp_t exp_result;
+    wordexp(path, &exp_result, 0);
+		
 	_FileSystem* fs = create_new(_FileSystem);
-	fs->root_path = copy_string(path);
-	fs->root = folder_new(path, "");
+	fs->root_path = copy_string(exp_result.we_wordv[0]);
+	fs->root = folder_new(exp_result.we_wordv[0], "");
 	
 	return (FileSystem*)fs;
 }
