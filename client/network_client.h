@@ -18,7 +18,7 @@ typedef struct CNT CNT;
 CNT * StartClientNetwork(char * ip_addr, int ip_len);
 
 // nicely ends network
-void EndNetwork();
+void EndClientNetwork(CNT * thread_block);
 
 /* ###################################
  * 
