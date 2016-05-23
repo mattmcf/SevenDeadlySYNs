@@ -7,24 +7,18 @@
 #include <sys/types.h>		// for networking
 #include <sys/socket.h>
 #include <netdb.h>
-
 #include <stdio.h> 		// memory and IO
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-
 #include <signal.h>
 #include <sys/select.h> 	// for select call
-
 #include <netinet/in.h> 	// in_addr_t struct
-
 #include <arpa/inet.h>
 #include <assert.h>
 #include <sys/utsname.h>
 #include <pthread.h>
 #include <unistd.h>
-
-
 
 #include "network_tracker.h"
 #include "../utility/AsyncQueue/AsyncQueue.h"
@@ -33,6 +27,7 @@
 #include "../common/packets.h"
 
 #define INIT_CLIENT_NUM 10
+
 
 /* --- 	queue definitions --- */
 #define CLT_2_TKR_CUR_STATE 0
@@ -56,7 +51,7 @@ typedef struct _TNT {
 	 * *** INCOMING QUEUES ****
 	 *
 	 * -- client to tracker --
-	 * queues_to_tracker[0] -> contains client's curent JFS (to logic)
+	 * queues_to_tracker[0] -> contains client's current JFS (to logic)
  	 * queues_to_tracker[1] -> client has just updated a file (to logic)
  	 * queues_to_tracker[2] -> client has joined network (to logic)
  	 * queues_to_tracker[3] -> client disconnected queue (to logic)
@@ -261,7 +256,26 @@ int send_FS_update(TNT * tnt) {
 }
 
 // send to all peers to notify that a new peer has appeared : TKR_2_CLT_ADD_PEER
-int send_peer_added(TNT * tnt) {
+// 	thread_block : (not claimed)
+//	client_id : id of client to send out to all peers (SEND_ALL_PEERS) -> send whole table
+//
+int send_peer_added(TNT * thread_block, int client_id) {
+	if (!tnt)
+		return -1;
+
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+	if (client_id == SEND_TO_ALL_PEERS) {
+
+	} else {
+		peer_t * client = get_peer_by_id(tnt->peer_table, client_id);
+	}
+
+	
+	if (!client)
+		return -1;
+
+
+
 	return -1;
 }
 
@@ -327,6 +341,14 @@ int notify_client_lost(_TNT_t * tnt, peer_t * lost_client) {
 
 // notify about file acquiring update (success and failure)
 
+// notify that client has requested master : CLT_2_TKR_CLIENT_REQ_MASTER
+int notify_master_req(_TNT_t * tnt, int client_id) {
+	if (!tnt || client_id < 1)
+		return -1;
+
+	asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_REQ_MASTER],(void *)(long)client_id);
+	return 1;
+}
 
 /* ###################### *
  * 
@@ -346,7 +368,9 @@ int open_listening_port();
 
 int send_client_message(_TNT_t * tnt, tracker_data_t * data, tracker_to_client_t type);
 int handle_client_msg(int sockfd, _TNT_t * tnt);
-void check_liveliness(_TNT_t * tnt);
+void check_liveliness(_TNT_t * tnt); 	// examines if heartbeat has been sent
+
+void send_peer_table_to_client(tnt, new_client); 	// sends entire serialized peer table to client
 
 /* --- Network Side Queue Functions --- */
 
@@ -430,6 +454,7 @@ void * tkr_network_start(void * arg) {
 
 					// notify tracker
 					notify_new_client(tnt, new_client);
+					send_peer_table_to_client(tnt, new_client);
 					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
@@ -484,19 +509,19 @@ int open_listening_port() {
 		return -1;
 	}
 
-	if (servinfo->ai_next) {
-		printf("using next address...\n");
-		rp = servinfo->ai_next;
-	} else
-		rp = servinfo;
-
+	rp = servinfo;
+	// ISSUE: only opens local port?
 	// scan through returned hosts to see what's available (find external facing)
+	// if (servinfo->ai_next) {
+	// 	printf("using next address...\n");
+	// 	rp = servinfo->ai_next;
+	// } else
+	// 	rp = servinfo;
+
 	// rp = servinfo;
 	// while ( ((sockaddr_in6)(rp->ai_addr)).sin6_addr
 	// for (rp = servinfo; rp != NULL; rp = rp->ai_next) {
-
 	// }
-
 
 	int listening_sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 	if (listening_sockfd < 0) {
@@ -630,6 +655,14 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			rc = 1;
 			break;
 
+		case REQUEST_MASTER:
+			printf("NETWORK -- received request for master JFS from client %d\n", client->id);
+			notify_master_req(tnt, client->id);
+			free(client_data);
+
+			rc = 1;
+			break;
+
 		default:
 			printf("NETWORK -- Unknown packet type (%d) from client id %d\n", pkt.type, client->id);
 			break;
@@ -660,6 +693,26 @@ void check_liveliness(_TNT_t * tnt) {
 		}
 	}
 
+}
+
+void send_peer_table_to_client(_TNT_t * tnt, int new_client) {
+	if (!tnt || new_client < 0)
+		return;
+
+	tracker_pkt_t pkt;
+	pkt.type = PEER_TABLE;
+
+	char * buf = serialize_peer_table(tnt->peer_table, &pkt.data_len);
+	if (!buf || pkt.data_len < 0) {
+		fprintf(stderr, "tracker failed to send peer table to client due to serialization error\n");
+		return;
+	}
+
+	send(new_client, &pkt, sizeof(pkt));
+	send(new_client, buf, pkt.data_len);
+
+	free(buf);
+	return;
 }
 
 /* ------------------------ HANDLE QUEUES TO NETWORK FROM TRACKER ------------------------ */

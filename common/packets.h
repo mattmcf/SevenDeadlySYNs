@@ -39,6 +39,7 @@ typedef enum {
 	MASTER_STATUS,
 	PEER_ADDED,
 	PEER_DELETED,
+	PEER_TABLE,
 } tracker_to_client_t;
 
 typedef struct tracker_pkt {

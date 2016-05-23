@@ -10,6 +10,8 @@
 
 #include "../utility/FileSystem/FileSystem.h"
 
+#define SEND_TO_ALL_PEERS -1 	// used for send_peer() call
+
 typedef struct TNT TNT;
 
 TNT * StartTrackerNetwork();

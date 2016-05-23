@@ -221,6 +221,13 @@ int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions) {
 // receive acq status update : TKR_2_ME_FILE_ACQ
 
 // receive peer added message : TKR_2_ME_PEER_ADDED
+//	thread_block : (not claimed) thread block
+// 	ret : (static) id of added client (always > 1) or -1 if no new clients
+int recv_peer_added(CNT * thread_block) {
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	int new_id = (int)(long)asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED]);
+	return (new_id > 0) new_id : -1;
+}
 
 // receive peer deleted message : TKR_2_ME_PEER_DELETED
 
@@ -283,6 +290,7 @@ int send_request_for_master(CNT * cnt) {
 
 // send chunk request error response : ME_2_CLT_SEND_ERROR
 
+
 /* ###################### *
  * 
  * Things that the network can do to interact with the client
@@ -307,8 +315,11 @@ int notify_file_acq_update() {
 	return -1;
 }
 
-int notify_peer_added() {
+int notify_peer_added(_cnt_t * cnt, int id) {
+	if (!cnt)
+		return -1;
 
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED], (void *)(long)id);
 	return -1;
 }
 
@@ -508,6 +519,27 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			notify_master_received(cnt, master_update);
 			break;
 
+		case PEER_TABLE:
+			printf("NETWORK -- received peer table from tracker\n");
+
+			// diff tables -> notify client logic of deletions and additions
+
+			// replace current peer table with received peer table
+
+			destroy_peer_table(cnt->peer_table);
+			cnt->peer_table = NULL;
+
+			cnt->peer_table = deserialize_peer_table(buf, pkt.data_len);
+			if (!cnt->peer_table) {
+				fprintf(stderr, "client network failed to deserialize tracker's peer table\n");
+			}
+
+			print_table(cnt->peer_table);
+
+			// notify client logic about all new peers?
+
+
+			break;
 
 		case FILE_ACQ_UPDATE:
 		case PEER_ADDED:
@@ -612,6 +644,7 @@ void check_master_req_q(_CNT_t * cnt) {
 		pkt.type = REQUEST_MASTER;
 		pkt.data_len = 0;
 		send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+
 	}
 	return;
 }
