@@ -62,9 +62,17 @@ int main() {
 
 	freeaddrinfo(result);
 
+	send_request_for_master(cnt);
+	FileSystem * master = NULL;
+	int master_len;
 	while (1) {
-		//printf("main thread sleeping\n");
+		
 		sleep(10);
+		master = recv_master(cnt, &master_len);
+		if (master != NULL) {
+			printf("received master!\n");
+			filesystem_print(master);
+		}
 	}
 
 }
