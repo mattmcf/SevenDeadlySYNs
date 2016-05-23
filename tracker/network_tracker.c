@@ -259,20 +259,20 @@ int send_FS_update(TNT * tnt) {
 // 	thread_block : (not claimed)
 //	client_id : id of client to send out to all peers (SEND_ALL_PEERS) -> send whole table
 //
-int send_peer_added(TNT * thread_block, int client_id) {
-	if (!tnt)
+int send_peer_added(TNT * thread_block, int new_client_id) {
+	if (!thread_block)
 		return -1;
 
-	_TNT_t * tnt = (_TNT_t *)thread_block;
-	if (client_id == SEND_TO_ALL_PEERS) {
+	// _TNT_t * tnt = (_TNT_t *)thread_block;
+	// if (client_id == SEND_TO_ALL_PEERS) {
 
-	} else {
-		peer_t * client = get_peer_by_id(tnt->peer_table, client_id);
-	}
+	// } else {
+	// 	peer_t * client = get_peer_by_id(tnt->peer_table, client_id);
+	// }
 
 	
-	if (!client)
-		return -1;
+	// if (!client)
+	// 	return -1;
 
 
 
@@ -370,7 +370,7 @@ int send_client_message(_TNT_t * tnt, tracker_data_t * data, tracker_to_client_t
 int handle_client_msg(int sockfd, _TNT_t * tnt);
 void check_liveliness(_TNT_t * tnt); 	// examines if heartbeat has been sent
 
-void send_peer_table_to_client(tnt, new_client); 	// sends entire serialized peer table to client
+void send_peer_table_to_client(_TNT_t * tnt, int new_client); 	// sends entire serialized peer table to client
 
 /* --- Network Side Queue Functions --- */
 
@@ -445,7 +445,7 @@ void * tkr_network_start(void * arg) {
 					}
 
 					// add new peer to table
-					if ((new_client = add_peer(tnt->peer_table, &clientaddr.sin6_addr, new_sockfd)) == NULL) {
+					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin6_addr, new_sockfd)) == NULL) {
 						fprintf(stderr,"network tracker received peer connection but couldn't add it to the table\n");
 						continue;
 					}
@@ -708,8 +708,8 @@ void send_peer_table_to_client(_TNT_t * tnt, int new_client) {
 		return;
 	}
 
-	send(new_client, &pkt, sizeof(pkt));
-	send(new_client, buf, pkt.data_len);
+	send(new_client, &pkt, sizeof(pkt), 0);
+	send(new_client, buf, pkt.data_len, 0);
 
 	free(buf);
 	return;

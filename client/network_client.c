@@ -226,7 +226,7 @@ int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions) {
 int recv_peer_added(CNT * thread_block) {
 	_CNT_t * cnt = (_CNT_t *)thread_block;
 	int new_id = (int)(long)asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED]);
-	return (new_id > 0) new_id : -1;
+	return (new_id > 0) ? new_id : -1;
 }
 
 // receive peer deleted message : TKR_2_ME_PEER_DELETED
@@ -315,7 +315,7 @@ int notify_file_acq_update() {
 	return -1;
 }
 
-int notify_peer_added(_cnt_t * cnt, int id) {
+int notify_peer_added(_CNT_t * cnt, int id) {
 	if (!cnt)
 		return -1;
 
@@ -522,11 +522,11 @@ int handle_tracker_msg(_CNT_t * cnt) {
 		case PEER_TABLE:
 			printf("NETWORK -- received peer table from tracker\n");
 
-			// diff tables -> notify client logic of deletions and additions
+			// TODO diff tables -> notify client logic of deletions and additions
 
 			// replace current peer table with received peer table
 
-			destroy_peer_table(cnt->peer_table);
+			destroy_table(cnt->peer_table);
 			cnt->peer_table = NULL;
 
 			cnt->peer_table = deserialize_peer_table(buf, pkt.data_len);
@@ -640,6 +640,7 @@ void check_master_req_q(_CNT_t * cnt) {
 	if (1 == (int)(long)asyncqueue_pop(q)) {
 
 		printf("NETWORK -- sending request for master JFS\n");
+
 		client_pkt_t pkt;
 		pkt.type = REQUEST_MASTER;
 		pkt.data_len = 0;

@@ -66,7 +66,7 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 int send_FS_update(TNT * tnt);
 
 // send to all peers to notify that a new peer has appeared
-int send_peer_added(TNT * tnt);
+int send_peer_added(TNT * tnt, int new_client_id);
 
 // send to all peers to notify that peer has disappeared
 int send_peer_removed(TNT * tnt);
