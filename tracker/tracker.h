@@ -7,9 +7,11 @@
 #ifndef _TRACKER_H
 #define _TRACKER_H
 
-#include "../utility/ChunkyFile/ChunkyFile.h"
+
 #include "network_tracker.h"
+#include "file_table.h"
 #include "../utility/FileSystem/FileSystem.h"
+#include "../utility/ChunkyFile/ChunkyFile.h"
 
 // Peer table structure
 typedef struct peer_table {
