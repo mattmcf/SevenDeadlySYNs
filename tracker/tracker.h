@@ -9,7 +9,6 @@
 
 
 #include "network_tracker.h"
-#include "file_table.h"
 #include "../utility/FileSystem/FileSystem.h"
 #include "../utility/ChunkyFile/ChunkyFile.h"
 
@@ -19,24 +18,21 @@ typedef struct peer_table {
   int *peerIDs;						//peerID number
 } peer_table;
 
-// Chunky file table, file information
-typedef struct ChunkyFileTable_file {
-	char* name;						// file name/file path
-	int size;						// size of file (this may not matter)
-	int numChunks;					// number of chunks in the file
-	ChunkyFileTable_chunk* head;	// head of singly linked list of chunks
-} ChunkyFileTable_file;
+// // Chunky file table, file information
+// typedef struct ChunkyFileTable_file {
+// 	char* name;						// file name/file path
+// 	int size;						// size of file (this may not matter)
+// 	int numChunks;					// number of chunks in the file
+// 	ChunkyFileTable_chunk* head;	// head of singly linked list of chunks
+// } ChunkyFileTable_file;
 
-// file chunk
-typedef struct ChunkyFileTable_chunk {
-	int chunkNum;					// the chunk number of this chunk
-	int* peerID;					// an array of the peers that have this chunk
-	ChunkyFileTable_chunk* next;	// singly linked list, point to next chunk
-} ChunkyFileTable_chunk;
+// // file chunk
+// typedef struct ChunkyFileTable_chunk {
+// 	int chunkNum;					// the chunk number of this chunk
+// 	int* peerID;					// an array of the peers that have this chunk
+// 	ChunkyFileTable_chunk* next;	// singly linked list, point to next chunk
+// } ChunkyFileTable_chunk;
 
-
-// ceates a new peer table. allocates the memory
-peer_table* createPeerTable();
 
 void intHandler(int dummy);
 
