@@ -13,6 +13,11 @@
 
 // time to sleep while polling for status diff
 #define POLL_STATUS_DIFF	5
+// minimum time (seconds) that a client needs to talk to tracker before being considered dead
+#define DIASTOLE 10 
+
+// time spent waiting for sockets to receive data before polling queues
+#define NETWORK_WAIT 3
 
 // defined DART_SYNC directory that will be syncronized across peers
 #define DARTSYNC_DIR "~/dart_sync/"

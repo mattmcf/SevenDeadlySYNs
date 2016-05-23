@@ -29,37 +29,52 @@ void EndNetwork();
 /* ----- receiving ----- */
 
 // receive transaction update
-// 	thread : (not claimed) network thread block
-// 	ret : (not claimed) diffed File System (null if no update available)
-FileSystem * recv_diff(CNT * thread);
+// 	cnt : (not claimed) thread block
+// 	additions : (not claimed) JFS of additions
+// 	deletions : (not claimed) JFS of deletions
+//	ret : (static) 1 on success, -1 on failure 
+int recv_diff(CNT * cnt, FileSystem ** additions, FileSystem ** deletions);
 
 // receive acq status update
 
-// get peer added message
+// receive acq status update 
 
-// get peer deleted message
+// receive peer added message
+//	thread_block : (not claimed) thread block
+// 	ret : (static) id of added client (always > 1) or -1 if no new clients
+int recv_peer_added(CNT * thread_block);
 
-// receive request for chunk
+// receive peer deleted message 
 
-// receive chunk from peer
+// receive master JFS from tracker 
+// 	CNT : (not claimed) thread block
+// 	received_length : (not claimed) will be filled in with deserialized bytes if update was present
+//	ret : (not claimed) master file system
+//				null if no update
+FileSystem * recv_master(CNT * thread, int * received_length);
+
+// receive request for chunk 
+
+// receive chunk from peer 
+
 
 /* ----- sending ----- */
 
-// sends a file system update to tracker
-// 	thread : (not claimed) network thread block
-// 	fs : (not claimed) current JFS
-// 	return : (static) 1 on success, -1 on failure
-int send_status(CNT * thread, FileSystem * fs);
+// send current status
+int send_status(CNT * thread, FileSystem * fs); 
 
-/* 
- * Must be able to do the following
- * 	- send a current status update (JFS) -> send_status()
- * 	- send a request for a file chunk
- * 	- send a file chunk
- * 	- send an error (associated with an attempt to get a chunk)
- * 	- send an update to tracker about acquired chunk
- * 	- send a "I'm quitting message"
- */
+// send file acquistion update
 
+// send quit message to tracker
+
+// send request for master JFS to tracker
+// returns 1 on success, -1 on failure
+int send_request_for_master(CNT * cnt);
+
+// send request for chunk to peer
+
+// send chunk to client
+
+// send chunk request error response
 
  #endif // _NETWORK_CLIENT_H
