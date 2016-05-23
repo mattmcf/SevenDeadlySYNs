@@ -25,7 +25,6 @@
 #define CONN_CLOSED 1
 
 /* ------------------------- Global Variables -------------------------- */
-pthread_t clt_net_t;
 FILE *metadata;
 
 CNT* cnt;
@@ -125,7 +124,7 @@ int UpdateClientTable(){
 
 void DropFromNetwork(){
 	/* call Matt's drop from network function */
-	// dropFromNetwork(cnt);
+	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
 }
