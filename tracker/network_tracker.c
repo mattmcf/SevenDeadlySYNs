@@ -297,7 +297,7 @@ int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 	queue_item->client_id = client_id;
 
 	printf("pushing onto queue\n");
-	filesystem_serialize(fs, queue_item->data, &queue_item->data_len);
+	filesystem_serialize(fs, (char **)&queue_item->data, &queue_item->data_len);
 	printf("pushed onto queue\n");
 	
 	asyncqueue_push(thread_block->queues_from_tracker[TKR_2_CLT_SEND_MASTER], (void *)queue_item);

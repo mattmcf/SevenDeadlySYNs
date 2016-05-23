@@ -19,7 +19,7 @@ int main() {
 		return 1;
 	}
 
-	FileSystem * master = filesystem_new("/Users/McFarland/dartsync");
+	FileSystem * master = filesystem_new("~/dartsync");
 
 	while (1) {
 		//printf("main thread sleeping...\n");

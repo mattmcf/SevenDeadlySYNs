@@ -249,10 +249,17 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 
 	FileSystem * fs = NULL;
 	if (queue_item) {
+		printf("Receiving master off of queue\n");
 		fs = filesystem_deserialize(queue_item->data, length_deserialized);
+		printf("finished deserializing\n");
+		if (!fs) 
+			fprintf(stderr, "recv_master: failed to unpack master JFS\n");
+		
 		free(queue_item->data);
 		free(queue_item);
 	}
+
+	printf("Returning %p\n",fs);
  	return fs;
 }
 
@@ -526,6 +533,11 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			printf("NETWORK -- received master JFS from tracker\n");
 			client_data_t * master_update = malloc(sizeof(client_data_t));		
 			master_update->data = (void*)filesystem_deserialize(buf, &master_update->data_len);
+			if (!master_update->data || master_update->data_len < 0) {
+				fprintf(stderr, "failed to unpack master JFS\n");
+				break;
+			}
+
 			notify_master_received(cnt, master_update);
 			break;
 
