@@ -39,17 +39,20 @@ int main() {
 		// If there is a new peer in the Queue
 			// get peerID and add peer to peer table
 			// broadcast to all other peers that there is a new peer
+		printf("checking for new client\n");
 		peerID = receive_new_client(network);
 		if(peerID>0){
 			if (addPeerToTable(peerID)<0){	// maybe print peer table after this
 				printf("Failed to add peer %d to peer table.\n", peerID);
 			}
 			// send_transaction_update(network, &fs, peerID);
+			printf("Send peer added\n");
 			send_peer_added(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
 		// If a peer requests master
 			// send master
+		printf("checking for master request\n");
 		peerID = receive_master_request(network);
 		if(peerID>0){
 			if(send_master(network, peerID, fs)<0){
@@ -61,35 +64,37 @@ int main() {
 		// if there is a peer disconnect
 			// get peerID and remove peer from peer table
 			// broadcast to all otehr peers that peer left
+		printf("checking for lost client\n");
 		peerID = receive_lost_client(network);
 		if(peerID>0){
 			if(removePeerFromTable(peerID)<0){
 				printf("Failed to remove peer %d from table.\n", peerID);
 			}
 			printf("Removed peer %d from table.\n", peerID);
+			printf("Send peer removed\n");
 			send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
 		}
 
-		// if there is a file update
-			// take the diff
-			// apply diff to local fs
-			// broadcast diff to all peers
-		FileSystem *peerFileSystem = receive_client_update(network, int *clientID);
-		if(peerFileSystem != NULL){
-			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
+		// // if there is a file update
+		// 	// take the diff
+		// 	// apply diff to local fs
+		// 	// broadcast diff to all peers
+		// FileSystem *peerFileSystem = receive_client_update(network, int *clientID);
+		// if(peerFileSystem != NULL){
+		// 	// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
 
-			FileSystem *additions;
-			FileSystem *deletions;
-			filesystem_diff(fs, peerFileSystem, &additions, &deletions)
-			filesystem_minus_equals(fs, deletions);	
-			filesystem_plus_equals(fs, additions);
-			send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-			send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-		}
+		// 	FileSystem *additions;
+		// 	FileSystem *deletions;
+		// 	filesystem_diff(fs, peerFileSystem, &additions, &deletions)
+		// 	filesystem_minus_equals(fs, deletions);	
+		// 	filesystem_plus_equals(fs, additions);
+		// 	send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+		// 	send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+		// }
 
-		if(fileRetrieveSuccess()>0){
-			// broadcast out to all peers
-		}
+		// if(fileRetrieveSuccess()>0){
+		// 	// broadcast out to all peers
+		// }
 
 		sleep(10);
 		printf("Restarting loop.\n");

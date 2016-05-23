@@ -1,32 +1,32 @@
 
 
-// create a new file table
-// ret: (not claimed) newly allocated table
-ChunkyFileTable* filetable_createTable(){
-	ChunkyFileTable* table = (ChunkyFileTable*)malloc(sizeof(ChunkyFileTable));
-	table->numberOfFiles = 0;
-	table->head = (ChunkyFileTable_file*)malloc(sizeof(ChunkyFileTable_file));
-	table->tail = (ChunkyFileTable_file*)malloc(sizeof(ChunkyFileTable_file));
-	table->tail = NULL;
-	table->head = table->tail;
-	return table;
-}
+// // create a new file table
+// // ret: (not claimed) newly allocated table
+// ChunkyFileTable* filetable_createTable(){
+// 	ChunkyFileTable* table = (ChunkyFileTable*)malloc(sizeof(ChunkyFileTable));
+// 	table->numberOfFiles = 0;
+// 	table->head = (ChunkyFileTable_file*)malloc(sizeof(ChunkyFileTable_file));
+// 	table->tail = (ChunkyFileTable_file*)malloc(sizeof(ChunkyFileTable_file));
+// 	table->tail = NULL;
+// 	table->head = table->tail;
+// 	return table;
+// }
 
-// create a new file table
-// table: (not claimed) table to destroy
-// ret: (static) 1 if success, -1 if failure
-int filetable_destroyTable(ChunkyFileTable* table){
-	ChunkyFileTable_file* iterator;
-	ChunkyFileTable_file* temp;
-	iterator = table->head;
-	while (iterator->next != table->tail){
-		temp = iterator;
-		iterator = temp->next;
-		filetable_destroyFile(temp);
-	}
-	free(table);
-	return 1;
-}
+// // create a new file table
+// // table: (not claimed) table to destroy
+// // ret: (static) 1 if success, -1 if failure
+// int filetable_destroyTable(ChunkyFileTable* table){
+// 	ChunkyFileTable_file* iterator;
+// 	ChunkyFileTable_file* temp;
+// 	iterator = table->head;
+// 	while (iterator->next != table->tail){
+// 		temp = iterator;
+// 		iterator = temp->next;
+// 		filetable_destroyFile(temp);
+// 	}
+// 	free(table);
+// 	return 1;
+// }
 
 
 // // saves a new file that has been created to the table
@@ -60,6 +60,20 @@ int filetable_destroyTable(ChunkyFileTable* table){
 // 	firstChunk->peerID = (int*)malloc(firstChunk->numberOfPeers*sizeof(int));
 // 	firstChunk->peerID[0] = peerID;
 // 	file->head = firstChunk;
+// 	firstChunk->next = NULL;
+// 	ChunkyFileTable_chunk* last;
+
+// 	for (int i = 1; i < numChunks; i++){
+// 		ChunkyFileTable* chunk =  (ChunkyFileTable_chunk*)malloc(sizeof(ChunkyFileTable_chunk);
+// 		chunk->chunkNum = i+1;
+// 		chunk->numberOfPeer = 1;
+// 		chunk->peerID = (int*)malloc(firstChunk->numberOfPeers*sizeof(int));
+// 		chunk->peerID[0] = peerID;
+
+// 	}
+	
+
+	
 // 	if (numChunks == 1){
 // 		file->tail = firstChunk;
 // 		file->next = NULL;
