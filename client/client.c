@@ -18,10 +18,7 @@
 #include "client.h"
 #include "network_client.h"
 #include "../utility/FileSystem/FileSystem.h"
-<<<<<<< HEAD
-=======
 #include "../common/constant.h"
->>>>>>> 2aa29e7ea6148547c9d1c57c14d2a79de92b7e31
 
 /* ----------------------------- Constants ----------------------------- */
 #define CONN_ACTIVE 0
