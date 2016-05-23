@@ -17,7 +17,8 @@
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
 #include "network_client.h"
-#include "../utility/FileSystem.h"
+#include "../utility/FileSystem/FileSystem.h"
+#include "../common/constant.h"
 
 /* ----------------------------- Constants ----------------------------- */
 #define CONN_ACTIVE 0
@@ -40,7 +41,7 @@ int CreatePeerTable();
 /* calloc a new peer for the table and append it to the list.
  * 		(not claimed) - peer: the new peer to be appended
  */
-int InsertPeer(int peer_id, bool status);
+int InsertPeer(int peer_id, int status);
 
 /* If we have an active connection with a peer, then we need to update the
  * table information to reflect that */
@@ -111,17 +112,18 @@ int SendMasterFSRequest(){
 
 int MonitorFilesystem(){
 
+	return 1;
 }
 
 int RequestUpdate(){
-
+	return 1;
 }
 
 int UpdateClientTable(){
-
+	return 1;
 }
 
-int DropFromNetwork(){
+void DropFromNetwork(){
 	/* call Matt's drop from network function */
 	// dropFromNetwork(cnt);
 
@@ -131,7 +133,7 @@ int DropFromNetwork(){
 /* ----------------------- Private Function Bodies --------------------- */
 
 int CreatePeerTable(){
-	if (!(pt = calloc(1, sizeof(peer_table_t))){
+	if (!(pt = calloc(1, sizeof(peer_table_t)))){
 		printf("CreatePeerTable: calloc() failed\n");
 		return -1;
 	}
@@ -139,7 +141,7 @@ int CreatePeerTable(){
 	return 1;
 }
 
-int InsertPeer(int peer_id, bool status){
+int InsertPeer(int peer_id, int status){
 	peer_t *peer = calloc(1, sizeof(peer_t));
 	if (!peer){
 		printf("InsertPeer: calloc failed\n");
@@ -147,7 +149,7 @@ int InsertPeer(int peer_id, bool status){
 	}
 
 	peer->peer_id = peer_id;
-	peer->active = status;
+	peer->status = status;
 
 	/* this is the first peer so we need to make it the head and tail */
 	if (NULL == pt->head){
@@ -159,12 +161,14 @@ int InsertPeer(int peer_id, bool status){
 		pt->tail->next = peer;
 		pt->tail = peer;
 	}
+
+	return 1;
 }
 
 int ActivatePeer(int peer_id){
 	peer_t *peer = pt->head;
 	if (!peer){
-		pritnf("ActivatePeer: pt is empty\n");
+		printf("ActivatePeer: pt is empty\n");
 		return 1;
 	}
 
@@ -184,7 +188,7 @@ int ActivatePeer(int peer_id){
 int DeactivatePeer(int peer_id){
 	peer_t *peer = pt->head;
 	if (!peer){
-		pritnf("DeactivatePeer: pt is empty\n");
+		printf("DeactivatePeer: pt is empty\n");
 		return 1;
 	}
 
@@ -204,7 +208,7 @@ int DeactivatePeer(int peer_id){
 int RemovePeer(int peer_id){
 	peer_t *peer = pt->head;
 	if (!peer){
-		pritnf("RemovePeer: pt is empty\n");
+		printf("RemovePeer: pt is empty\n");
 		return 1;
 	}
 
@@ -239,6 +243,7 @@ int DestroyPeerTable(){
 	}
 
 	free(pt);
+	return 1;
 }
 
 /* ------------------------------- main -------------------------------- */
@@ -281,37 +286,37 @@ int main(int argv, char* argc[]){
 	SendMasterFSRequest();
 	printf("CLIENT MAIN: exiting after handshake!!!");
 
-	FileSystem *diff;
-	while (1){
-		sleep(POLL_STATUS_DIFF);
+	// FileSystem *diff;
+	// while (1){
+	// 	sleep(POLL_STATUS_DIFF);
 
-		if (NULL != (diff = recv_diff(cnt))){
-			/* iterate over the filesystem to search for diffs */
-			FileSystemIterator *iterator;
-			if (NULL == (iterator = filesystemiterator_new(diff))){
-				printf("CLIENT MAIN: failed to init fs iterator or no diff\n");
-				continue;
-			}
-			char *path;
-			while (NULL != (path = filesystemiterator_next(iterator))){
-				/* we have a diff, replace the old path with the current path */
-				printf("CLIENT MAIN: found diff at: %s, replacing old with new\n", path);
-				FILE *old;
-				if (NULL == (old = fopen(path, "w"))){
-					printf("CLIENT MAIN: failed to fopen file at %s\n", path);
-				}
-					/* receive the table of peers with each part of a file */
-					/* randomly select a peer for each chuck to decide where to get the chunk */
-					/* make a request to that peer to get that chunk */
-					/* update that chunk with the received update */
+	// 	if (NULL != (diff = recv_diff(cnt))){
+	// 		/* iterate over the filesystem to search for diffs */
+	// 		FileSystemIterator *iterator;
+	// 		if (NULL == (iterator = filesystemiterator_new(diff))){
+	// 			printf("CLIENT MAIN: failed to init fs iterator or no diff\n");
+	// 			continue;
+	// 		}
+	// 		char *path;
+	// 		while (NULL != (path = filesystemiterator_next(iterator))){
+	// 			/* we have a diff, replace the old path with the current path */
+	// 			printf("CLIENT MAIN: found diff at: %s, replacing old with new\n", path);
+	// 			FILE *old;
+	// 			if (NULL == (old = fopen(path, "w"))){
+	// 				printf("CLIENT MAIN: failed to fopen file at %s\n", path);
+	// 			}
+	// 				/* receive the table of peers with each part of a file */
+	// 				/* randomly select a peer for each chuck to decide where to get the chunk */
+	// 				/* make a request to that peer to get that chunk */
+	// 				/* update that chunk with the received update */
 
-				free(path);
-				path = NULL;
-			}
+	// 			free(path);
+	// 			path = NULL;
+	// 		}
 
-			filesystemiterator_destroy(iterator);
-		}
-	}
+	// 		filesystemiterator_destroy(iterator);
+	// 	}
+	// }
 
 	// getNextThing(cnt);
 }
