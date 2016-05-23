@@ -19,8 +19,16 @@ int main() {
 		return 1;
 	}
 
+	FileSystem * master = filesystem_new("~/dartsync");
+
 	while (1) {
 		//printf("main thread sleeping...\n");
-		sleep(10);
+		sleep(5);
+
+		int client_id = -1;
+		if ((client_id = receive_master_request(tnt)) > 0) {
+			printf("Received request for master from client %d -- sending it now!\n",client_id);
+			send_master(tnt, client_id, master);
+		}
 	}
 }

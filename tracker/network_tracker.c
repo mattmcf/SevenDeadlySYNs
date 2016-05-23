@@ -288,10 +288,17 @@ int send_peer_removed(TNT * tnt) {
 // 	returns 1 if successful else -1
 int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 	_TNT_t * thread_block = (_TNT_t *)tnt;
+	if (!thread_block || !fs) {
+		fprintf(stderr,"send master error: thread block or fs is null\n");
+		return -1;
+	}
+
 	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
 	queue_item->client_id = client_id;
 
+	printf("pushing onto queue\n");
 	filesystem_serialize(fs, queue_item->data, &queue_item->data_len);
+	printf("pushed onto queue\n");
 	
 	asyncqueue_push(thread_block->queues_from_tracker[TKR_2_CLT_SEND_MASTER], (void *)queue_item);
 	return 1;
@@ -529,6 +536,12 @@ int open_listening_port() {
 		return -1;
 	}
 
+	int opt_yes = 1;
+	if (setsockopt(listening_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt_yes, sizeof(int)) == -1) {
+    perror("Error setsockopt failure");
+    return -1;
+  } 
+
 	if (bind(listening_sockfd, rp->ai_addr, rp->ai_addrlen) != 0) {
 		perror("tracker - open_listening_port bind error");
 		return -1;
@@ -760,6 +773,7 @@ void check_send_master_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER];
 	tracker_data_t * queue_item = (tracker_data_t *)asyncqueue_pop(q);
 	if (queue_item != NULL) {
+		printf("here\n");
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 
 		printf("NETWORK -- sending master JFS to client %d\n", queue_item->client_id);
