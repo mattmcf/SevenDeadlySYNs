@@ -37,11 +37,17 @@ typedef struct peer_table{
 
 /* -------------------------- Function Headers ------------------------- */
 
+/* after joining or rejoining a network, we need to compare our copy of the 
+ * filesystem with theirs, so we send a request for the master copy to diff
+ * with our filesystem.  If there are additions or deletions then we need to
+ * request those chunks from peers and update our fs */
+int SendMasterFSRequest();
+
 /* monitor filesystem */
 int MonitorFilesystem();
 
 /* request chunk */
-int RequestUpdate();
+int SendChunkRequest(CNT *cnt, int peer_id, char *buf, int len);
 
 /* update client table */
 int UpdateClientTable();

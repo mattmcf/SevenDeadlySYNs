@@ -28,8 +28,6 @@ pthread_t clt_net_t;
 FILE *metadata;
 
 CNT* cnt;
-FileSystem* fs;
-
 peer_table_t *pt;
 
 /* ---------------------- Private Function Headers --------------------- */
@@ -67,7 +65,48 @@ int DestroyPeerTable();
 /* ----------------------- Public Function Bodies ---------------------- */
 
 int SendMasterFSRequest(){
+	FileSystem* fs;
+	FileSystem *master;
 
+	/* get our current file system and send it to the tracker for diffs */
+	if (NULL == (fs = filesystem_new(DARTSYNC_DIR))){
+		printf("CLIENT MAIN: filesystem_new failed\n");
+		return -1;
+	}
+
+	if (-1 == send_status(cnt, fs)){
+		printf("CLIENT MAIN: send_status failed\n");
+		return -1;
+	}
+
+	if (-1 == send_request_for_master(cnt)){
+		printf("CLIENT MAIN: send_request_for_master() failed\n");
+		return -1;
+	}
+
+	/* get the master file system and check to see if there are differences */
+	int master_len = 0;
+	while (NULL == (master = recv_master(cnt, &master_len))){
+		printf("SendMasterFSRequest: recv_master returned NULL, sleeping\n");
+		sleep(1);
+	}
+
+	/* received the master file system, iterate over it to look for differences */
+	FileSystem *additions;
+	FileSystem *deletions;
+	filesystem_diff(fs, master, &additions, &deletions);
+
+	if (!additions){
+		printf("CLIENT MAIN: additions is NULL\n");
+	}
+
+	if (!deletions){
+		printf("CLIENT MAIN: deletions is NULL\n");
+	}
+
+	/* iterate over additions to see if we need to request chunks */
+	printf("CLIENT MAIN: ready to iterate over additions and deletions!\n");
+	return 1;
 }
 
 int MonitorFilesystem(){
@@ -217,42 +256,30 @@ int main(int argv, char* argc[]){
 		exit(0);
 	}
 
-	sleep(1);
-
-	if (-1 == SendMasterFSRequest()){
-		printf("CLIENT MAIN: SendMasterFSRequest() failed\n");
-	}
-
 	/* catch sig int so that we can politely close networks on kill */
 	signal(SIGINT, DropFromNetwork);
 
 	/* open the metadata, if it exists then you are rejoining the network,
 	 * else you are joining for the first time and should make the file and
 	 * make a request for every file in the network */
-	if (0 == access(DARTSYNC_METADATA, (F_OK))){	// if it exists
-		/* open the file */
-		if (0 != fopen(DARTSYNC_METADATA, "r")){
-			printf("CLIENT MAIN: couldn't open metadata file\n");
-			exit(0);
-		}
-	} else {	// else it doesn't exist
-		/* check if the folder already exists, if it doesn't then make it */
-		if (0 != access(DARTSYNC_DIR, (F_OK))){
-			/* it doesn't exist, so make it */
-			if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-				printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
-			}
-		} 
-	}
+	//if (0 == access(DARTSYNC_METADATA, (F_OK))){	// if it exists
+	//	/* open the file */
+	//	if (0 != fopen(DARTSYNC_METADATA, "r")){
+	//		printf("CLIENT MAIN: couldn't open metadata file\n");
+	//		exit(0);
+	//	}
+	//} else {	// else it doesn't exist
+	//	/* check if the folder already exists, if it doesn't then make it */
+	//	if (0 != access(DARTSYNC_DIR, (F_OK))){
+	//		/* it doesn't exist, so make it */
+	//		if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+	//			printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
+	//		}
+	//	} 
+	//}
 
-	/* get our current file system and send it to the tracker for diffs */
-	if (NULL == (fs = filesystem_new(DARTSYNC_DIR))){
-		printf("CLIENT MAIN: filesystem_new failed\n");
-	}
-
-	if (-1 == send_status(cnt, fs)){
-		printf("CLIENT MAIN: send_status failed\n");
-	}
+	SendMasterFSRequest();
+	printf("CLIENT MAIN: exiting after handshake!!!");
 
 	FileSystem *diff;
 	while (1){

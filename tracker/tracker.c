@@ -48,7 +48,7 @@ int main() {
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("Send peer added\n");
-			send_peer_added(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
+			send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
 		// If a peer requests master
