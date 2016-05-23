@@ -2,23 +2,35 @@
 * Dartmouth College CS60 Final Project
 * DartSync
 *
-
-
-
-
 */
 
 #ifndef _TRACKER_H
 #define _TRACKER_H
 
-
+#include "../utility/ChunkyFile/ChunkyFile.h"
 #include "network_tracker.h"
 #include "../utility/FileSystem/FileSystem.h"
 
+// Peer table structure
 typedef struct peer_table {
-  int numberOfEntries;		        //peers in network
-  int *peerIDs;		//peer table entries
+  int numberOfEntries;		        //number of peers in network
+  int *peerIDs;						//peerID number
 } peer_table;
+
+// Chunky file table, file information
+typedef struct ChunkyFileTable_file {
+	char* name;						// file name/file path
+	int size;						// size of file (this may not matter)
+	int numChunks;					// number of chunks in the file
+	ChunkyFileTable_chunk* head;	// head of singly linked list of chunks
+} ChunkyFileTable_file;
+
+// file chunk
+typedef struct ChunkyFileTable_chunk {
+	int chunkNum;					// the chunk number of this chunk
+	int* peerID;					// an array of the peers that have this chunk
+	ChunkyFileTable_chunk* next;	// singly linked list, point to next chunk
+} ChunkyFileTable_chunk;
 
 
 // ceates a new peer table. allocates the memory
