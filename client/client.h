@@ -6,6 +6,11 @@
  *
  */
 
+/* ------------------------- System Libraries -------------------------- */
+
+/* -------------------------- Local Libraries -------------------------- */
+
+
 /* ----------------------------- Constants ----------------------------- */
 #define REQUEST_JOIN		0
 #define REQUEST_CLOSE		1
@@ -21,13 +26,13 @@ typedef struct retworkrequestheader{
 
 typedef struct networkrequest{
 	struct retworkrequestheader header;
-	char data[MAX_SIZE];
+	//char data[MAX_SIZE];
 } req_t;
 
 typedef struct peer{
 	int peer_id;
-	bool active;
-	peer *next;
+	int status;
+	struct peer *next;
 } peer_t;
 
 typedef struct peer_table{
@@ -47,10 +52,10 @@ int SendMasterFSRequest();
 int MonitorFilesystem();
 
 /* request chunk */
-int SendChunkRequest(CNT *cnt, int peer_id, char *buf, int len);
+//int SendChunkRequest(CNT *cnt, int peer_id, char *buf, int len);
 
 /* update client table */
 int UpdateClientTable();
 
 /* drop from network */
-int DropFromNetwork();
+void DropFromNetwork();
