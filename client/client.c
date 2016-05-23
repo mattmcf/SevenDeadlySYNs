@@ -17,7 +17,7 @@
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
 #include "network_client.h"
-#include "../utility/FileSystem.h"
+#include "../utility/FileSystem/FileSystem.h"
 
 /* ----------------------------- Constants ----------------------------- */
 #define CONN_ACTIVE 0
