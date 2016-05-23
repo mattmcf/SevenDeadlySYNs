@@ -67,10 +67,11 @@ int main() {
 	int master_len;
 	while (1) {
 		
-		sleep(10);
+		sleep(5);
 		master = recv_master(cnt, &master_len);
-		if (master != NULL) {
-			printf("received master!\n");
+		if (master) {
+			printf("\nClient received master (%d bytes)!\n",master_len);
+			fflush(stdout);
 			filesystem_print(master);
 		}
 	}
