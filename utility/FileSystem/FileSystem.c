@@ -606,6 +606,10 @@ _Folder* filesystem_deserialize_helper(char** data)
 				return folder;
 				break;
 			}
+			default:
+			{
+				assert(0);
+			}
 		}
 	}
 }
