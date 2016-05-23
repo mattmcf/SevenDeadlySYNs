@@ -461,7 +461,7 @@ void * tkr_network_start(void * arg) {
 
 					// notify tracker
 					notify_new_client(tnt, new_client);
-					send_peer_table_to_client(tnt, new_client);
+					send_peer_table_to_client(tnt, new_client->socketfd);
 					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
@@ -480,7 +480,6 @@ void * tkr_network_start(void * arg) {
 			}
 		} 	// end of socket checks
         
-
 		/* check time last alive */
 		check_liveliness(tnt);
 
@@ -599,17 +598,11 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		return -1;
 	}
 
-	//printf("client %d on socketd %d -- waiting for header\n", client->id, client->socketfd); 	// debug
-	//fflush(stdout);
-
 	// get type and data length
 	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
 		fprintf(stderr,"error receiving header data from client %d\n", client->id);
 		return -1;
 	}
-
-	//printf("got header\n"); // debug
-	//fflush(stdout);
 
 	// set up data buffer and receive data segment if necessary
 	if (pkt.data_len > 0) {
@@ -631,8 +624,6 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	} else {
 		buf = NULL;
 	}
-
-	//printf("got header and data\n"); 	// debug
 
 	// set up data to pass to logic (how to set this up so it's only created if necessary?)
 	client_data_t * client_data = malloc(sizeof(client_data_t));
@@ -708,8 +699,8 @@ void check_liveliness(_TNT_t * tnt) {
 
 }
 
-void send_peer_table_to_client(_TNT_t * tnt, int new_client) {
-	if (!tnt || new_client < 0)
+void send_peer_table_to_client(_TNT_t * tnt, int new_client_fd) {
+	if (!tnt || new_client_fd < 0)
 		return;
 
 	tracker_pkt_t pkt;
@@ -721,8 +712,8 @@ void send_peer_table_to_client(_TNT_t * tnt, int new_client) {
 		return;
 	}
 
-	send(new_client, &pkt, sizeof(pkt), 0);
-	send(new_client, buf, pkt.data_len, 0);
+	send(new_client_fd, &pkt, sizeof(pkt), 0);
+	send(new_client_fd, buf, pkt.data_len, 0);
 
 	free(buf);
 	return;

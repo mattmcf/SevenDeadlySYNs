@@ -44,7 +44,10 @@ int recv_diff(CNT * cnt, FileSystem ** additions, FileSystem ** deletions);
 // 	ret : (static) id of added client (always > 1) or -1 if no new clients
 int recv_peer_added(CNT * thread_block);
 
-// receive peer deleted message 
+// receive peer deleted message
+// 	thread_block : (not claimed) thread block
+// 	ret : (static) if of a deleted client (> 1) or -1 if no new clients
+int recv_peer_deleted(CNT * thread_block);
 
 // receive master JFS from tracker 
 // 	CNT : (not claimed) thread block

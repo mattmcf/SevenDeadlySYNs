@@ -230,6 +230,13 @@ int recv_peer_added(CNT * thread_block) {
 }
 
 // receive peer deleted message : TKR_2_ME_PEER_DELETED
+// 	thread_block : (not claimed) thread block
+// 	ret : (static) if of a deleted client (> 1) or -1 if no new clients
+int recv_peer_deleted(CNT * thread_block) {
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	int deleted_id = (int)(long)asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_PEER_DELETED]);
+	return (deleted_id > 0) ? deleted_id : -1;
+}
 
 // receive master JFS from tracker : TKR_2_ME_RECEIVE_MASTER_JFS
 // 	CNT : (not claimed) thread block
@@ -315,17 +322,20 @@ int notify_file_acq_update() {
 	return -1;
 }
 
-int notify_peer_added(_CNT_t * cnt, int id) {
+int notify_peer_added(_CNT_t * cnt, int added_client_id) {
 	if (!cnt)
 		return -1;
 
-	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED], (void *)(long)id);
-	return -1;
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED], (void *)(long)added_client_id);
+	return 1;
 }
 
-int notify_peer_removed() {
+int notify_peer_removed(_CNT_t * cnt, int removed_client_id) {
+	if (!cnt)
+		return -1;
 
-	return -1;
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_PEER_DELETED], (void *)(long)(removed_client_id));
+	return 1;
 }
 
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
@@ -522,23 +532,39 @@ int handle_tracker_msg(_CNT_t * cnt) {
 		case PEER_TABLE:
 			printf("NETWORK -- received peer table from tracker\n");
 
-			// TODO diff tables -> notify client logic of deletions and additions
+			peer_table_t * additions, * deletions, * new_table;
+			new_table = deserialize_peer_table(buf, pkt.data_len); 	// buf is claimed
+			buf = NULL; 
 
-			// replace current peer table with received peer table
-
-			destroy_table(cnt->peer_table);
-			cnt->peer_table = NULL;
-
-			cnt->peer_table = deserialize_peer_table(buf, pkt.data_len);
-			if (!cnt->peer_table) {
+			if (!new_table) {
 				fprintf(stderr, "client network failed to deserialize tracker's peer table\n");
+				break;
 			}
 
+			diff_tables(cnt->peer_table, new_table, &additions, &deletions);
+
+			// notify logic about additions
+			for (int i = 0; i < additions->size; i++) {
+				if (additions->peer_list[i] != NULL) {
+					notify_peer_added(cnt, additions->peer_list[i]->id);
+				}
+			}
+
+			// notify logic about deletions
+			for (int i = 0; i < deletions->size; i++) {
+				if (deletions->peer_list[i] != NULL) {
+					notify_peer_removed(cnt, deletions->peer_list[i]->id);
+				}
+			}
+
+			destroy_table(additions);
+			destroy_table(deletions);
+			destroy_table(cnt->peer_table);
+
+			// replace current peer table with received peer table
+			cnt->peer_table = new_table;
+			printf("\n new peer table\n");
 			print_table(cnt->peer_table);
-
-			// notify client logic about all new peers?
-
-
 			break;
 
 		case FILE_ACQ_UPDATE:

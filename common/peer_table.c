@@ -240,7 +240,6 @@ int diff_tables(peer_table_t * orig, peer_table_t * new, peer_table_t ** additio
 
 			// if original doesn't contain entry, get_peer_by_id() returns NULL -> added to added table
 			if (!get_peer_by_id(orig, new->peer_list[i]->id)) {
-				printf("ID %d is an addition\n", new->peer_list[i]->id);
 				copy_peer(added_table, new->peer_list[i]->id, new->peer_list[i]->ip_addr, new->peer_list[i]->socketfd);
 			}
 		}
@@ -253,7 +252,6 @@ int diff_tables(peer_table_t * orig, peer_table_t * new, peer_table_t ** additio
 			printf("testing id %d\n",orig->peer_list[i]->id);
 			// if new doesn't contain entry, get_peer_by_id() returns NULL -> added to deleted table
 			if (!get_peer_by_id(new, orig->peer_list[i]->id)) {
-				printf("ID %d is a deletion\n", orig->peer_list[i]->id);
 				copy_peer(deleted_table, orig->peer_list[i]->id, orig->peer_list[i]->ip_addr, orig->peer_list[i]->socketfd);
 			}
 		}

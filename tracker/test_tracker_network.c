@@ -28,7 +28,7 @@ int main() {
 		int client_id = -1;
 		if ((client_id = receive_master_request(tnt)) > 0) {
 			printf("Received request for master from client %d -- sending it now!\n",client_id);
-			send_master(tnt, client_id, master);
+			//send_master(tnt, client_id, master);
 		}
 	}
 }
