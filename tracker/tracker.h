@@ -2,10 +2,6 @@
 * Dartmouth College CS60 Final Project
 * DartSync
 *
-
-
-
-
 */
 
 #ifndef _TRACKER_H
@@ -13,17 +9,39 @@
 
 
 #include "network_tracker.h"
+#include "file_table.h"
 #include "../utility/FileSystem/FileSystem.h"
+#include "../utility/ChunkyFile/ChunkyFile.h"
 
+// Peer table structure
 typedef struct peer_table {
-  int numberOfEntries;		        //peers in network
-  int *peerIDs;		//peer table entries
+  int numberOfEntries;		        //number of peers in network
+  int *peerIDs;						//peerID number
 } peer_table;
+
+// Chunky file table, file information
+typedef struct ChunkyFileTable_file {
+	char* name;						// file name/file path
+	int size;						// size of file (this may not matter)
+	int numChunks;					// number of chunks in the file
+	ChunkyFileTable_chunk* head;	// head of singly linked list of chunks
+} ChunkyFileTable_file;
+
+// file chunk
+typedef struct ChunkyFileTable_chunk {
+	int chunkNum;					// the chunk number of this chunk
+	int* peerID;					// an array of the peers that have this chunk
+	ChunkyFileTable_chunk* next;	// singly linked list, point to next chunk
+} ChunkyFileTable_chunk;
 
 
 // ceates a new peer table. allocates the memory
 peer_table* createPeerTable();
 
+void intHandler(int dummy);
+
+// ceates a new peer table. allocates the memory
+peer_table* createPeerTable();
 
 // destroys peer table and frees memory
 int destroyPeerTable(peer_table* deleteTable);
@@ -34,21 +52,14 @@ int addPeerToTable(int peerID);
 // Removes peer after they leave the network
 int removePeerFromTable(int peerID);
 
-// Polls queue to see if new peer has tried to connect.
-// returns 1 if new peer exists
-// returns -1 if no new peer exists
-int checkForNewPeer();
-
-// Polls queue to see if peer has disconnected
-// returns 1 if peer left
-// returns -1 if no peer has left
-int checkForPeerDisconnect();
+// print the peer table
+int printPeerTable();
 
 //close everything, free memory
 int closeTracker();
 
 // peer successfully retrieved master. Update file table
-int clientFileRetrieveSuccess(int peerID, int fileID);
+// int clientFileRetrieveSuccess(int peerID, int fileID);
 /*
 update file system and peer table to reflect that the peer now has new file
 */
@@ -62,16 +73,6 @@ find difference
 send difference
 */
 
-int fileRetrieveSuccess();
 
-int checkForFileUpdates() ;
-// when a file update comes from a peer, this function will handle the update
-// int updateFile(int fileID, diff change);
-/*
-retrieve correct file
-apply update
-save file
-alert peers that update happened
-*/
 
 #endif // _TRACKER_H 
