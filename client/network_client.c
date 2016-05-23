@@ -249,17 +249,14 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 
 	FileSystem * fs = NULL;
 	if (queue_item) {
-		printf("Receiving master off of queue\n");
-		fs = filesystem_deserialize(queue_item->data, length_deserialized);
-		printf("finished deserializing\n");
-		if (!fs) 
-			fprintf(stderr, "recv_master: failed to unpack master JFS\n");
+		printf("LOGIC -- Receiving master off of queue\n");
+		//fs = filesystem_deserialize(queue_item->data, length_deserialized);
+		fs = queue_item->data;
 		
-		free(queue_item->data);
+		//free(queue_item->data);
 		free(queue_item);
 	}
 
-	printf("Returning %p\n",fs);
  	return fs;
 }
 
@@ -452,7 +449,7 @@ void * clt_network_start(void * arg) {
 
 		/* send heart beat if necessary */
 		current_time = time(NULL);
-		if (current_time - last_heartbeat > (DIASTOLE / 2)) {
+		if (current_time - last_heartbeat > (DIASTOLE)) {
 			send_tracker_message(cnt, NULL, HEARTBEAT);
 			last_heartbeat = current_time;
 		}
@@ -531,7 +528,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 		case MASTER_STATUS:
 			printf("NETWORK -- received master JFS from tracker\n");
-			client_data_t * master_update = malloc(sizeof(client_data_t));		
+			client_data_t * master_update = malloc(sizeof(client_data_t));	
 			master_update->data = (void*)filesystem_deserialize(buf, &master_update->data_len);
 			if (!master_update->data || master_update->data_len < 0) {
 				fprintf(stderr, "failed to unpack master JFS\n");

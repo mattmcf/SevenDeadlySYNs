@@ -295,10 +295,7 @@ int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 
 	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
 	queue_item->client_id = client_id;
-
-	printf("pushing onto queue\n");
 	filesystem_serialize(fs, (char **)&queue_item->data, &queue_item->data_len);
-	printf("pushed onto queue\n");
 	
 	asyncqueue_push(thread_block->queues_from_tracker[TKR_2_CLT_SEND_MASTER], (void *)queue_item);
 	return 1;
@@ -764,7 +761,6 @@ void check_send_master_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER];
 	tracker_data_t * queue_item = (tracker_data_t *)asyncqueue_pop(q);
 	if (queue_item != NULL) {
-		printf("here\n");
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 
 		printf("NETWORK -- sending master JFS to client %d\n", queue_item->client_id);
