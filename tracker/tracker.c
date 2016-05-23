@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "tracker.h"
 #include "network_tracker.h"
@@ -47,7 +48,7 @@ int main() {
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("Send peer added\n");
-			send_peer_added(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
+			send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
 		// If a peer requests master
