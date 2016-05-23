@@ -24,6 +24,17 @@ typedef struct networkrequest{
 	char data[MAX_SIZE];
 } req_t;
 
+typedef struct peer{
+	int peer_id;
+	bool active;
+	peer *next;
+} peer_t;
+
+typedef struct peer_table{
+	peer_t *head;
+	peer_t *tail;
+} peer_table_t;
+
 /* -------------------------- Function Headers ------------------------- */
 
 /* monitor filesystem */

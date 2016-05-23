@@ -11,6 +11,9 @@
 // clients listen here for connections from other clients
 #define CLIENT_LISTENING_PORT 7681
 
+// time to sleep while polling for status diff
+#define POLL_STATUS_DIFF	5
+
 // defined DART_SYNC directory that will be syncronized across peers
 #define DARTSYNC_DIR "~/dart_sync/"
 
