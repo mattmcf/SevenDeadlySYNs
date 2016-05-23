@@ -11,7 +11,7 @@
 #include <time.h>
 
 #define ALL_PEERS 999
-#define IP_LEN 16 	// IPv6 address
+#define IP_LEN 4 	// IPv4 address
 #define INITIAL_SIZE 10
 
 typedef struct peer {

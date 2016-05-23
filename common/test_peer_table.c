@@ -8,8 +8,8 @@
 int main() {
 
 	// fill dummy ip
-	char dummy_ip[16];
-	for (int i = 0; i < 16; i++) {
+	char dummy_ip[IP_LEN];
+	for (int i = 0; i < IP_LEN; i++) {
 		dummy_ip[i] = (char)('a' + i);
 	}
 
@@ -48,9 +48,9 @@ int main() {
 	printf("copy below\n");
 	print_table(copy);
 
-	char copy_ip_addr[16] = "1234567890abcde";
+	char copy_ip_addr[IP_LEN] = "123";
 	for (int i = 16; i < 25; i++) {
-		copy_ip_addr[15] = (char)i;
+		copy_ip_addr[IP_LEN - 1] = (char)i;
 		copy_peer(copy, i, copy_ip_addr, i);
 	}
 
