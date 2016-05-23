@@ -30,6 +30,10 @@ FILE *metadata;
 CNT* cnt;
 peer_table_t *pt;
 
+/* ------------------------------- TODO -------------------------------- */
+
+/* add password recognition */
+
 /* ---------------------- Private Function Headers --------------------- */
 
 /* calloc the peer table and check the return function 
@@ -67,20 +71,21 @@ int DestroyPeerTable();
 int SendMasterFSRequest(){
 	FileSystem* fs;
 	FileSystem *master;
+	char *path;
 
 	/* get our current file system and send it to the tracker for diffs */
 	if (NULL == (fs = filesystem_new(DARTSYNC_DIR))){
-		printf("CLIENT MAIN: filesystem_new failed\n");
+		printf("SendMasterFSRequest: filesystem_new failed\n");
 		return -1;
 	}
 
 	if (-1 == send_status(cnt, fs)){
-		printf("CLIENT MAIN: send_status failed\n");
+		printf("SendMasterFSRequest: send_status failed\n");
 		return -1;
 	}
 
 	if (-1 == send_request_for_master(cnt)){
-		printf("CLIENT MAIN: send_request_for_master() failed\n");
+		printf("SendMasterFSRequest: send_request_for_master() failed\n");
 		return -1;
 	}
 
@@ -97,15 +102,37 @@ int SendMasterFSRequest(){
 	filesystem_diff(fs, master, &additions, &deletions);
 
 	if (!additions){
-		printf("CLIENT MAIN: additions is NULL\n");
+		printf("SendMasterFSRequest: additions is NULL\n");
 	}
 
 	if (!deletions){
-		printf("CLIENT MAIN: deletions is NULL\n");
+		printf("SendMasterFSRequest: deletions is NULL\n");
 	}
 
-	/* iterate over additions to see if we need to request chunks */
-	printf("CLIENT MAIN: ready to iterate over additions and deletions!\n");
+	/* iterate over additions to see if we need to request files */
+	printf("SendMasterFSRequest: ready to iterate over additions!\n");
+	FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+
+	if (!add_iterator){
+		printf("SendMasterFSRequest: failed to make add iterator\n");
+	}
+
+	while (NULL != (path = filesystemiterator_next(add_iterator))){
+		printf("SendMasterFSRequest: found addition at: %s\n", path);
+	}
+
+	/* iterate over additions to see if we need to request files */
+	printf("SendMasterFSRequest: ready to iterate over deletions!\n");
+	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
+
+	if (!del_iterator){
+		printf("SendMasterFSRequest: failed to make add iterator\n");
+	}
+
+	while (NULL != (path = filesystemiterator_next(del_iterator))){
+		printf("SendMasterFSRequest: found addition at: %s\n", path);
+	}
+
 	return 1;
 }
 
@@ -255,6 +282,7 @@ int main(int argv, char* argc[]){
 	} 
 
 	/* start the client connection to the tracker and network */
+	/* may eventually update to add password sending */
 	if (NULL == (cnt = StartClientNetwork(argc[1], argv))){
 		printf("CLIENT MAIN: StartClientNetwork failed\n");
 		exit(0);
