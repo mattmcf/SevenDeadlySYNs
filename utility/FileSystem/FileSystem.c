@@ -426,18 +426,22 @@ typedef struct
 
 FileSystem* filesystem_new(char* path)
 {
+	assert(path);
+	
     wordexp_t exp_result;
     wordexp(path, &exp_result, 0);
 		
 	_FileSystem* fs = create_new(_FileSystem);
 	fs->root_path = copy_string(exp_result.we_wordv[0]);
 	fs->root = folder_new(exp_result.we_wordv[0], "");
-	
+	assert(fs->root);
+		
 	return (FileSystem*)fs;
 }
 void filesystem_destroy(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
 	free(fs->root_path);
 	folder_destroy(fs->root);
 	free(fs);
@@ -451,10 +455,12 @@ Folder* filesystem_get_root(FileSystem* filesystem)
 char* filesystem_get_root_path(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
 	return fs->root_path;
 }
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
+	assert(filesystem);
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	_FileSystem* copy = create_new(_FileSystem);
 	copy->root_path = copy_string(fs->root_path);
@@ -463,9 +469,11 @@ FileSystem* filesystem_copy(FileSystem* filesystem)
 }
 void filesystem_print(FileSystem* filesystem)
 {
+	assert(filesystem);
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	
 	printf("Printing filesystem at: %s\n", fs->root_path == NULL ? "NULL" : fs->root_path);
+	assert(fs->root);
 	folder_print(fs->root, 0);
 }
 void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1)
@@ -479,6 +487,8 @@ void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 {
 	_FileSystem* fs0 = (_FileSystem*)filesystem0;
 	_FileSystem* fs1 = (_FileSystem*)filesystem1;
+
+	assert(fs0 && fs1 && fs0->root && fs1->root);
 	
 	folder_remove(fs0->root, fs1->root);
 }
@@ -487,10 +497,14 @@ void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 	_FileSystem* fs0 = (_FileSystem*)filesystem0;
 	_FileSystem* fs1 = (_FileSystem*)filesystem1;
 
+	assert(fs0 && fs1 && fs0->root && fs1->root);
+
 	folder_add(fs0->root, fs1->root);
 }
 void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
 {
+	assert(old && new && additions && deletions);
+	
 	*additions = filesystem_copy(old);
 	*deletions = filesystem_copy(new);
 	
@@ -537,6 +551,7 @@ void filesystem_serialize_helper(_Folder* folder, Queue* data)
 
 void filesystem_serialize(FileSystem* filesystem, char** data, int* length)
 {
+	assert(filesystem && data && length);
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	Queue* buffer = queue_new();
 	filesystem_serialize_helper((_Folder*)fs->root, buffer);
@@ -597,6 +612,7 @@ _Folder* filesystem_deserialize_helper(char** data)
 
 FileSystem* filesystem_deserialize(char* data, int* bytesRead)
 {
+	assert(data && bytesRead);
 	_FileSystem* fs = create_new(_FileSystem);
 	fs->root_path = NULL;
 	char* d = data + 1;
@@ -620,6 +636,7 @@ typedef struct
 
 FileSystemIterator* filesystemiterator_new(FileSystem* fs)
 {
+	assert(fs);
 	_FileSystemIterator* fsi = create_new(_FileSystemIterator);
 	fsi->fs = fs;
 	fsi->folder_stack = queue_new();
@@ -633,6 +650,7 @@ FileSystemIterator* filesystemiterator_new(FileSystem* fs)
 }
 void filesystemiterator_destroy(FileSystemIterator* iterator)
 {
+	assert(iterator);
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	
 	queue_destroy(fsi->folder_stack);
@@ -647,6 +665,7 @@ void filesystemiterator_destroy(FileSystemIterator* iterator)
 char* filesystemiterator_next(FileSystemIterator* iterator)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
+	assert(fsi);
 	
 	// If there is a path that has been set, then free it.
 	if (fsi->path)
@@ -702,67 +721,67 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 
 // ******************************** Main ********************************
 
-// int main()
-// {
-// 	printf("Testing serialization and deserialization...\n");
+/*
+int main()
+{
+	printf("Testing serialization and deserialization...\n");
 	
-// 	char* path = "/Users/jacob/Downloads/a4handout";
-// 	printf("Loading filesystem at %s\n", path);
-// 	FileSystem* fs = filesystem_new(path);
-// 	filesystem_print(fs);
+	char* path = "/Users/jacob/Downloads/a4handout";
+	printf("Loading filesystem at %s\n", path);
+	FileSystem* fs = filesystem_new(path);
+	filesystem_print(fs);
 	
-// 	char* serializedFs;
-// 	int length;
-// 	printf("Serializing!\n");
-// 	filesystem_serialize(fs, &serializedFs, &length);
-// 	printf("Serialized %d bytes!\n", length);
-// 	printf("Deserializing!\n");
-// 	FileSystem* deserialized = filesystem_deserialize(serializedFs, &length);
-// 	printf("Deserialized %d bytes!\n", length);
-// 	filesystem_print(deserialized);
+	char* serializedFs;
+	int length;
+	printf("Serializing!\n");
+	filesystem_serialize(fs, &serializedFs, &length);
+	printf("Serialized %d bytes!\n", length);
+	printf("Deserializing!\n");
+	FileSystem* deserialized = filesystem_deserialize(serializedFs, &length);
+	printf("Deserialized %d bytes!\n", length);
+	filesystem_print(deserialized);
 	
-// 	FileSystem* additions;
-// 	FileSystem* deletions;
-// 	filesystem_diff(fs, deserialized, &additions, &deletions);
-// 	printf("Printing differences. (There should be no differences)\n");
-// 	filesystem_print(additions);
-// 	filesystem_print(deletions);
+	FileSystem* additions;
+	FileSystem* deletions;
+	filesystem_diff(fs, deserialized, &additions, &deletions);
+	printf("Printing differences. (There should be no differences)\n");
+	filesystem_print(additions);
+	filesystem_print(deletions);
 	
-// 	filesystem_destroy(additions);
-// 	filesystem_destroy(deletions);
-// 	filesystem_destroy(deserialized);
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
+	filesystem_destroy(deserialized);
 	
 		
-// 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
-// 	sleep(5);
+	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
+	sleep(5);
 		
-// 	FileSystem* changes = filesystem_new(path);
-// 	filesystem_diff(fs, changes, &additions, &deletions);
-// 	printf("Additions\n");
-// 	filesystem_print(additions);
-// 	printf("Deletions\n");
-// 	filesystem_print(deletions);
+	FileSystem* changes = filesystem_new(path);
+	filesystem_diff(fs, changes, &additions, &deletions);
+	printf("Additions\n");
+	filesystem_print(additions);
+	printf("Deletions\n");
+	filesystem_print(deletions);
 	
-// 	FileSystem* withChanges = filesystem_copy(fs);
-// 	filesystem_minus_equals(withChanges, deletions);	
-// 	filesystem_plus_equals(withChanges, additions);
+	FileSystem* withChanges = filesystem_copy(fs);
+	filesystem_minus_equals(withChanges, deletions);	
+	filesystem_plus_equals(withChanges, additions);
 	
-// 	printf("Old + additions - deletions\n");
-// 	filesystem_print(withChanges);
+	printf("Old + additions - deletions\n");
+	filesystem_print(withChanges);
 	
-// 	filesystem_destroy(additions);
-// 	filesystem_destroy(deletions);
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
 	
-// 	filesystem_diff(changes, withChanges, &additions, &deletions);
+	filesystem_diff(changes, withChanges, &additions, &deletions);
 	
-// 	printf("Printing differences. (There should be no differences)\n");
-// 	filesystem_print(additions);
-// 	filesystem_print(deletions);
+	printf("Printing differences. (There should be no differences)\n");
+	filesystem_print(additions);
+	filesystem_print(deletions);
 	
-// 	return 0;
-// }
-
-
+	return 0;
+}
+*/
 
 
 

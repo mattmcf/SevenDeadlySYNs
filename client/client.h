@@ -9,7 +9,7 @@
 /* ------------------------- System Libraries -------------------------- */
 
 /* -------------------------- Local Libraries -------------------------- */
-
+#include "network_client.h"
 
 /* ----------------------------- Constants ----------------------------- */
 #define REQUEST_JOIN		0
@@ -50,9 +50,6 @@ int SendMasterFSRequest();
 
 /* monitor filesystem */
 int MonitorFilesystem();
-
-/* request chunk */
-//int SendChunkRequest(CNT *cnt, int peer_id, char *buf, int len);
 
 /* update client table */
 int UpdateClientTable();
