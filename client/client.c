@@ -34,6 +34,11 @@ peer_table_t *pt;
 
 /* add password recognition */
 
+/* ----------------------------- Questions ----------------------------- */
+
+/* is a deletion only a total file deletion or can it simply imply a 
+ * chunk was deleted */
+
 /* ---------------------- Private Function Headers --------------------- */
 
 /* calloc the peer table and check the return function 
@@ -103,34 +108,42 @@ int SendMasterFSRequest(){
 
 	if (!additions){
 		printf("SendMasterFSRequest: additions is NULL\n");
+	} else {
+		/* iterate over additions to see if we need to request files */
+		printf("SendMasterFSRequest: ready to iterate over additions!\n");
+		FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+
+		if (!add_iterator){
+			printf("SendMasterFSRequest: failed to make add iterator\n");
+		}
+
+		while (NULL != (path = filesystemiterator_next(add_iterator))){
+			printf("SendMasterFSRequest: found addition at: %s\n", path);
+
+			/* figure out which client to get the file from */
+
+			/* make the requet */
+
+			/* receive the file from the peer */
+
+			/* update local file system with received file */
+		}
 	}
 
 	if (!deletions){
 		printf("SendMasterFSRequest: deletions is NULL\n");
-	}
+	} else {
+		/* iterate over additions to see if we need to request files */
+		printf("SendMasterFSRequest: ready to iterate over deletions!\n");
+		FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
 
-	/* iterate over additions to see if we need to request files */
-	printf("SendMasterFSRequest: ready to iterate over additions!\n");
-	FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+		if (!del_iterator){
+			printf("SendMasterFSRequest: failed to make add iterator\n");
+		}
 
-	if (!add_iterator){
-		printf("SendMasterFSRequest: failed to make add iterator\n");
-	}
-
-	while (NULL != (path = filesystemiterator_next(add_iterator))){
-		printf("SendMasterFSRequest: found addition at: %s\n", path);
-	}
-
-	/* iterate over additions to see if we need to request files */
-	printf("SendMasterFSRequest: ready to iterate over deletions!\n");
-	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
-
-	if (!del_iterator){
-		printf("SendMasterFSRequest: failed to make add iterator\n");
-	}
-
-	while (NULL != (path = filesystemiterator_next(del_iterator))){
-		printf("SendMasterFSRequest: found addition at: %s\n", path);
+		while (NULL != (path = filesystemiterator_next(del_iterator))){
+			printf("SendMasterFSRequest: found addition at: %s\n", path);
+		}
 	}
 
 	return 1;
@@ -313,39 +326,50 @@ int main(int argv, char* argc[]){
 	SendMasterFSRequest();
 	printf("CLIENT MAIN: exiting after handshake!!!");
 
-	// FileSystem *diff;
-	// while (1){
-	// 	sleep(POLL_STATUS_DIFF);
+	int new_client = -1, del_client = -1;
+	FileSystem *master;
+	int recv_len;
+	while (1){
+		sleep(POLL_STATUS_DIFF);
 
-	// 	if (NULL != (diff = recv_diff(cnt))){
-	// 		/* iterate over the filesystem to search for diffs */
-	// 		FileSystemIterator *iterator;
-	// 		if (NULL == (iterator = filesystemiterator_new(diff))){
-	// 			printf("CLIENT MAIN: failed to init fs iterator or no diff\n");
-	// 			continue;
-	// 		}
-	// 		char *path;
-	// 		while (NULL != (path = filesystemiterator_next(iterator))){
-	// 			/* we have a diff, replace the old path with the current path */
-	// 			printf("CLIENT MAIN: found diff at: %s, replacing old with new\n", path);
-	// 			FILE *old;
-	// 			if (NULL == (old = fopen(path, "w"))){
-	// 				printf("CLIENT MAIN: failed to fopen file at %s\n", path);
-	// 			}
-	// 				/* receive the table of peers with each part of a file */
-	// 				/* randomly select a peer for each chuck to decide where to get the chunk */
-	// 				/* make a request to that peer to get that chunk */
-	// 				/* update that chunk with the received update */
+		/* get any new clients first */
+		while (-1 != (new_client = recv_peer_added(cnt))){
+			if (-1 == InsertPeer(new_client, CONN_ACTIVE)){
+				printf("CLIENT MAIN: InsertPeer() failed\n");
+			}
+			new_client = -1;
+		}
 
-	// 			free(path);
-	// 			path = NULL;
-	// 		}
+		/* figure out if any clients have dropped from the network */
+		while (-1 != (del_client = recv_peer_deleted(cnt))){
+			if (-1 == RemovePeer(del_client)){
+				printf("CLIENT MAIN: RemovePeer() failed\n");
+			}
+			del_client = -1;
+		}
 
-	// 		filesystemiterator_destroy(iterator);
-	// 	}
-	// }
+		/* poll to see if there are any changes to the master file system 
+		 * if there are then we need to get those parts from peers and then
+		 * copy master to our local pointer of the filesystem */
+		while (NULL != (master = recv_master(cnt, &recv_len))){
+			
+		}
 
-	// getNextThing(cnt);
+		/* check the local filesystem for changes that we need to push
+		 * to master */
+		FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
+		FileSystem *adds = NULL, *dels = NULL;
+		filesystem_diff(fs, new_fs, &adds, &dels);
+
+		/* if there are either additions or deletions, then we need to let the 
+		 * master know */
+		if (!adds || !dels){
+			printf("CLIENT MAIN: there are no diffs in the current fs\n");
+		} else {
+			/* send the difs to the tracker */
+		}
+	}
+
 }
 
 
