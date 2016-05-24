@@ -70,19 +70,30 @@ int main() {
 	CNT * cnt = StartClientNetwork((char *)&servaddr.sin_addr, 4);
 
 	// freeaddrinfo(result);
+	FileSystem* mine = filesystem_new("~/Documents/dartsync");
 
-	send_request_for_master(cnt);
+	
 	FileSystem * master = NULL;
 	int master_len;
 	while (1) {
-		
+		send_request_for_master(cnt);
 		sleep(5);
 		master = recv_master(cnt, &master_len);
 		if (master) {
 			printf("\nClient received master (%d bytes)!\n",master_len);
 			fflush(stdout);
 			filesystem_print(master);
+			FileSystem* additions;
+			FileSystem* deletions;
+			filesystem_diff(master, mine, &additions, &deletions);
+			printf("Printing differences. (There should be no differences)\n");
+			filesystem_print(additions);
+			filesystem_print(deletions);
 		}
+		
 	}
+
+	// send_request_for_master(cnt);
+
 
 }
