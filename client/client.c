@@ -352,7 +352,8 @@ int main(int argv, char* argc[]){
 		int *peer_id = malloc(sizeof(int));
 		int *chunk_id = malloc(sizeof(int));
 		int *len = malloc(sizeof(int));
-		while (-1 != ReceiveChuckRequest(cnt, &peer_id, &chunk_id, &len)){
+		char *filepath;
+		while (-1 != ReceiveChuckRequest(cnt, &filepath, &peer_id, &chunk_id, &len)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", *peer_id);
 
 			/* get the chunk that they are requesting */
@@ -390,6 +391,10 @@ int main(int argv, char* argc[]){
 		} else {
 			printf("CLIENT MAIN: about to send diffs to the tracker\n");
 			/* send the difs to the tracker */
+
+			if (-1 == send_updated_files(cnt, adds, dels)){
+				printf("CLIENT MAIN: send_updated_files() failed\n");
+			}
 		}
 	}
 
