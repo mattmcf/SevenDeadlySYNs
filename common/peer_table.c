@@ -92,6 +92,7 @@ peer_t * copy_peer(peer_table_t * table, int id, char * ip_addr, int socketfd) {
 			table->peer_list[i]->id = id;
 			memcpy(table->peer_list[i]->ip_addr, ip_addr, IP_LEN);
 			table->peer_list[i]->socketfd = socketfd;
+			table->peer_list[i]->time_last_alive = 0; 	// doesn't matter
 
 			table->count++;
 			if (table->count == table->size) {
@@ -249,7 +250,6 @@ int diff_tables(peer_table_t * orig, peer_table_t * new, peer_table_t ** additio
 	for (int i = 0; i < orig->size; i++) {
 		if (orig->peer_list[i]) {
 
-			printf("testing id %d\n",orig->peer_list[i]->id);
 			// if new doesn't contain entry, get_peer_by_id() returns NULL -> added to deleted table
 			if (!get_peer_by_id(new, orig->peer_list[i]->id)) {
 				copy_peer(deleted_table, orig->peer_list[i]->id, orig->peer_list[i]->ip_addr, orig->peer_list[i]->socketfd);
@@ -273,12 +273,13 @@ void print_table(peer_table_t * table) {
 	for (int i = 0; i < table->size; i++) {
 		if (table->peer_list[i]) {
 
-			printf("%ld %d %ld %ld %ld %s\n", (long)AF_INET6, i, (long)table, (long)table->peer_list, (long)&(table->peer_list[i]->ip_addr), table->peer_list[i]->ip_addr);
-			inet_ntop(AF_INET6, table->peer_list[i]->ip_addr, ip_str, INET6_ADDRSTRLEN);
-			strftime(time_str, 100, "%Y-%m-%d %H:%M:%S", localtime(&table->peer_list[i]->time_last_alive));
+			//printf("%ld %d %ld %ld %ld %s\n", (long)AF_INET6, i, (long)table, (long)table->peer_list, (long)&(table->peer_list[i]->ip_addr), table->peer_list[i]->ip_addr);
+			//inet_ntop(AF_INET6, table->peer_list[i]->ip_addr, ip_str, INET6_ADDRSTRLEN);
+			//strftime(time_str, 100, "%Y-%m-%d %H:%M:%S", localtime(&table->peer_list[i]->time_last_alive));
 
-			printf("Peer ID: %d, socketfd %d, IP address: %s, last alive %s\n",
-				table->peer_list[i]->id, table->peer_list[i]->socketfd, ip_str, time_str);
+			printf("Peer ID: %d, socketfd %d, IP address: %s, last alive %ld\n",
+				table->peer_list[i]->id, table->peer_list[i]->socketfd, 
+				inet_ntoa(*(struct in_addr*)table->peer_list[i]->ip_addr), table->peer_list[i]->time_last_alive);
 		}
 			
 	}
