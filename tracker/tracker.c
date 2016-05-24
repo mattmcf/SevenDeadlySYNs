@@ -96,6 +96,7 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		if(receive_client_update(network, clientID, &additions, &deletions)>0){
 			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
+			filesystem_print(fs);
 			printf("\tUpdating File System\n");
 			filesystem_minus_equals(fs, deletions);	
 			filesystem_plus_equals(fs, additions);
