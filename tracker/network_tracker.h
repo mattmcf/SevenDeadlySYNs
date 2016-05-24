@@ -33,11 +33,11 @@ void EndTrackerNetwork(TNT * tnt);
 // 	ret : (static) 1 is success, -1 is failure (communications broke) 
 int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid);
 
-// client file system update (got and failed to get)
+// Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
 // 	tnt : (not claimed) thread block 
 //	clientid : (not claimed) space for client id that will be filled if update is there
-// 	ret : (not claimed) client's update JFS (new minus original)
-FileSystem * receive_client_update(TNT * tnt, int * clientid);
+// 	ret : (not claimed) total number of bytes deserialized or -1 if no update available
+int receive_client_update(TNT * thread, int * clientid, FileSystem ** additions, FileSystem ** deletions);
 
 // client added
 // 	tnt : (not claimed) thread block

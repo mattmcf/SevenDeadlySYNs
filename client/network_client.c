@@ -175,7 +175,7 @@ void EndClientNetwork(CNT * thread_block) {
 
 	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS]);
 	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE]);
-	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_QUIT]);
+	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_UPDATED_FILE_DIFF]);
 	asyncqueue_destroy(cnt->tkr_queues_from_client[ME_2_TKR_GET_MASTER]);
 	free(cnt->tkr_queues_from_client);
 
@@ -308,7 +308,7 @@ int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deleti
 
 	queue_item->data = malloc(length1 + length2);
 	memcpy(queue_item->data, buf1, length1);
-	memcpy( (char *)queue_item->data + length1, buf2, length2);
+	memcpy( ((char *)queue_item->data) + length1, buf2, length2);
 	queue_item->data_len = length1 + length2;
 
 	free(buf1);
@@ -392,7 +392,8 @@ void send_heartbeat(_CNT_t * cnt);
 void poll_queues(_CNT_t * cnt);
 void check_cur_status_q(_CNT_t * cnt);
 void check_file_acq_q(_CNT_t * cnt);
-void check_quit_q(_CNT_t * cnt);
+void check_updated_fs_q(_CNT_t * cnt);
+//void check_quit_q(_CNT_t * cnt);
 void check_master_req_q(_CNT_t * cnt);
 void check_req_chunk_q(_CNT_t * cnt);
 void check_send_chunk_q(_CNT_t * cnt);
@@ -676,8 +677,9 @@ void poll_queues(_CNT_t * cnt) {
 	//printf("\nclient network is polling queues\n");
 	check_cur_status_q(cnt);
 	check_file_acq_q(cnt);
-	check_quit_q(cnt);
+	//check_quit_q(cnt);
 	check_master_req_q(cnt);
+	check_updated_fs_q(cnt);
 
 	check_req_chunk_q(cnt);
 	check_send_chunk_q(cnt);
@@ -721,7 +723,7 @@ void check_updated_fs_q(_CNT_t * cnt) {
 		pkt.data_len = queue_item->data_len;
 
 		send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
-		send(cnt->tracker_fd, queue_item->data, queue_item->data_len);
+		send(cnt->tracker_fd, queue_item->data, queue_item->data_len, 0);
 
 		free(queue_item->data);
 		free(queue_item);
