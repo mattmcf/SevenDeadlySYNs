@@ -41,7 +41,7 @@
 
 #define ME_2_TKR_CUR_STATUS 0
 #define ME_2_TKR_ACQ_UPDATE 1
-#define ME_2_TKR_QUIT 2
+#define ME_2_TKR_UPDATED_FILE_DIFF 2
 #define ME_2_TKR_GET_MASTER 3
 
 #define ME_2_CLT_REQ_CHUNK 0
@@ -74,7 +74,7 @@ typedef struct _CNT {
 	 * -- client to tracker --
 	 * tkr_queues_from_client[0] -> send current status / (join network)
 	 * tkr_queues_from_client[1] -> send acquisition update to tracker (successful & unsucessful)
-	 * tkr_queues_from_client[2] -> send quit message
+	 * tkr_queues_from_client[2] -> send updated file diff
 	 * tkr_queues_from_client[3] -> send request for master
 	 *
 	 * -- client 2 client --
@@ -128,7 +128,7 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 	client_thread->tkr_queues_from_client = (AsyncQueue **)calloc(4,sizeof(AsyncQueue *));
 	client_thread->tkr_queues_from_client[ME_2_TKR_CUR_STATUS] = asyncqueue_new();
 	client_thread->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE] = asyncqueue_new();
-	client_thread->tkr_queues_from_client[ME_2_TKR_QUIT] = asyncqueue_new();
+	client_thread->tkr_queues_from_client[ME_2_TKR_UPDATED_FILE_DIFF] = asyncqueue_new();
 	client_thread->tkr_queues_from_client[ME_2_TKR_GET_MASTER] = asyncqueue_new();
 
 	/* -- outgoing client to client -- */
@@ -285,7 +285,38 @@ int send_status(CNT * thread, FileSystem * fs) {
 
 // send file acquistion update : ME_2_TKR_ACQ_UPDATE
 
-// send quit message to tracker : ME_2_TKR_QUIT
+// send quit message to tracker : ME_2_TKR_UPDATED_FILE_DIFF
+// 	thread : (not claimed) thread block
+//	additions : (not claimed) addition FS - claim after call
+// 	deletions : (not claimed) deletions FS - claim after call
+//	ret : 1 on success, -1 on failure
+int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deletions) {
+	if (!thread || !additions || !deletions)
+		return -1;
+
+	_CNT_t * cnt = (_CNT_t *)thread;
+	client_data_t * queue_item = malloc(sizeof(client_data_t));
+
+	int length1 = -1, length2 = -1;
+	char * buf1, * buf2;
+	filesystem_serialize(additions, &buf1, &length1);
+	filesystem_serialize(deletions, &buf2, &length2);
+	if (!buf1 || !buf2) {
+		fprintf(stderr, "send_updated_files error during serialization\n");
+		return -1;
+	}
+
+	queue_item->data = malloc(length1 + length2);
+	memcpy(queue_item->data, buf1, length1);
+	memcpy( (char *)queue_item->data + length1, buf2, length2);
+	queue_item->data_len = length1 + length2;
+
+	free(buf1);
+	free(buf2);
+
+	asyncqueue_push(cnt->tkr_queues_from_client[ME_2_TKR_UPDATED_FILE_DIFF], (void *)queue_item);
+	return 1;
+}
 
 // send request for master JFS to tracker : ME_2_TKR_GET_MASTER
 // returns 1 on success, -1 on failure
@@ -678,8 +709,23 @@ void check_file_acq_q(_CNT_t * cnt) {
 	return;
 }
 
-void check_quit_q(_CNT_t * cnt) {
-	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_QUIT];
+void check_updated_fs_q(_CNT_t * cnt) {
+	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_UPDATED_FILE_DIFF];
+	
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
+
+		printf("NETWORK -- sending updated file difference\n");
+		client_pkt_t pkt;
+		pkt.type = CLIENT_UPDATE;
+		pkt.data_len = queue_item->data_len;
+
+		send(cnt->tracker_fd, &pkt, sizeof(client_pkt_t), 0);
+		send(cnt->tracker_fd, queue_item->data, queue_item->data_len);
+
+		free(queue_item->data);
+		free(queue_item);
+	}	
 	return;
 }
 

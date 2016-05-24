@@ -197,9 +197,12 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 // 	tnt : (not claimed) thread block 
 //	clientid : (not claimed) space for client id that will be filled if update is there
 // 	ret : (not claimed) client's update JFS (new minus original) (null on failure)
-FileSystem * receive_client_update(TNT * tnt, int * clientid) {
+int receive_client_update(TNT * thread, int * clientid, FileSystem ** additions, FileSystem ** deltions) {
+	if (!tnt || !client_id || !additions || !deletions)
+		return NULL;
 
-	return NULL;
+	_TNT_t * tnt = (_TNT_t *)thread;
+	
 }
 
 // Receive notice that client joined network : CLT_2_TKR_NEW_CLIENT
@@ -320,6 +323,15 @@ int notify_client_status(_TNT_t * tnt, client_data_t * data) {
 }
 
 // notify logic that client has updated a file
+// 	tnt : (not claimed) thread block
+// 	queue_item : (not claimed) queue item to push
+int notify_client_update(_TNT_t * tnt, client_data_t * queue_item) {
+	if (!tnt || !queue_item)
+		return -1;
+
+	asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_FILE_UPDATE], (void *)queue_item);
+	return 1;
+}
 
 // notify logic about new client
 // 	tnt : (not claimed) thread block
@@ -678,7 +690,12 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 
 		case CLIENT_UPDATE:
 			printf("NETWORK -- received client update from client %d\n", client->id);
+			client_data->data_len = pkt.data_len;
+			client_data->data = buf;
 
+			not
+
+			buf = NULL;
 			rc = 1;
 			break;
 
