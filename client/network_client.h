@@ -56,9 +56,25 @@ int recv_peer_deleted(CNT * thread_block);
 //				null if no update
 FileSystem * recv_master(CNT * thread, int * received_length);
 
-// receive request for chunk 
+/* poll the network to see if we have received a chunk request
+ * from a peer client 
+ * 	cnt - the current state of the network
+ * 	filepath - an unallocated pointer to a filepath for the chunky file
+ *	peer_id - the peer that made the request 
+ * 	buf - the chunk that was requested
+ * 		TODO - figure out how to combine this with chunky file and
+ *		how to expand on it to allow for transerring an entire file
+ 	len - the expected length (DO WE NEED THIS)
+ */
+int receive_chunk_request(CNT *cnt, char **filepath, int *peer_id, int *chunk_id, int *len);
 
-// receive chunk from peer 
+
+/* client calls this to receive a chunk update from the network 
+ * 	cnt - the current state of the network
+ * 	(claimed) ret - the chunk that we received
+ */
+char* receive_chunk(CNT *cnt);
+
 
 
 /* ----- sending ----- */
@@ -79,9 +95,24 @@ int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deleti
 // returns 1 on success, -1 on failure
 int send_request_for_master(CNT * cnt);
 
-// send request for chunk to peer
+/* send a chunk request from the client app to a peer client 
+ * 	cnt - the current state of the network
+ * 	filepath - a pointer to a filepath for the chunky file
+ *	peer_id - the peer to request the chunk from 
+ * 	buf - the chunk that we are requesting
+ * 		TODO - figure out how to combine this with chunky file and
+ * 		how to expand on it to allow for transerring an entire file
+ 	len - the expected length (DO WE NEED THIS)
+ */
+int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int len);
 
-// send chunk to client
+/* client calls this to send a chunk update to another client 
+ * 	cnt - current state of the network 
+ * 	peer_id - the peer that we are sending it to
+ *	(claimed) buf	- the chunk that we are sending
+ * 	len - the length of the chunk that we are sending 
+ */
+int send_chunk(CNT *cnt, int peer_id, char *buf, int len);
 
 // send chunk request error response
 

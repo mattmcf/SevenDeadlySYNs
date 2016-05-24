@@ -26,7 +26,7 @@
 
 /* ------------------------- Global Variables -------------------------- */
 FILE *metadata;
-
+FileSystem *cur_fs;
 CNT* cnt;
 peer_table_t *pt;
 
@@ -74,17 +74,10 @@ int DestroyPeerTable();
 /* ----------------------- Public Function Bodies ---------------------- */
 
 int SendMasterFSRequest(){
-	FileSystem* fs;
 	FileSystem *master;
 	char *path;
 
-	/* get our current file system and send it to the tracker for diffs */
-	if (NULL == (fs = filesystem_new(DARTSYNC_DIR))){
-		printf("SendMasterFSRequest: filesystem_new failed\n");
-		return -1;
-	}
-
-	if (-1 == send_status(cnt, fs)){
+	if (-1 == send_status(cnt, cur_fs)){
 		printf("SendMasterFSRequest: send_status failed\n");
 		return -1;
 	}
@@ -104,7 +97,7 @@ int SendMasterFSRequest(){
 	/* received the master file system, iterate over it to look for differences */
 	FileSystem *additions;
 	FileSystem *deletions;
-	filesystem_diff(fs, master, &additions, &deletions);
+	filesystem_diff(cur_fs, master, &additions, &deletions);
 
 	if (!additions){
 		printf("SendMasterFSRequest: additions is NULL\n");
@@ -164,9 +157,13 @@ int UpdateClientTable(){
 
 void DropFromNetwork(){
 	/* call Matt's drop from network function */
+	printf("DropFromNetwork: about to free matt's memory\n");
 	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
+	printf("DropFromNetwork: Matt's memory is free, now for mine\n");
+	filesystem_destroy(cur_fs);
+	DestroyPeerTable();
 }
 
 /* ----------------------- Private Function Bodies --------------------- */
@@ -323,6 +320,16 @@ int main(int argv, char* argc[]){
 	//	} 
 	//}
 
+	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
+		printf("CLIENT MAIN: filesystem_new() failed\n");
+		exit(-1);
+	}
+
+	if (-1 == CreatePeerTable()){
+		printf("CLIENT MAIN: CreatePeerTable() failed\n");
+
+	}
+
 	SendMasterFSRequest();
 	printf("CLIENT MAIN: exiting after handshake!!!");
 
@@ -352,16 +359,17 @@ int main(int argv, char* argc[]){
 		int *peer_id = malloc(sizeof(int));
 		int *chunk_id = malloc(sizeof(int));
 		int *len = malloc(sizeof(int));
-		while (-1 != ReceiveChuckRequest(cnt, &peer_id, &chunk_id, &len)){
+		char *filepath;
+		while (-1 != receive_chunk_request(cnt, &filepath, peer_id, chunk_id, len)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", *peer_id);
 
 			/* get the chunk that they are requesting */
 
 			/* send that chunk to the peer */
-			
+
 		}
 		free(peer_id);
-		free(chun_id);
+		free(chunk_id);
 		free(len);
 
 		/* poll to see if there are any changes to the master file system 
@@ -369,13 +377,22 @@ int main(int argv, char* argc[]){
 		 * copy master to our local pointer of the filesystem */
 		while (NULL != (master = recv_master(cnt, &recv_len))){
 			printf("CLIENT MAIN: received update from master!\n");
+
+			/* figure out which peer to make the request to */
+
+			/* figure out which chunk to request? */
+
+			/* make the request to that peer */
 		}
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
 		FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
+		if (NULL == new_fs){
+			printf("CLIENT MAIN: new_fs filesystem_new() failed\n");
+		}
 		FileSystem *adds = NULL, *dels = NULL;
-		filesystem_diff(fs, new_fs, &adds, &dels);
+		filesystem_diff(cur_fs, new_fs, &adds, &dels);
 
 		/* if there are either additions or deletions, then we need to let the 
 		 * master know */
@@ -384,6 +401,10 @@ int main(int argv, char* argc[]){
 		} else {
 			printf("CLIENT MAIN: about to send diffs to the tracker\n");
 			/* send the difs to the tracker */
+
+			if (-1 == send_updated_files(cnt, adds, dels)){
+				printf("CLIENT MAIN: send_updated_files() failed\n");
+			}
 		}
 	}
 

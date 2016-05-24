@@ -36,6 +36,11 @@ int main() {
 	// start network thread
 	TNT *network = StartTrackerNetwork();
 
+	if (!network) {
+		fprintf(stderr,"Something went wrong while spinning up the network thread\n");
+		return 1;
+	}
+
 	// main thread
 	while(keepRunning){
 
@@ -43,6 +48,7 @@ int main() {
 			// get peerID and add peer to peer table
 			// broadcast to all other peers that there is a new peer
 		printf("checking for new client\n");
+		peerID = -1;
 		peerID = receive_new_client(network);
 		if(peerID>0){
 			if (addPeerToTable(peerID)<0){	// maybe print peer table after this
@@ -50,12 +56,13 @@ int main() {
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("Send peer added\n");
-			send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
+			// send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
 		// If a peer requests master
 			// send master
 		printf("checking for master request\n");
+		peerID = -1;
 		peerID = receive_master_request(network);
 		if(peerID>0){
 			if(send_master(network, peerID, fs)<0){
@@ -68,6 +75,7 @@ int main() {
 			// get peerID and remove peer from peer table
 			// broadcast to all otehr peers that peer left
 		printf("checking for lost client\n");
+		peerID = -1;
 		peerID = receive_lost_client(network);
 		if(peerID>0){
 			if(removePeerFromTable(peerID)<0){
@@ -75,31 +83,34 @@ int main() {
 			}
 			printf("Removed peer %d from table.\n", peerID);
 			printf("Send peer removed\n");
-			send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
+			// send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
 		}
 
-		// // if there is a file update
-		// 	// take the diff
-		// 	// apply diff to local fs
-		// 	// broadcast diff to all peers
-		// FileSystem *peerFileSystem = receive_client_update(network, int *clientID);
-		// if(peerFileSystem != NULL){
-		// 	// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
-
-		// 	FileSystem *additions;
-		// 	FileSystem *deletions;
-		// 	filesystem_diff(fs, peerFileSystem, &additions, &deletions)
-		// 	filesystem_minus_equals(fs, deletions);	
-		// 	filesystem_plus_equals(fs, additions);
-		// 	send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-		// 	send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-		// }
+		// if there is a file update
+			// take the diff
+			// apply diff to local fs
+			// broadcast diff to all peers
+		printf("Checking peer updates\n");
+		FileSystem *additions;
+		FileSystem *deletions;
+		int *clientID = (int*)malloc(sizeof(int));
+		if(receive_client_update(network, clientID, &additions, &deletions)>0){
+			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
+			filesystem_minus_equals(fs, deletions);	
+			filesystem_plus_equals(fs, additions);
+			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+			filesystem_print(fs);
+			filesystem_destroy(additions);
+			filesystem_destroy(deletions);
+		}
+		free(clientID);
 
 		// if(fileRetrieveSuccess()>0){
 		// 	// broadcast out to all peers
 		// }
 
-		sleep(3);
+		sleep(5);
 		printf("Restarting loop.\n");
 	}
 
@@ -245,6 +256,18 @@ int closeTracker(){
 	filesystem_print(fs);
 	filesystem_destroy(fs);
 	printf("All freed, closing tracker\n");
+	return 1;
+}
+
+// broadcast to all peers that there is a new peer
+int newPeerBroadcast(int newPeerID, TNT *network){
+	for (int i = 0; i < peerTableSize; i++){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID){
+			if(send_peer_added(network, newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
+				printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
+			}
+		}
+	}
 	return 1;
 }
 
