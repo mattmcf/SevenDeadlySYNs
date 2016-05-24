@@ -157,9 +157,11 @@ int UpdateClientTable(){
 
 void DropFromNetwork(){
 	/* call Matt's drop from network function */
+	printf("DropFromNetwork: about to free matt's memory\n");
 	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
+	printf("DropFromNetwork: Matt's memory is free, now for mine\n");
 	filesystem_destroy(cur_fs);
 	DestroyPeerTable();
 }
@@ -318,7 +320,7 @@ int main(int argv, char* argc[]){
 	//	} 
 	//}
 
-	if (NULL != (cur_fs = filesystem_new(DARTSYNC_DIR))){
+	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
 		exit(-1);
 	}
@@ -386,6 +388,9 @@ int main(int argv, char* argc[]){
 		/* check the local filesystem for changes that we need to push
 		 * to master */
 		FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
+		if (NULL == new_fs){
+			printf("CLIENT MAIN: new_fs filesystem_new() failed\n");
+		}
 		FileSystem *adds = NULL, *dels = NULL;
 		filesystem_diff(cur_fs, new_fs, &adds, &dels);
 
