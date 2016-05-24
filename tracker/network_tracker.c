@@ -273,7 +273,7 @@ int send_FS_update(TNT * tnt) {
 // send to all peers to notify that a new peer has appeared : TKR_2_CLT_ADD_PEER
 // 	thread_block : (not claimed)
 //	client_id : id of client to send out to all peers (SEND_ALL_PEERS) -> send whole table
-//
+// 	returns 1 on success and -1 on failure
 int send_peer_added(TNT * thread, int destination_client_id, int new_client_id) {
 	if (!thread)
 		return -1;

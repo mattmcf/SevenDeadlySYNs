@@ -68,14 +68,11 @@ FileSystem * recv_master(CNT * thread, int * received_length);
  */
 int receive_chunk_request(CNT *cnt, char **filepath, int *peer_id, int *chunk_id, int *len);
 
-
 /* client calls this to receive a chunk update from the network 
  * 	cnt - the current state of the network
  * 	(claimed) ret - the chunk that we received
  */
 char* receive_chunk(CNT *cnt);
-
-
 
 /* ----- sending ----- */
 
@@ -115,7 +112,7 @@ int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int 
 int send_chunk(CNT *cnt, int peer_id, char *buf, int len);
 
 // send chunk request error response
-int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id){
+int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id);
 	return -1;
 }
 
