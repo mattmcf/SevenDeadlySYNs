@@ -68,7 +68,12 @@ int send_status(CNT * thread, FileSystem * fs);
 
 // send file acquistion update
 
-// send quit message to tracker
+// send quit message to tracker 
+// 	thread : (not claimed) thread block
+//	additions : (not claimed) addition FS - claim after call
+// 	deletions : (not claimed) deletions FS - claim after call
+//	ret : 1 on success, -1 on failure
+int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deletions);
 
 // send request for master JFS to tracker
 // returns 1 on success, -1 on failure

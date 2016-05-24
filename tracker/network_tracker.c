@@ -196,13 +196,25 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 // Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
 // 	tnt : (not claimed) thread block 
 //	clientid : (not claimed) space for client id that will be filled if update is there
-// 	ret : (not claimed) client's update JFS (new minus original) (null on failure)
-int receive_client_update(TNT * thread, int * clientid, FileSystem ** additions, FileSystem ** deltions) {
-	if (!tnt || !client_id || !additions || !deletions)
-		return NULL;
+// 	ret : (not claimed) total number of bytes deserialized or -1 if no update available
+int receive_client_update(TNT * thread, int * client_id, FileSystem ** additions, FileSystem ** deletions) {
+	if (!thread || !client_id || !additions || !deletions)
+		return -1;
+
+	int additions_length = -1, deletions_length = -1;
 
 	_TNT_t * tnt = (_TNT_t *)thread;
-	
+	client_data_t * queue_item = (client_data_t *)asyncqueue_pop(tnt->queues_to_tracker[CLT_2_TKR_FILE_UPDATE]);
+	if (queue_item != NULL) {
+
+		*additions = filesystem_deserialize((char *)queue_item->data, &additions_length);
+		*deletions = filesystem_deserialize((char *)((long)queue_item->data + (long)additions_length), &deletions_length);
+
+		free(queue_item->data);
+		free(queue_item);
+	}
+
+	return (additions_length > 0) ? additions_length + deletions_length : -1;
 }
 
 // Receive notice that client joined network : CLT_2_TKR_NEW_CLIENT
@@ -693,9 +705,9 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			client_data->data_len = pkt.data_len;
 			client_data->data = buf;
 
-			not
-
+			notify_client_update(tnt, client_data);
 			buf = NULL;
+
 			rc = 1;
 			break;
 
