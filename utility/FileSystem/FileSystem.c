@@ -430,7 +430,6 @@ FileSystem* filesystem_new(char* path)
 	
     wordexp_t exp_result;
     wordexp(path, &exp_result, 0);
-		
 	_FileSystem* fs = create_new(_FileSystem);
 	fs->root_path = copy_string(exp_result.we_wordv[0]);
 	fs->root = folder_new(exp_result.we_wordv[0], "");

@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "tracker.h"
+#include "../common/constant.h"
 #include "network_tracker.h"
 #include "../utility/FileSystem/FileSystem.h"
 
@@ -26,7 +27,7 @@ int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
 	// create file system
-	fs = filesystem_new("~/dartsync");
+	fs = filesystem_new(DARTSYNC_DIR);
 	filesystem_print(fs);
 
 	// create peer table
