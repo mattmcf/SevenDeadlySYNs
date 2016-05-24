@@ -358,10 +358,10 @@ int main(int argv, char* argc[]){
 			/* get the chunk that they are requesting */
 
 			/* send that chunk to the peer */
-			
+
 		}
 		free(peer_id);
-		free(chun_id);
+		free(chunk_id);
 		free(len);
 
 		/* poll to see if there are any changes to the master file system 
@@ -369,6 +369,12 @@ int main(int argv, char* argc[]){
 		 * copy master to our local pointer of the filesystem */
 		while (NULL != (master = recv_master(cnt, &recv_len))){
 			printf("CLIENT MAIN: received update from master!\n");
+
+			/* figure out which peer to make the request to */
+
+			/* figure out which chunk to request? */
+
+			/* make the request to that peer */
 		}
 
 		/* check the local filesystem for changes that we need to push
