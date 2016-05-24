@@ -115,8 +115,7 @@ int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int 
 int send_chunk(CNT *cnt, int peer_id, char *buf, int len);
 
 // send chunk request error response
-int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id){
-	return -1;
-}
+int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id);
+
 
  #endif // _NETWORK_CLIENT_H
