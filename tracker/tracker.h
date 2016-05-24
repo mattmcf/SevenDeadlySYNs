@@ -69,7 +69,7 @@ find difference
 send difference
 */
 // broadcast to all peers that there is a new peer
-int newPeerBroadcast(int newPeerID);
+int newPeerBroadcast(int newPeerID, TNT *network);
 
 
 

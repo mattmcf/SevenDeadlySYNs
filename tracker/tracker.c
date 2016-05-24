@@ -56,7 +56,7 @@ int main() {
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("Send peer added\n");
-			send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
+			// send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
 		// If a peer requests master
@@ -83,31 +83,34 @@ int main() {
 			}
 			printf("Removed peer %d from table.\n", peerID);
 			printf("Send peer removed\n");
-			send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
+			// send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
 		}
 
 		// if there is a file update
 			// take the diff
 			// apply diff to local fs
 			// broadcast diff to all peers
-		FileSystem *peerFileSystem = receive_client_update(network, int *clientID);
-		if(peerFileSystem != NULL){
+		printf("Checking peer updates\n");
+		FileSystem *additions;
+		FileSystem *deletions;
+		int *clientID = (int*)malloc(sizeof(int));
+		if(receive_client_update(network, clientID, &additions, &deletions)>0){
 			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
-
-			FileSystem *additions;
-			FileSystem *deletions;
-			filesystem_diff(fs, peerFileSystem, &additions, &deletions)
 			filesystem_minus_equals(fs, deletions);	
 			filesystem_plus_equals(fs, additions);
-			send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-			send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
+			filesystem_print(fs);
+			filesystem_destroy(additions);
+			filesystem_destroy(deletions);
 		}
+		free(clientID);
 
 		// if(fileRetrieveSuccess()>0){
 		// 	// broadcast out to all peers
 		// }
 
-		sleep(3);
+		sleep(5);
 		printf("Restarting loop.\n");
 	}
 
@@ -257,7 +260,7 @@ int closeTracker(){
 }
 
 // broadcast to all peers that there is a new peer
-int newPeerBroadcast(int newPeerID){
+int newPeerBroadcast(int newPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
 		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID){
 			if(send_peer_added(network, newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
