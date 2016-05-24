@@ -274,29 +274,32 @@ int send_FS_update(TNT * tnt) {
 // 	thread_block : (not claimed)
 //	client_id : id of client to send out to all peers (SEND_ALL_PEERS) -> send whole table
 //
-int send_peer_added(TNT * thread_block, int new_client_id) {
+int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);
 	if (!thread_block)
 		return -1;
 
-	// _TNT_t * tnt = (_TNT_t *)thread_block;
-	// if (client_id == SEND_TO_ALL_PEERS) {
+	_TNT_t * tnt = (_TNT_t *)thread_block;
 
-	// } else {
-	// 	peer_t * client = get_peer_by_id(tnt->peer_table, client_id);
-	// }
+	tracker_data_t * queue_item = (tracker_data_t* )malloc(sizeof(tracker_data_t));
+	queue_item->destination_client_id;
+	queue_item->data_len = 0;
+	queue_item->data = (void *)new_client_id;
 
-	
-	// if (!client)
-	// 	return -1;
-
-
-
-	return -1;
+	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER], (void *)queue_item);
+	return 1;
 }
 
 // send to all peers to notify that peer has disappeared : TKR_2_CLT_REMOVE_PEER
-int send_peer_removed(TNT * tnt) {
-	return -1;
+int send_peer_removed(TNT * tnt, int destination_client_id, int removed_client_id);
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+
+	tracker_data_t * queue_item = (tracker_data_t* )malloc(sizeof(tracker_data_t));
+	queue_item->destination_client_id;
+	queue_item->data_len = 0;
+	queue_item->data = (void *)removed_client_id;
+
+	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER], (void *)queue_item);
+	return 1;
 }
 
 // send the master file system to client : TKR_2_CLT_SEND_MASTER
@@ -519,27 +522,9 @@ void * tkr_network_start(void * arg) {
 // http://beej.us/guide/bgnet/output/html/multipage/syscalls.html#getaddrinfo
 int open_listening_port() {
 
-	// struct addrinfo hints;
-	// struct addrinfo *servinfo, * rp;
-
-	// char port_str[10];
-	// sprintf(port_str, "%d", TRACKER_LISTENING_PORT);
-
-	// memset(&hints, 0, sizeof(hints));
-	// hints.ai_family = AF_INET6; 			// use IPv6
-	// hints.ai_socktype = SOCK_STREAM; 	// tcp
-	// hints.ai_protocol = 6; 	// tcp
-	// hints.ai_flags = AI_PASSIVE; 			// fill ip for me -- don't use loopback
-
-	// if (getaddrinfo(NULL, port_str, &hints, &servinfo) != 0) {
-	// 	perror("tracker - open_listening_port getaddrinfo error");
-	// 	return -1;
-	// }
-
 	// IPv4 #####################################
 	struct sockaddr_in serv_addr;
 	int listening_sockfd;
-
 	
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
@@ -554,56 +539,6 @@ int open_listening_port() {
   	} 
 	assert(bind(listening_sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0);
 	// assert(listen(listening_sockfd, incoming_neighbors) == 0);
-
-	
-
-	
-
-
-
-
-	// rp = servinfo;
-	// // ISSUE: only opens local port?
-	// // scan through returned hosts to see what's available (find external facing)
-	// // if (servinfo->ai_next) {
-	// // 	printf("using next address...\n");
-	// // 	rp = servinfo->ai_next;
-	// // } else
-	// // 	rp = servinfo;
-
-	// // rp = servinfo;
-	// // while ( ((sockaddr_in6)(rp->ai_addr)).sin6_addr
-	// // for (rp = servinfo; rp != NULL; rp = rp->ai_next) {
-	// // }
-
-	// int listening_sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-	// if (listening_sockfd < 0) {
-	// 	fprintf(stderr, "tracker - open_listening_port: socket error\n");
-	// 	return -1;
-	// }
-
-	// int opt_yes = 1;
-	// if (setsockopt(listening_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt_yes, sizeof(int)) == -1) {
- //    	perror("Error setsockopt failure");
- //    	return -1;
- //  	} 
-
-	// if (bind(listening_sockfd, rp->ai_addr, rp->ai_addrlen) != 0) {
-	// 	perror("tracker - open_listening_port bind error");
-	// 	return -1;
-	// }
-
-	// struct sockaddr_in6 servaddr;
-	// memcpy(&servaddr, rp->ai_addr, rp->ai_addrlen);
-
-	// char ip_str[INET6_ADDRSTRLEN] = "";
-	// if (!inet_ntop(rp->ai_family, &servaddr.sin6_addr, ip_str, INET6_ADDRSTRLEN)) {
-	// 	perror("inet_ntop failed");
-	// 	return -1;
-	// }
-	// printf("NETWORK -- listening at ip address %s on port %d\n", ip_str, TRACKER_LISTENING_PORT);
-
-	// freeaddrinfo(rp); 	// free filled out structure
 
 	return listening_sockfd;
 }
@@ -802,12 +737,38 @@ void check_fs_update_q(_TNT_t * tnt) {
 
 void check_add_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER];
+	tracker_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
+
+		printf("NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
+		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
+		if (!client) {
+			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");
+			return;
+		}
+
+		send_peer_table_to_client(tnt, client->socketfd);
+
+		free(queue_item);
+	}
 
 	return;
 }
 void check_remove_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER];
+	tracker_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
+		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
+		if (!client) {
+			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");
+			return;
+		}
+
+		send_peer_table_to_client(tnt, client->socketfd);
+		free(queue_item);
+	}
 	return;
 }
 
