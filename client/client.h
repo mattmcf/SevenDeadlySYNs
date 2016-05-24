@@ -78,7 +78,7 @@ int SendChunkRequest(CNT *cnt, int peer_id, char *buf, int len);
  		how to expand on it to allow for transerring an entire file
  	len - the expected length (DO WE NEED THIS)
  */
-int ReceiveChuckRequest(CNT *cnt, int peer_id, char *buf, int len);
+int ReceiveChuckRequest(CNT *cnt, int *peer_id, int *chunk_id, int *len);
 
 /* client calls this to send a chunk update to another client 
  * 	cnt - current state of the network 

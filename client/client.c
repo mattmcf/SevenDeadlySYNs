@@ -348,11 +348,27 @@ int main(int argv, char* argc[]){
 			del_client = -1;
 		}
 
+		/* check to see if any requests for files have been made to you */
+		int *peer_id = malloc(sizeof(int));
+		int *chunk_id = malloc(sizeof(int));
+		int *len = malloc(sizeof(int));
+		while (-1 != ReceiveChuckRequest(cnt, &peer_id, &chunk_id, &len)){
+			printf("CLIENT MAIN: received chunk request from peer: %d\n", *peer_id);
+
+			/* get the chunk that they are requesting */
+
+			/* send that chunk to the peer */
+			
+		}
+		free(peer_id);
+		free(chun_id);
+		free(len);
+
 		/* poll to see if there are any changes to the master file system 
 		 * if there are then we need to get those parts from peers and then
 		 * copy master to our local pointer of the filesystem */
 		while (NULL != (master = recv_master(cnt, &recv_len))){
-			
+			printf("CLIENT MAIN: received update from master!\n");
 		}
 
 		/* check the local filesystem for changes that we need to push
@@ -366,6 +382,7 @@ int main(int argv, char* argc[]){
 		if (!adds || !dels){
 			printf("CLIENT MAIN: there are no diffs in the current fs\n");
 		} else {
+			printf("CLIENT MAIN: about to send diffs to the tracker\n");
 			/* send the difs to the tracker */
 		}
 	}
