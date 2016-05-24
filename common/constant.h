@@ -16,6 +16,9 @@
 // minimum time (seconds) that a client needs to talk to tracker before being considered dead
 #define DIASTOLE 10 
 
+// max client queue for tracker to listen on
+#define MAX_CLIENT_QUEUE 10
+
 // time spent waiting for sockets to receive data before polling queues
 #define NETWORK_WAIT 3
 

@@ -528,8 +528,10 @@ int open_listening_port() {
 	
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	//serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(TRACKER_LISTENING_PORT);
+	
 	listening_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	assert(listening_sockfd>0);
 	int opt_yes = 1;
@@ -540,6 +542,9 @@ int open_listening_port() {
 	assert(bind(listening_sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0);
 	// assert(listen(listening_sockfd, incoming_neighbors) == 0);
 
+	listen(listening_sockfd, MAX_CLIENT_QUEUE);
+
+	printf("NETWORK -- listening at IP address %s on port %d\n", inet_ntoa(serv_addr.sin_addr), TRACKER_LISTENING_PORT);
 	return listening_sockfd;
 }
 

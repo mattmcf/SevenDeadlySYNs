@@ -423,8 +423,11 @@ int notify_peer_removed(_CNT_t * cnt, int removed_client_id) {
 
 /* --- Network Side Packet Functions --- */
 
-// returns listening socket fd
+// returns tracker socket (or -1 on failure)
 int connect_to_tracker(char * ip_addr, int ip_len);
+
+// returns listening c
+int open_peer_listening_port(int port);
 
 int handle_tracker_msg(_CNT_t * cnt);
 int handle_peer_msg(int sockfd, _CNT_t * cnt);
