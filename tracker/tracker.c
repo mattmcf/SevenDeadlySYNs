@@ -267,9 +267,9 @@ int closeTracker(){
 int newPeerBroadcast(int newPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
 		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID){
-			if(send_peer_added(network, newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
-				printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
-			}
+			// if(send_peer_added(network, newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
+			// 	printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
+			// }
 		}
 	}
 	return 1;
