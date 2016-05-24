@@ -27,6 +27,7 @@ int main() {
 	int peerID = -1;
 	// create file system
 	fs = filesystem_new("~/dartsync");
+	filesystem_print(fs);
 
 	// create peer table
 	peerTable = createPeerTable();
@@ -97,14 +98,15 @@ int main() {
 		// 	// broadcast out to all peers
 		// }
 
-		sleep(10);
+		sleep(3);
 		printf("Restarting loop.\n");
 	}
 
-	if (closeTracker()<0)
-	 {
+	if (closeTracker()<0) {
 	 	printf("Failed to close everything. Quitting anyway.\n");
-	 } 
+	} 
+	printf("buh-bye\n");
+
 	return 1;
 }
 
@@ -130,6 +132,7 @@ int destroyPeerTable(peer_table* deleteTable){
 	free(deleteTable->peerIDs);
 	printf("free table\n");
 	free(deleteTable);
+	printf("Done destroying peer table\n");
 	return 1;
 }
 
@@ -236,8 +239,11 @@ int printPeerTable(){
 
 //close everything, free memory
 int closeTracker(){
+	printf("Close tracker\n");
 	destroyPeerTable(peerTable);
+	filesystem_print(fs);
 	filesystem_destroy(fs);
+	printf("All freed, closing tracker\n");
 	return 1;
 }
 
