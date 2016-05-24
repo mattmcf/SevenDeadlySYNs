@@ -318,7 +318,8 @@ int main(int argv, char* argc[]){
 	//	} 
 	//}
 
-	if (NULL != (cur_fs = filesystem_new(DARTSYNC_DIR))){
+	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
+		filesystem_print(cur_fs);
 		printf("CLIENT MAIN: filesystem_new() failed\n");
 		exit(-1);
 	}

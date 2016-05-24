@@ -52,10 +52,10 @@ int main() {
 		peerID = receive_new_client(network);
 		if(peerID>0){
 			if (addPeerToTable(peerID)<0){	// maybe print peer table after this
-				printf("Failed to add peer %d to peer table.\n", peerID);
+				printf("\tFailed to add peer %d to peer table.\n", peerID);
 			}
 			// send_transaction_update(network, &fs, peerID);
-			printf("Send peer added\n");
+			printf("\tSend peer added\n");
 			// send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
 		}
 
@@ -66,9 +66,9 @@ int main() {
 		peerID = receive_master_request(network);
 		if(peerID>0){
 			if(send_master(network, peerID, fs)<0){
-				printf("Failed to send master to peer %d\n", peerID);
+				printf("\tFailed to send master to peer %d\n", peerID);
 			}
-			printf("Sent master to peer %d\n", peerID);
+			printf("\tSent master to peer %d\n", peerID);
 		}
 
 		// if there is a peer disconnect
@@ -79,10 +79,10 @@ int main() {
 		peerID = receive_lost_client(network);
 		if(peerID>0){
 			if(removePeerFromTable(peerID)<0){
-				printf("Failed to remove peer %d from table.\n", peerID);
+				printf("\tFailed to remove peer %d from table.\n", peerID);
 			}
-			printf("Removed peer %d from table.\n", peerID);
-			printf("Send peer removed\n");
+			printf("\tRemoved peer %d from table.\n", peerID);
+			printf("\tSend peer removed\n");
 			// send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
 		}
 
@@ -96,6 +96,7 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		if(receive_client_update(network, clientID, &additions, &deletions)>0){
 			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
+			printf("\tUpdating File System\n");
 			filesystem_minus_equals(fs, deletions);	
 			filesystem_plus_equals(fs, additions);
 			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
@@ -103,6 +104,7 @@ int main() {
 			filesystem_print(fs);
 			filesystem_destroy(additions);
 			filesystem_destroy(deletions);
+			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
 
@@ -117,6 +119,7 @@ int main() {
 	if (closeTracker()<0) {
 	 	printf("Failed to close everything. Quitting anyway.\n");
 	} 
+	EndTrackerNetwork(network);
 	printf("buh-bye\n");
 
 	return 1;
