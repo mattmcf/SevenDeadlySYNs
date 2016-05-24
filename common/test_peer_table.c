@@ -79,11 +79,37 @@ int main() {
 	printf("Deletions:\n");
 	print_table(deletions);
 
+	if (!get_peer_by_id(copy, 24)) {
+		printf("couldn't find copy's id 24\n");
+		return 1;
+	}
+
+	if (!get_peer_by_socket(table, 14)) {
+		printf("couldn't find table's socket 14\n");
+		return 1;
+	}
+
+	char find_ip_addr[4] = "123";
+	find_ip_addr[3] = (char)16;
+
+	if (!get_peer_by_ip(copy, find_ip_addr)) {
+		printf("couldn't find copy's peer by ip\n");
+		return 1;
+	}
+
+	find_ip_addr[0] = (char)0;
+	if (get_peer_by_ip(copy, find_ip_addr)) {
+		printf("found extraneous peer\n");
+		return 1;
+	}
+
 	/* delete all entries */
 
 	for (int i = 0; i < 16; i++) {
 		delete_peer(table, i);
 	}
+
+
 
 	printf("Deleted all entries -- copy should be empty\n");
 	print_table(table);

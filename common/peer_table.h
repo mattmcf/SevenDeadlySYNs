@@ -43,6 +43,9 @@ peer_t * get_peer_by_id(peer_table_t * table, int id);
 
 peer_t * get_peer_by_socket(peer_table_t * table, int fd);
 
+// assuming IPv4 addresses
+peer_t * get_peer_by_ip(peer_table_t * table, char * ip_addr);
+
 // returns 
 char * serialize_peer_table(peer_table_t * table, int * len);
 

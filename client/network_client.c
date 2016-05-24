@@ -426,8 +426,8 @@ int notify_peer_removed(_CNT_t * cnt, int removed_client_id) {
 // returns tracker socket (or -1 on failure)
 int connect_to_tracker(char * ip_addr, int ip_len);
 
-// returns listening c
-int open_peer_listening_port(int port);
+// returns listening port for client connections
+int open_peer_listening_port();
 
 int handle_tracker_msg(_CNT_t * cnt);
 int handle_peer_msg(int sockfd, _CNT_t * cnt);
@@ -458,10 +458,23 @@ void * clt_network_start(void * arg) {
 		return (void *)-1;
 	}
 
-	while ( (cnt->tracker_fd = connect_to_tracker(cnt->ip_addr, cnt->ip_len)) < 0) {
+	while ((cnt->tracker_fd = connect_to_tracker(cnt->ip_addr, cnt->ip_len)) < 0) {
 		printf("Failed to connect with tracker...\n");
 		sleep(5);
 	}
+
+	/* need to open peer listening socket */
+	cnt->peer_listening_fd = open_peer_listening_port();
+	if (cnt->peer_listening_fd < 0) {
+		fprintf(stderr, "failed to open peer listening socket\n");
+		return (void *)-1;
+	}
+
+	listen(cnt->peer_listening_fd, MAX_CLIENT_QUEUE);
+
+	// for connecting with new clients
+	struct sockaddr_in clientaddr;
+	unsigned int addrlen;
 
 	// set up timer
 	struct timeval timeout;
@@ -474,9 +487,7 @@ void * clt_network_start(void * arg) {
 
 	// add listening socket to fd set
 	FD_SET(cnt->tracker_fd, &active_fd_set);
-
-	/* need to open peer listening socket */
-	int peer_listening_fd = -1;
+	FD_SET(cnt->peer_listening_fd, &active_fd_set);
 
 	time_t last_heartbeat = 0, current_time;
 	int connected = 1;
@@ -493,35 +504,50 @@ void * clt_network_start(void * arg) {
 		for (int i = 0; i < FD_SETSIZE; i++) {
 			if (FD_ISSET(i, &read_fd_set)) {
 
-				// from tracker
+				/* -- from tracker -- */
 				if (i == cnt->tracker_fd) {
 
-					printf("client network received message from tracker (socket %d)\n", i);
+					printf("\nclient network received message from tracker (socket %d)\n", i);
 					if (handle_tracker_msg(cnt) != 1) {
 						fprintf(stderr, "failed to handle tracker message. Ending.\n");
 						connected = 0;
 						continue;
 					}
 
-				// new peer connection
-				} else if (i == peer_listening_fd) {
+				/* -- new peer connection -- */
+				} else if (i == cnt->peer_listening_fd) {
 
-					printf("client network received new connection from peer (socket %d)\n",i);
-					// need to accept peer connection
+					int new_peer_fd = accept(cnt->peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
+					if (new_peer_fd < 0) {
+						fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+						continue;
+					}
 
-					// new_sockfd = accept(peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
-					// if (new_sockfd < 0) {
-					// 	fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
-					// 	continue;
-					// }
+					printf("\nclient network received new connection from peer at %s (socket %d)\n",inet_ntoa(clientaddr.sin_addr),i);
+					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char*)&clientaddr.sin_addr);
+					if (!new_peer) {
+						fprintf(stderr, "client network doesn't has a peer record for new peer\n");
+						close(new_peer_fd);
+						continue;
+					}
 
-				// else peer message
+					// record peer connection socket and add to active set of sockets
+					new_peer->socketfd = new_peer_fd;
+					FD_SET(new_peer->socketfd, &active_fd_set);
+
+				/* -- else peer message -- */
 				} else {
-					printf("client network received message from peer on socket %d\n", i);
+
+					printf("\nclient network received message from peer on socket %d\n", i);
 					if (handle_peer_msg(i, cnt) != 1) {
 						fprintf(stderr, "failed to handle client message. Ending.\n");
-						connected = 0;
-						continue;
+
+						peer_t * bad_peer = get_peer_by_socket(cnt->peer_table, i);
+						if (bad_peer)
+							bad_peer->socketfd = -1;
+
+						FD_CLR(i, &active_fd_set);
+						close(i);
 					}
 				}
 			}
@@ -592,6 +618,38 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 
 	printf("NETWORK connected to tracker at %s on port %d (socket %d)\n", ip_str,TRACKER_LISTENING_PORT,sockfd);
 	return sockfd;
+}
+
+int open_peer_listening_port() {
+
+	// create a socket descriptor
+  int sockfd;
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 6)) < 0) {
+      perror("peer listening socket creation -- error creating listening socket");
+      return -1;
+  }
+
+  // eliminate "Address already in use" error from bind.
+  int opt_yes = 1;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt_yes, sizeof(int)) == -1) {
+      perror("peer listening socket creation -- setsockopt failure");
+      return -1;
+  } 
+
+  struct sockaddr_in server_addr;
+  bzero(&server_addr, sizeof(struct sockaddr_in));
+  server_addr.sin_family = AF_INET;               // IPv4
+  server_addr.sin_addr.s_addr = INADDR_ANY;       // use any IPs of machine
+  server_addr.sin_port = htons((uint16_t)CLIENT_LISTENING_PORT);
+
+  if (bind(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr)) != 0) {
+      perror("peer listening socket creation -- error binding");
+      return -1;
+  }
+
+  printf("NETWORK -- client listening for peer connections at %s on port %d\n", inet_ntoa(server_addr.sin_addr), CLIENT_LISTENING_PORT);
+  // make it a listening socket ready to accept connection requests
+  return(sockfd);
 }
 
 int handle_tracker_msg(_CNT_t * cnt) {
@@ -757,6 +815,13 @@ void check_cur_status_q(_CNT_t * cnt) {
 
 void check_file_acq_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE];
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
+
+		//free(queue_item->data);
+		free(queue_item);
+	}
+
 	return;
 }
 
@@ -797,18 +862,36 @@ void check_master_req_q(_CNT_t * cnt) {
 
 void check_req_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending request for chunk -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }
 
 void check_send_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK];
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending chunk -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }
 
 void check_req_error_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_ERROR];
+	client_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending error response -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }

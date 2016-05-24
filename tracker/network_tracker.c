@@ -531,18 +531,18 @@ int open_listening_port() {
 	//serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(TRACKER_LISTENING_PORT);
-	
+
 	listening_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	assert(listening_sockfd>0);
+
 	int opt_yes = 1;
 	if (setsockopt(listening_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt_yes, sizeof(int)) == -1) {
-    	perror("Error setsockopt failure");
-    	return -1;
-  	} 
+    perror("Error setsockopt failure");
+    return -1;
+  } 
+
 	assert(bind(listening_sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0);
 	// assert(listen(listening_sockfd, incoming_neighbors) == 0);
-
-	listen(listening_sockfd, MAX_CLIENT_QUEUE);
 
 	printf("NETWORK -- listening at IP address %s on port %d\n", inet_ntoa(serv_addr.sin_addr), TRACKER_LISTENING_PORT);
 	return listening_sockfd;
@@ -724,19 +724,37 @@ void poll_queues(_TNT_t * tnt) {
 
 void check_txn_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_TXN_UPDATE];
+	tracker_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending transaction update -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }
 
 void check_file_acq_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ];
+	tracker_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending file acquisition update -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }
 
 void check_fs_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FS_UPDATE];
+	tracker_data_t * queue_item = asyncqueue_pop(q);
+	if (queue_item != NULL) {
 
+		printf("NETWORK -- sending file system update -- UNFILLED FUNCTION!\n");
+		//free(queue_item->data);
+		free(queue_item);
+	}
 	return;
 }
 
@@ -784,7 +802,7 @@ void check_send_master_q(_TNT_t * tnt) {
 	if (queue_item != NULL) {
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 
-		printf("NETWORK -- sending master JFS to client %d\n", queue_item->client_id);
+		printf("NETWORK -- sending master JFS to client %d\n", client->id);
 		if (send_client_message(tnt, queue_item, MASTER_STATUS) != 1) {
 			fprintf(stderr,"failed to send master status update to client %d\n", queue_item->client_id);
 		}

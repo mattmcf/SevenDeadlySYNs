@@ -146,6 +146,18 @@ peer_t * get_peer_by_socket(peer_table_t * table, int fd) {
 	return NULL;
 }
 
+peer_t * get_peer_by_ip(peer_table_t * table, char * ip_addr) {
+	if (!table || !ip_addr)
+		return NULL;
+
+	for (int i = 0; i < table->size; i++) {
+		if (table->peer_list[i] && memcmp(table->peer_list[i]->ip_addr, ip_addr, IP_LEN) == 0)
+			return table->peer_list[i];
+	}
+
+	return NULL;
+}
+
 // returns a serialized version of peer table for clients to use
 // 	table : (not claimed) table to copy
 // 	len : (not claimed) will fill in with # of bytes spit out
@@ -267,7 +279,7 @@ void print_table(peer_table_t * table) {
 	if (!table)
 		return;
 
-	char ip_str[INET6_ADDRSTRLEN] = "", time_str[100] = "";
+	//char ip_str[INET6_ADDRSTRLEN] = "", time_str[100] = "";
 
 	printf("Printing Peer Table...\n");
 	for (int i = 0; i < table->size; i++) {
