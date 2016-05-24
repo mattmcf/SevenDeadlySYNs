@@ -41,6 +41,9 @@ peer_table_t *pt;
 
 /* ---------------------- Private Function Headers --------------------- */
 
+/* check if file system is empty, used to check diffs for anything */
+int CheckFileSystem(FileSystem *fs);
+
 /* calloc the peer table and check the return function 
  *		(not claimed) - pt: the peer table
  */
@@ -99,7 +102,7 @@ int SendMasterFSRequest(){
 	FileSystem *deletions;
 	filesystem_diff(cur_fs, master, &additions, &deletions);
 
-	if (!additions){
+	if (!additions && (-1 == CheckFileSystem(additions))){
 		printf("SendMasterFSRequest: additions is NULL\n");
 	} else {
 		/* iterate over additions to see if we need to request files */
@@ -123,8 +126,8 @@ int SendMasterFSRequest(){
 		}
 	}
 
-	if (!deletions){
-		printf("SendMasterFSRequest: deletions is NULL\n");
+	if (!deletions && (-1 == CheckFileSystem(deletions))){
+		printf("SendMasterFSRequest: deletions is NULL or empty\n");
 	} else {
 		/* iterate over additions to see if we need to request files */
 		printf("SendMasterFSRequest: ready to iterate over deletions!\n");
@@ -157,11 +160,9 @@ int UpdateClientTable(){
 
 void DropFromNetwork(){
 	/* call Matt's drop from network function */
-	printf("DropFromNetwork: about to free matt's memory\n");
 	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
-	printf("DropFromNetwork: Matt's memory is free, now for mine\n");
 	filesystem_destroy(cur_fs);
 	DestroyPeerTable();
 }
@@ -282,6 +283,18 @@ int DestroyPeerTable(){
 	return 1;
 }
 
+int CheckFileSystem(FileSystem *fs){
+	char *path;
+	FileSystemIterator *iterator = filesystemiterator_new(fs);
+	if (NULL != (path = filesystemiterator_next(iterator))){
+		printf("CheckFileSystem: FileSystem is nonempty\n");
+		free(path);
+		return 1;
+	}
+	printf("CheckFileSystem: FileSystem is empty\n");
+	return -1;
+}
+
 /* ------------------------------- main -------------------------------- */
 int main(int argv, char* argc[]){
 
@@ -321,6 +334,7 @@ int main(int argv, char* argc[]){
 	//}
 
 	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
+		filesystem_print(cur_fs);
 		printf("CLIENT MAIN: filesystem_new() failed\n");
 		exit(-1);
 	}
@@ -331,7 +345,6 @@ int main(int argv, char* argc[]){
 	}
 
 	SendMasterFSRequest();
-	printf("CLIENT MAIN: exiting after handshake!!!");
 
 	int new_client = -1, del_client = -1;
 	FileSystem *master;
@@ -388,17 +401,14 @@ int main(int argv, char* argc[]){
 		/* check the local filesystem for changes that we need to push
 		 * to master */
 		FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
-		if (NULL == new_fs){
-			printf("CLIENT MAIN: new_fs filesystem_new() failed\n");
-		}
 		FileSystem *adds = NULL, *dels = NULL;
 		filesystem_diff(cur_fs, new_fs, &adds, &dels);
 
 		/* if there are either additions or deletions, then we need to let the 
 		 * master know */
-		if (!adds || !dels){
-			printf("CLIENT MAIN: there are no diffs in the current fs\n");
-		} else {
+		if (!adds && !dels){
+			printf("CLIENT MAIN: diff failed\n");
+		} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
 			printf("CLIENT MAIN: about to send diffs to the tracker\n");
 			/* send the difs to the tracker */
 
