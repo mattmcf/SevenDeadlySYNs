@@ -457,18 +457,30 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 	if (!ip_addr)
 		return -1;
 
+	// int sockfd;
+	// if ((sockfd = socket(AF_INET6, SOCK_STREAM, 6)) < 0) {
+	// 	perror("client_network thread failed to create tracker socket");
+	// 	return -1;
+	// }
 	int sockfd;
-	if ((sockfd = socket(AF_INET6, SOCK_STREAM, 6)) < 0) {
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 6)) < 0) {
 		perror("client_network thread failed to create tracker socket");
 		return -1;
 	}
 
 	// fill out server struct
-	struct sockaddr_in6 servaddr;
+	// struct sockaddr_in6 servaddr;
+	struct sockaddr_in servaddr;
 	memset(&servaddr, 0, sizeof(servaddr));
-	memcpy(&servaddr.sin6_addr, ip_addr, ip_len);
-	servaddr.sin6_family = AF_INET6;
-	servaddr.sin6_port = htons(TRACKER_LISTENING_PORT); 
+	servaddr.sin_family = AF_INET;
+	inet_pton(AF_INET, ip_addr, &servaddr.sin_addr);
+	// servaddr.sin_addr = inet_addr(ip_addr);
+	servaddr.sin_port = htons(TRACKER_LISTENING_PORT);
+
+	// memcpy(&servaddr.sin6_addr, ip_addr, ip_len);
+	// memcpy(&servaddr.sin_addr, ip_addr, ip_len);
+	// servaddr.sin6_family = AF_INET6;
+	// servaddr.sin6_port = htons(TRACKER_LISTENING_PORT); 
 
 	// connect
 	if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
@@ -476,11 +488,12 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 		return -1;
 	}
 
-	char ip_str[INET6_ADDRSTRLEN] = "";
-	if (!inet_ntop(AF_INET6, &servaddr.sin6_addr, ip_str, INET6_ADDRSTRLEN)) {
-		perror("inet_ntop failed");
-		return -1;
-	}
+	// char ip_str[INET6_ADDRSTRLEN] = "";
+	char* ip_str = inet_ntoa(servaddr.sin_addr);
+	// if (strcmp(ip_str, "")!= 0){
+	// 	perror("inet_ntoa failed");
+	// 	return -1;
+	// }
 
 	printf("NETWORK connected to tracker at %s on port %d (socket %d)\n", ip_str,TRACKER_LISTENING_PORT,sockfd);
 	return sockfd;

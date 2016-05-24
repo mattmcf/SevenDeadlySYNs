@@ -25,42 +25,51 @@ int main() {
 	struct addrinfo hints;
   struct addrinfo *result, *rp;
 
-  struct sockaddr_in6 servaddr;
+  	struct sockaddr_in servaddr;
+  	memset(&servaddr, 0, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(TRACKER_LISTENING_PORT);
+	// servaddr.sin_addr = inet_addr(ip_addr);
+	
 
-  memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_INET6;    /* IPv6 */
-	hints.ai_socktype = SOCK_STREAM; /* tcp socket */
-	//hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
-	hints.ai_protocol = 6;          /* tcp protocol */
-	//hints.ai_canonname = NULL;
-	//hints.ai_addr = NULL;
-	//hints.ai_next = NULL;
+
+ //  struct sockaddr_in6 servaddr;
+
+ //  memset(&hints, 0, sizeof(struct addrinfo));
+	// hints.ai_family = AF_INET6;    /* IPv6 */
+	// hints.ai_socktype = SOCK_STREAM; /* tcp socket */
+	// //hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
+	// hints.ai_protocol = 6;          /* tcp protocol */
+	// //hints.ai_canonname = NULL;
+	// //hints.ai_addr = NULL;
+	// //hints.ai_next = NULL;
 
 	server_name[strlen(server_name)-1] = '\0'; 	// null out new line
+	inet_pton(AF_INET, server_name, &servaddr.sin_addr);
 
 	printf("Trying to find serverinfo at: %s\n", server_name);
-	if (getaddrinfo(server_name, NULL, &hints, &result) != 0) {
-		perror("getaddrinfo failed");
-		return 1;
-	}
+	// if (getaddrinfo(server_name, NULL, &hints, &result) != 0) {
+	// 	perror("getaddrinfo failed: ");
+	// 	return 1;
+	// }
 
-	if (!result) {
-		fprintf(stderr,"failed to find any matching results\n");
-		return 1;
-	}
+	// if (!result) {
+	// 	fprintf(stderr,"failed to find any matching results\n");
+	// 	return 1;
+	// }
 
-	memcpy(&servaddr, result->ai_addr, result->ai_addrlen);
-	servaddr.sin6_port = htons(TRACKER_LISTENING_PORT);
-	servaddr.sin6_family = AF_INET6;
+	// memcpy(&servaddr, result->ai_addr, result->ai_addrlen);
+	// servaddr.sin6_port = htons(TRACKER_LISTENING_PORT);
+	// servaddr.sin6_family = AF_INET6;
 
-	char ip_addr[100] = "";
-	inet_ntop(result->ai_family, &servaddr.sin6_addr, ip_addr, 100);
-	printf("Trying to connect to %s...\n", ip_addr);
-
+	// char ip_addr[100] = "";
+	// inet_ntop(result->ai_family, &servaddr.sin6_addr, ip_addr, 100);
+	// printf("Trying to connect to %s...\n", ip_addr);
+	printf("Trying to connect to server\n");
 	// starts client network
-	CNT * cnt = StartClientNetwork((char *)&servaddr.sin6_addr, 16);
+	CNT * cnt = StartClientNetwork((char *)&servaddr.sin_addr, 4);
 
-	freeaddrinfo(result);
+	// freeaddrinfo(result);
 
 	send_request_for_master(cnt);
 	FileSystem * master = NULL;
