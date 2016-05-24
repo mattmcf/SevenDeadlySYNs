@@ -261,8 +261,28 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 }
 
 // receive request for chunk : CLT_2_ME_REQUEST_CHUNK
+/* poll the network to see if we have received a chunk request
+ * from a peer client 
+ * 	cnt - the current state of the network
+ * 	filepath - an unallocated pointer to a filepath for the chunky file
+ *	peer_id - the peer that made the request 
+ * 	buf - the chunk that was requested
+ * 		TODO - figure out how to combine this with chunky file and
+ *		how to expand on it to allow for transerring an entire file
+ 	len - the expected length (DO WE NEED THIS)
+ */
+int receive_chunk_request(CNT *cnt, char **filepath, int *peer_id, int *chunk_id, int *len){
+	return -1;
+}
 
 // receive chunk from peer : CLT_2_ME_RECEIVE_CHUNK
+/* client calls this to receive a chunk update from the network 
+ * 	cnt - the current state of the network
+ * 	(claimed) ret - the chunk that we received
+ */
+char* receive_chunk(CNT *cnt) {
+	return NULL;
+}
 
 
 /* ----- sending ----- */
@@ -326,9 +346,32 @@ int send_request_for_master(CNT * cnt) {
 	return 1;
 }
 
-// send request for chunk to peer : ME_2_CLT_REQ_CHUNK
 
 // send chunk to client : ME_2_CLT_SEND_CHUNK
+/* client calls this to send a chunk update to another client 
+ * 	cnt - current state of the network 
+ * 	peer_id - the peer that we are sending it to
+ *	(claimed) buf	- the chunk that we are sending
+ * 	len - the length of the chunk that we are sending 
+ */
+int send_chunk(CNT *cnt, int peer_id, char *buf, int len) {
+	return -1;
+}
+
+// send request for chunk to peer : ME_2_CLT_REQ_CHUNK
+/* send a chunk request from the client app to a peer client 
+ * 	cnt - the current state of the network
+ * 	filepath - a pointer to a filepath for the chunky file
+ *	peer_id - the peer to request the chunk from 
+ * 	buf - the chunk that we are requesting
+ * 		TODO - figure out how to combine this with chunky file and
+ * 		how to expand on it to allow for transerring an entire file
+ 	len - the expected length (DO WE NEED THIS)
+ */
+int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int len){
+	return -1;
+}
+
 
 // send chunk request error response : ME_2_CLT_SEND_ERROR
 
