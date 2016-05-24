@@ -274,29 +274,29 @@ int send_FS_update(TNT * tnt) {
 // 	thread_block : (not claimed)
 //	client_id : id of client to send out to all peers (SEND_ALL_PEERS) -> send whole table
 //
-int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);
-	if (!thread_block)
+int send_peer_added(TNT * thread, int destination_client_id, int new_client_id) {
+	if (!thread)
 		return -1;
 
-	_TNT_t * tnt = (_TNT_t *)thread_block;
+	_TNT_t * tnt = (_TNT_t *)thread;
 
-	tracker_data_t * queue_item = (tracker_data_t* )malloc(sizeof(tracker_data_t));
-	queue_item->destination_client_id;
+	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
+	queue_item->client_id = destination_client_id;
 	queue_item->data_len = 0;
-	queue_item->data = (void *)new_client_id;
+	queue_item->data = (void *)(long)new_client_id;
 
 	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER], (void *)queue_item);
 	return 1;
 }
 
 // send to all peers to notify that peer has disappeared : TKR_2_CLT_REMOVE_PEER
-int send_peer_removed(TNT * tnt, int destination_client_id, int removed_client_id);
+int send_peer_removed(TNT * thread_block, int destination_client_id, int removed_client_id) {
 	_TNT_t * tnt = (_TNT_t *)thread_block;
 
 	tracker_data_t * queue_item = (tracker_data_t* )malloc(sizeof(tracker_data_t));
-	queue_item->destination_client_id;
+	queue_item->client_id = destination_client_id;
 	queue_item->data_len = 0;
-	queue_item->data = (void *)removed_client_id;
+	queue_item->data = (void *)(long)removed_client_id;
 
 	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER], (void *)queue_item);
 	return 1;

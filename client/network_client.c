@@ -374,6 +374,9 @@ int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int 
 
 
 // send chunk request error response : ME_2_CLT_SEND_ERROR
+int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id){
+	return -1;
+}
 
 
 /* ###################### *
