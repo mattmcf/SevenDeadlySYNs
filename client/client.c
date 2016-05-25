@@ -415,6 +415,7 @@ int main(int argv, char* argc[]){
 			if (-1 == send_updated_files(cnt, adds, dels)){
 				printf("CLIENT MAIN: send_updated_files() failed\n");
 			}
+			cur_fs = new_fs; //ADAM ADDED THIS BECAUSE IF THE FILE SYSTEM IS UPDATED, YOU NEED TO SAVE IT
 		}
 	}
 

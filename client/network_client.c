@@ -576,6 +576,7 @@ void * clt_network_start(void * arg) {
 // 	else returns -1
 int connect_to_tracker(char * ip_addr, int ip_len) {
 	if (!ip_addr)
+		printf("ip enter failed\n");
 		return -1;
 
 	// int sockfd;

@@ -99,8 +99,11 @@ int main() {
 			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
 			filesystem_print(fs);
 			printf("\tUpdating File System\n");
-			filesystem_minus_equals(fs, deletions);	
+			filesystem_print(additions);
+			filesystem_print(deletions);
 			filesystem_plus_equals(fs, additions);
+			filesystem_minus_equals(fs, deletions);	
+			
 			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
 			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
 			filesystem_print(fs);
