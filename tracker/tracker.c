@@ -57,7 +57,7 @@ int main() {
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("\tSend peer added\n");
-			// send_peer_added(network, peerID); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER ADDED
+			int newPeerBroadcast(peerID, network);
 		}
 
 		// If a peer requests master
@@ -84,7 +84,7 @@ int main() {
 			}
 			printf("\tRemoved peer %d from table.\n", peerID);
 			printf("\tSend peer removed\n");
-			// send_peer_removed(network); // PROPBABLY NEED SOMETHING TO LET EVERYONE KNOW WHAT PEER DROPPED
+			lostPeerBroadcast(peerID, network)
 		}
 
 		// if there is a file update
@@ -271,9 +271,21 @@ int closeTracker(){
 int newPeerBroadcast(int newPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
 		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID){
-			// if(send_peer_added(network, newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
-			// 	printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
-			// }
+			if(send_peer_added(network, peerTable->peerIDs[i], newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
+				printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
+			}
+		}
+	}
+	return 1;
+}
+
+// broadcast to all peers that there is a peer removed
+int lostPeerBroadcast(int lostPeerID, TNT *network){
+	for (int i = 0; i < peerTableSize; i++){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != lostPeerID){
+			if(send_peer_added(network, peerTable->peerIDs[i], lostPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
+				printf("Failed to send lost peer update to peer %d\n", peerTable->peerIDs[i]);
+			}
 		}
 	}
 	return 1;
