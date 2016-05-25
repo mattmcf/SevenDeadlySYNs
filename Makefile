@@ -19,6 +19,10 @@ all: tracker/tracker_app client/client_app
 
 test: tracker/test_tracker_network client/test_client_network
 
+client: client/client_app
+
+tracker: tracker/tracker_app
+
 tracker/tracker_app: tracker/tracker.c tracker/tracker.h tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc -pthread  $(CFLAGS) tracker/tracker.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/tracker_app
 

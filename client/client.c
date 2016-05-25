@@ -25,9 +25,8 @@
 #define CONN_CLOSED 1
 
 /* ------------------------- Global Variables -------------------------- */
-FILE *metadata;
-FileSystem *cur_fs;
 CNT* cnt;
+FileSystem *cur_fs;
 peer_table_t *pt;
 
 /* ------------------------------- TODO -------------------------------- */
@@ -36,8 +35,8 @@ peer_table_t *pt;
 
 /* ----------------------------- Questions ----------------------------- */
 
-/* is a deletion only a total file deletion or can it simply imply a 
- * chunk was deleted */
+// should chunk be already malloc'd?  what about chunk size?
+// how to destroy a chunky file and a chunk?
 
 /* ---------------------- Private Function Headers --------------------- */
 
@@ -47,38 +46,41 @@ int CheckFileSystem(FileSystem *fs);
 /* calloc the peer table and check the return function 
  *		(not claimed) - pt: the peer table
  */
-int CreatePeerTable();
+int CreatePeerTable(peer_table_t *pt);
 
 /* calloc a new peer for the table and append it to the list.
  * 		(not claimed) - peer: the new peer to be appended
  */
-int InsertPeer(int peer_id, int status);
-
-/* If we have an active connection with a peer, then we need to update the
- * table information to reflect that */
-int ActivatePeer(int peer_id);
-
-/* the connection to peer_id has been deactivated so we need to reflect that
- * in the table */
-int DeactivatePeer(int peer_id);
+int InsertPeer(peer_table_t *pt, int peer_id, int status);
 
 /* 
  * find and remove the specified peer id
  * 		(claimed) - peer: the peer specified by peer_id
  */
-int RemovePeer(int peer_id);
+int RemovePeer(peer_table_t *pt, int peer_id);
 
 /*
  * iterate through the table and destroy each entry, then destroy the table
  * 		(claimed) - pt: the peer table and all its entries
  */
-int DestroyPeerTable();
+int DestroyPeerTable(peer_table_t *pt);
+
+/* 
+ * iterate over a filesystem that is assumed to be the deletions filesystem
+ * after a diff and delete any files that it points to
+ */
+int RemoveFileDeletions(FileSystem *deletions);
+
+/* 
+ * iterate over a filesystem that is assumed to be the additions filesystem
+ * after a diff and make requests for the files' chunks from peers
+ */
+int GetFileAdditions(FileSystem *additions);
 
 /* ----------------------- Public Function Bodies ---------------------- */
 
-int SendMasterFSRequest(){
+int SendMasterFSRequest(FileSystem *cur_fs){
 	FileSystem *master;
-	char *path;
 
 	if (-1 == send_status(cnt, cur_fs)){
 		printf("SendMasterFSRequest: send_status failed\n");
@@ -97,24 +99,40 @@ int SendMasterFSRequest(){
 		sleep(1);
 	}
 
+	UpdateLocalFilesystem(cur_fs, master);
+	return 1;
+}
+
+void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs){
+	printf("UpdateLocalFilesystem: received update from master!\n");
+
 	/* received the master file system, iterate over it to look for differences */
 	FileSystem *additions;
 	FileSystem *deletions;
-	filesystem_diff(cur_fs, master, &additions, &deletions);
+	filesystem_diff(cur_fs, new_fs, &additions, &deletions);
 
-	if (!additions && (-1 == CheckFileSystem(additions))){
-		printf("SendMasterFSRequest: additions is NULL\n");
+	if (!deletions && (-1 == CheckFileSystem(deletions))){
+		printf("UpdateLocalFilesystem: deletions is NULL or empty\n");
 	} else {
 		/* iterate over additions to see if we need to request files */
-		printf("SendMasterFSRequest: ready to iterate over additions!\n");
+		/* delete any files that we need to update, or remove flat out */
+		RemoveFileDeletions(deletions);
+	}
+
+	if (!additions && (-1 == CheckFileSystem(additions))){
+		printf("UpdateLocalFilesystem: additions is NULL\n");
+	} else {
+		/* iterate over additions to see if we need to request files */
+		printf("UpdateLocalFilesystem: ready to iterate over additions!\n");
 		FileSystemIterator* add_iterator = filesystemiterator_new(additions);
 
 		if (!add_iterator){
-			printf("SendMasterFSRequest: failed to make add iterator\n");
+			printf("UpdateLocalFilesystem: failed to make add iterator\n");
 		}
 
+		char *path;
 		while (NULL != (path = filesystemiterator_next(add_iterator))){
-			printf("SendMasterFSRequest: found addition at: %s\n", path);
+			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
 			/* figure out which client to get the file from */
 
@@ -123,43 +141,54 @@ int SendMasterFSRequest(){
 			/* receive the file from the peer */
 
 			/* update local file system with received file */
+
+			/* get ready for next iteration */
+			free(path);
+			path = NULL;
 		}
+
+		filesystemiterator_destroy(add_iterator);
 	}
 
-	if (!deletions && (-1 == CheckFileSystem(deletions))){
-		printf("SendMasterFSRequest: deletions is NULL or empty\n");
-	} else {
-		/* iterate over additions to see if we need to request files */
-		printf("SendMasterFSRequest: ready to iterate over deletions!\n");
-		FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
+	/* replace the old file system with the new one */
+	filesystem_destroy(cur_fs);
+	cur_fs = NULL;
+	cur_fs = new_fs;
 
-		if (!del_iterator){
-			printf("SendMasterFSRequest: failed to make add iterator\n");
-		}
-
-		while (NULL != (path = filesystemiterator_next(del_iterator))){
-			printf("SendMasterFSRequest: found addition at: %s\n", path);
-		}
-	}
-
+	/* cleanup */
 	filesystem_destroy(additions);
 	filesystem_destroy(deletions);
-	filesystemiterator_destroy(add_iterator);
-	filesystemiterator_destroy(del_iterator);
-	return 1;
 }
 
-int MonitorFilesystem(){
+void CheckLocalFilesystem(FileSystem *cur_fs){
+	FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
+	FileSystem *adds = NULL, *dels = NULL;
+	filesystem_diff(cur_fs, new_fs, &adds, &dels);
 
-	return 1;
-}
+	/* if there are either additions or deletions, then we need to let the 
+	 * master know */
+	if (!adds && !dels){
+		printf("CLIENT MAIN: diff failed\n");
+		filesystem_destroy(new_fs);
+	} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
+		printf("CLIENT MAIN: about to send diffs to the tracker\n");
+		/* send the difs to the tracker */
+		if (-1 == send_updated_files(cnt, adds, dels)){
+			printf("CLIENT MAIN: send_updated_files() failed\n");
+		}
 
-int RequestUpdate(){
-	return 1;
-}
-
-int UpdateClientTable(){
-	return 1;
+		/* update the pointer to our *current* filesystem */
+		filesystem_destroy(cur_fs);
+		filesystem_destroy(adds);
+		filesystem_destroy(dels);
+		cur_fs = NULL;
+		cur_fs = new_fs; 
+	} else {
+		/* else we have no diffs so just destroy the new fs we created */
+		filesystem_destroy(new_fs);
+		filesystem_destroy(adds);
+		filesystem_destroy(dels);
+	}
 }
 
 void DropFromNetwork(){
@@ -168,12 +197,63 @@ void DropFromNetwork(){
 
 	/* close our files and free our memory */
 	filesystem_destroy(cur_fs);
-	DestroyPeerTable();
+	DestroyPeerTable(pt);
+}
+
+int RemoveFileDeletions(FileSystem *deletions){
+	printf("RemoveFileDeletions: ready to iterate over deletions!\n");
+	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
+	char *path;
+
+	if (!del_iterator){
+		printf("RemoveFileDeletions: failed to make del iterator\n");
+		return -1;
+	}
+
+	/* iterate over the fileystem, delete any files that are in it */
+	while (NULL != (path = filesystemiterator_next(del_iterator))){
+		printf("RemoveFileDeletions: found deletion at: %s\n", path);
+		if (-1 == remove(path)){
+			printf("RemoveFileDeletions: remove() failed on path\n");
+		}
+
+		free(path);
+		path = NULL;
+	}
+
+	filesystemiterator_destroy(del_iterator);
+	return 1;
+}
+
+int GetFileAdditions(FileSystem *additions){
+	printf("GetFileAdditions: ready to iterate over additions!\n");
+	FileSystemIterator* add_iterator = filesystemiterator_new(deletions);
+	char *path;
+
+	if (!add_iterator){
+		printf("GetFileAdditions: failed to make add iterator\n");
+		return -1;
+	}
+
+	/* iterate over the fileystem, delete any files that are in it */
+	while (NULL != (path = filesystemiterator_next(add_iterator))){
+		printf("GetFileAdditions: found addition at: %s\n", path);
+
+		/* figure out who to request from */
+
+		/* make that request */
+
+		free(path);
+		path = NULL;
+	}
+
+	filesystemiterator_destroy(add_iterator);
+	return 1;
 }
 
 /* ----------------------- Private Function Bodies --------------------- */
 
-int CreatePeerTable(){
+int CreatePeerTable(peer_table_t *pt){
 	if (!(pt = calloc(1, sizeof(peer_table_t)))){
 		printf("CreatePeerTable: calloc() failed\n");
 		return -1;
@@ -182,7 +262,7 @@ int CreatePeerTable(){
 	return 1;
 }
 
-int InsertPeer(int peer_id, int status){
+int InsertPeer(peer_table_t *pt, int peer_id, int status){
 	peer_t *peer = calloc(1, sizeof(peer_t));
 	if (!peer){
 		printf("InsertPeer: calloc failed\n");
@@ -206,47 +286,7 @@ int InsertPeer(int peer_id, int status){
 	return 1;
 }
 
-int ActivatePeer(int peer_id){
-	peer_t *peer = pt->head;
-	if (!peer){
-		printf("ActivatePeer: pt is empty\n");
-		return 1;
-	}
-
-	while (NULL != peer){
-		if (peer_id == peer->peer_id){
-			printf("ActivatePeer: activating peer: %d\n", peer_id);
-			peer->status = CONN_ACTIVE;
-			return 1;
-		}
-		peer = peer->next;
-	}
-
-	printf("ActivatePeer: couldn't find peer: %d\n", peer_id);
-	return -1;
-}
-
-int DeactivatePeer(int peer_id){
-	peer_t *peer = pt->head;
-	if (!peer){
-		printf("DeactivatePeer: pt is empty\n");
-		return 1;
-	}
-
-	while (NULL != peer){
-		if (peer_id == peer->peer_id){
-			printf("DeactivatePeer: deactivating peer: %d\n", peer_id);
-			peer->status = CONN_CLOSED;
-			return 1;
-		}
-		peer = peer->next;
-	}
-
-	printf("DeactivatePeer: couldn't find peer: %d\n", peer_id);
-	return -1;
-}
-
-int RemovePeer(int peer_id){
+int RemovePeer(peer_table_t *pt, int peer_id){
 	peer_t *peer = pt->head;
 	if (!peer){
 		printf("RemovePeer: pt is empty\n");
@@ -275,7 +315,7 @@ int RemovePeer(int peer_id){
 	return -1;
 }
 
-int DestroyPeerTable(){
+int DestroyPeerTable(peer_table_t *pt){
 	printf("DestroyPeerTable: destroying the peer table\n");
 	while (pt->head){
 		peer_t *temp = pt->head;
@@ -325,7 +365,6 @@ int main(int argv, char* argc[]){
 
 	/* catch sig int so that we can politely close networks on kill */
 	signal(SIGINT, DropFromNetwork);
-
 	
 	/* check if the folder already exists, if it doesn't then make it */
 	if (0 != access(DARTSYNC_DIR, (F_OK))){
@@ -344,13 +383,13 @@ int main(int argv, char* argc[]){
 
 	/* create a peer table that we will use to keep track of who to request what
 	 * file from */
-	if (-1 == CreatePeerTable()){
+	if (-1 == CreatePeerTable(pt)){
 		printf("CLIENT MAIN: CreatePeerTable() failed\n");
 	}
 
 	/* send a request to the tracker for the master filesystem. 
 	 * this will check against our current filesystem and make requests for updates */
-	SendMasterFSRequest();
+	SendMasterFSRequest(cur_fs);
 
 	/* start the loop process that will run while we are connected to the tracker 
 	 * this will handle peer adds and dels and receive updates from the master 
@@ -363,7 +402,7 @@ int main(int argv, char* argc[]){
 
 		/* get any new clients first */
 		while (-1 != (new_client = recv_peer_added(cnt))){
-			if (-1 == InsertPeer(new_client, CONN_ACTIVE)){
+			if (-1 == InsertPeer(pt, new_client, CONN_ACTIVE)){
 				printf("CLIENT MAIN: InsertPeer() failed\n");
 			}
 			new_client = -1;
@@ -371,7 +410,7 @@ int main(int argv, char* argc[]){
 
 		/* figure out if any clients have dropped from the network */
 		while (-1 != (del_client = recv_peer_deleted(cnt))){
-			if (-1 == RemovePeer(del_client)){
+			if (-1 == RemovePeer(pt, del_client)){
 				printf("CLIENT MAIN: RemovePeer() failed\n");
 			}
 			del_client = -1;
@@ -386,57 +425,49 @@ int main(int argv, char* argc[]){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", *peer_id);
 
 			/* get the chunk that they are requesting */
+			ChunkyFile *file = chunkyfile_new_from_path(filepath);
+			// should chunk be already malloc'd?  what about chunk size?
+			char *chunk_text;
+			int chunk_len;
+			chunkyfile_get_chunk(file, chunk_id, char** chunk, int* chunkSize);
 
 			/* send that chunk to the peer */
+			send_chunk(cnt, peer_id, chunk_text, chunk_len);
 
+			/* destroy that chunky file how? */
 		}
 		free(peer_id);
 		free(chunk_id);
 		free(len);
 
+		/* poll for any received chunks */
+		char *chunk_data;
+		int chunk_id;
+		while (NULL != (chunk_data = receive_chunk(cnt))){
+
+		}
+
+		/* poll for any diffs, if they exist then we need to make updates to 
+		 * our filesystem */
+		FileSystem *additions, *deletions;
+		while (-1 != recv_diff(cnt, &additions, &deletions)){
+			/* get rid of the deletions */
+			RemoveFileDeletions(deletions);
+
+			/* get the file additions from peers, and update the filesystem */
+			GetFileAdditions(additions);
+		}
+
 		/* poll to see if there are any changes to the master file system 
 		 * if there are then we need to get those parts from peers and then
 		 * copy master to our local pointer of the filesystem */
 		while (NULL != (master = recv_master(cnt, &recv_len))){
-			printf("CLIENT MAIN: received update from master!\n");
-
-			/* figure out which peer to make the request to */
-
-			/* figure out which chunk to request? */
-
-			/* make the request to that peer */
+			UpdateLocalFilesystem(cur_fs, master);
 		}
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
-		FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
-		FileSystem *adds = NULL, *dels = NULL;
-		filesystem_diff(cur_fs, new_fs, &adds, &dels);
-
-		/* if there are either additions or deletions, then we need to let the 
-		 * master know */
-		if (!adds && !dels){
-			printf("CLIENT MAIN: diff failed\n");
-			filesystem_destroy(new_fs);
-		} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
-			printf("CLIENT MAIN: about to send diffs to the tracker\n");
-			/* send the difs to the tracker */
-			if (-1 == send_updated_files(cnt, adds, dels)){
-				printf("CLIENT MAIN: send_updated_files() failed\n");
-			}
-
-			/* update the pointer to our *current* filesystem */
-			filesystem_destroy(cur_fs);
-			filesystem_destroy(adds);
-			filesystem_destroy(dels);
-			cur_fs = NULL;
-			cur_fs = new_fs; 
-		} else {
-			/* else we have no diffs so just destroy the new fs we created */
-			filesystem_destroy(new_fs);
-			filesystem_destroy(adds);
-			filesystem_destroy(dels);
-		}
+		CheckLocalFilesystem(cur_fs);
 	}
 
 }
