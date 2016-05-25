@@ -142,6 +142,10 @@ int SendMasterFSRequest(){
 		}
 	}
 
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
+	filesystemiterator_destroy(add_iterator);
+	filesystemiterator_destroy(del_iterator);
 	return 1;
 }
 
@@ -288,10 +292,12 @@ int CheckFileSystem(FileSystem *fs){
 	FileSystemIterator *iterator = filesystemiterator_new(fs);
 	if (NULL != (path = filesystemiterator_next(iterator))){
 		printf("CheckFileSystem: FileSystem is nonempty\n");
+		filesystemiterator_destroy(iterator);
 		free(path);
 		return 1;
 	}
 	printf("CheckFileSystem: FileSystem is empty\n");
+	filesystemiterator_destroy(iterator);
 	return -1;
 }
 
@@ -320,38 +326,35 @@ int main(int argv, char* argc[]){
 	/* catch sig int so that we can politely close networks on kill */
 	signal(SIGINT, DropFromNetwork);
 
-	/* open the metadata, if it exists then you are rejoining the network,
-	 * else you are joining for the first time and should make the file and
-	 * make a request for every file in the network */
-	//if (0 == access(DARTSYNC_METADATA, (F_OK))){	// if it exists
-	//	/* open the file */
-	//	if (0 != fopen(DARTSYNC_METADATA, "r")){
-	//		printf("CLIENT MAIN: couldn't open metadata file\n");
-	//		exit(0);
-	//	}
-	//} else {	// else it doesn't exist
-	//	/* check if the folder already exists, if it doesn't then make it */
-	//	if (0 != access(DARTSYNC_DIR, (F_OK))){
-	//		/* it doesn't exist, so make it */
-	//		if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-	//			printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
-	//		}
-	//	} 
-	//}
+	
+	/* check if the folder already exists, if it doesn't then make it */
+	if (0 != access(DARTSYNC_DIR, (F_OK))){
+		/* it doesn't exist, so make it */
+		if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+			printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
+		}
+	} 
 
+	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
-		filesystem_print(cur_fs);
 		printf("CLIENT MAIN: filesystem_new() failed\n");
 		exit(-1);
 	}
+	filesystem_print(cur_fs);
 
+	/* create a peer table that we will use to keep track of who to request what
+	 * file from */
 	if (-1 == CreatePeerTable()){
 		printf("CLIENT MAIN: CreatePeerTable() failed\n");
-
 	}
 
+	/* send a request to the tracker for the master filesystem. 
+	 * this will check against our current filesystem and make requests for updates */
 	SendMasterFSRequest();
 
+	/* start the loop process that will run while we are connected to the tracker 
+	 * this will handle peer adds and dels and receive updates from the master 
+	 * filesystem and monitor the local filesystem */
 	int new_client = -1, del_client = -1;
 	FileSystem *master;
 	int recv_len;
@@ -414,14 +417,25 @@ int main(int argv, char* argc[]){
 		 * master know */
 		if (!adds && !dels){
 			printf("CLIENT MAIN: diff failed\n");
+			filesystem_destroy(new_fs);
 		} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
 			printf("CLIENT MAIN: about to send diffs to the tracker\n");
 			/* send the difs to the tracker */
-
 			if (-1 == send_updated_files(cnt, adds, dels)){
 				printf("CLIENT MAIN: send_updated_files() failed\n");
 			}
-			cur_fs = new_fs; //ADAM ADDED THIS BECAUSE IF THE FILE SYSTEM IS UPDATED, YOU NEED TO SAVE IT
+
+			/* update the pointer to our *current* filesystem */
+			filesystem_destroy(cur_fs);
+			filesystem_destroy(adds);
+			filesystem_destroy(dels);
+			cur_fs = NULL;
+			cur_fs = new_fs; 
+		} else {
+			/* else we have no diffs so just destroy the new fs we created */
+			filesystem_destroy(new_fs);
+			filesystem_destroy(adds);
+			filesystem_destroy(dels);
 		}
 	}
 
