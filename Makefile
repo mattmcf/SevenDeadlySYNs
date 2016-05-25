@@ -23,7 +23,7 @@ tracker/tracker_app: tracker/tracker.c tracker/tracker.h tracker/network_tracker
 	gcc $(CFLAGS) tracker/tracker.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/tracker_app
 
 tracker/test_tracker_network: tracker/test_tracker_network.c tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
-	gcc $(CFLAGS) tracker/test_tracker_network.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/test_tracker_network
+	gcc $(CFLAGS) tracker/test_tracker_network.c tracker/network_tracker.o -pthread $(OBJ_FILES) -o tracker/test_tracker_network
 
 client/client_app: client/client.c client/client.h client/network_client.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc $(CFLAGS) client/client.c client/network_client.o $(OBJ_FILES) -o client/client_app
