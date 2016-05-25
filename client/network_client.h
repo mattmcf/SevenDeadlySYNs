@@ -28,14 +28,13 @@ void EndClientNetwork(CNT * thread_block);
 
 /* ----- receiving ----- */
 
-// receive transaction update
-// 	cnt : (not claimed) thread block
-// 	additions : (not claimed) JFS of additions
-// 	deletions : (not claimed) JFS of deletions
-//	ret : (static) 1 on success, -1 on failure 
-int recv_diff(CNT * cnt, FileSystem ** additions, FileSystem ** deletions);
-
-// receive acq status update
+// receive file system update: TKR_2_ME_FS_UPDATE
+// 	thread : (not claimed) thread_block
+// 	additions : (not claimed) will fill in with addition part of FS
+// 	additions : (not claimed) will will in with deletion part of FS
+//	author_id : (not claimed) will fill with diff's author id
+// 	ret : (static) 1 if diff was present, -1 if diff wasn't present
+int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, int * author_id);
 
 // receive acq status update 
 
@@ -99,9 +98,8 @@ int send_request_for_master(CNT * cnt);
  * 	buf - the chunk that we are requesting
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
- 	len - the expected length (DO WE NEED THIS)
  */
-int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int len);
+int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id);
 
 /* client calls this to send a chunk update to another client 
  * 	cnt - current state of the network 
@@ -109,9 +107,9 @@ int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int 
  *	(claimed) buf	- the chunk that we are sending
  * 	len - the length of the chunk that we are sending 
  */
-int send_chunk(CNT *cnt, int peer_id, char *buf, int len);
+int send_chunk(CNT *cnt, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len);
 
 // send chunk request error response
-int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id);
+int send_chunk_rejection(CNT * cnt, int peer_id, char *filepath,  int chunk_id);
 
  #endif // _NETWORK_CLIENT_H

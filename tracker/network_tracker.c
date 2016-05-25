@@ -207,6 +207,7 @@ int receive_client_update(TNT * thread, int * client_id, FileSystem ** additions
 	client_data_t * queue_item = (client_data_t *)asyncqueue_pop(tnt->queues_to_tracker[CLT_2_TKR_FILE_UPDATE]);
 	if (queue_item != NULL) {
 
+		*client_id = queue_item->client_id;
 		*additions = filesystem_deserialize((char *)queue_item->data, &additions_length);
 		*deletions = filesystem_deserialize((char *)((long)queue_item->data + (long)additions_length), &deletions_length);
 
@@ -266,8 +267,47 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 // Send file acquisition update (client got # chunk of @ file) : TKR_2_CLT_FILE_ACQ
 
 // Sends file system update (client updated @ file) : TKR_2_CLT_FS_UPDATE
-int send_FS_update(TNT * tnt) {
-	return -1;
+// 	tnt : (not claimed) thread block
+// 	destination_client : (static) which client to send to
+//	originator_client : (static) which client originated the FS update
+// 	additions : (not claimed) additions part of FS to update -- tracker logic must claim when all done
+// 	deletions : (not claimed) deletions part of FS to update -- tracker logic must claim when all done
+int send_FS_update(TNT * thread_block, int destination_client, int originator_client, FileSystem * additions, FileSystem * deletions) {
+	if (!thread_block || !additions || !deletions) {
+		fprintf(stderr,"send_FS_update error: null tnt, additions FS, deletions FS\n");
+		return -1;
+	}
+
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+	if (!get_peer_by_id(tnt->peer_table, destination_client)) {
+		fprintf(stderr,"send_FS_update error: cannot find client %d\n", destination_client);
+		return -1;
+	}
+
+	// create queue item
+	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
+	queue_item->client_id = destination_client;
+
+	int length1 = -1, length2 = -1;
+	char * buf1, * buf2;
+	filesystem_serialize(additions, &buf1, &length1);
+	filesystem_serialize(deletions, &buf2, &length2);
+
+	// make one long buffer for both additions and deletions
+	queue_item->data = (void *)malloc(length1 + length2 + sizeof(int));
+	queue_item->data_len = length1 + length2 + sizeof(int);
+
+	// move serialized filesystems into adjacent buffer and add source id
+	memcpy(queue_item->data, buf1, length1);
+	memcpy( (char *)((long)queue_item->data + (long)length1), buf2, length2);
+	memcpy( (char *)((long)queue_item->data + (long)length1 + (long)length2), &originator_client, sizeof(int));
+
+	free(buf1);
+	free(buf2);
+
+	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_FS_UPDATE], queue_item);
+
+	return length1 + length2;
 }
 
 // send to all peers to notify that a new peer has appeared : TKR_2_CLT_ADD_PEER
@@ -642,6 +682,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 
 		case CLIENT_UPDATE:
 			printf("NETWORK -- received client update from client %d\n", client->id);
+			client_data->client_id = client->id;
 			client_data->data_len = pkt.data_len;
 			client_data->data = buf;
 
@@ -751,8 +792,19 @@ void check_fs_update_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item = asyncqueue_pop(q);
 	if (queue_item != NULL) {
 
-		printf("NETWORK -- sending file system update -- UNFILLED FUNCTION!\n");
-		//free(queue_item->data);
+		printf("NETWORK -- sending file system update!\n");
+
+		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
+		if (!client) {
+			fprintf(stderr,"check_fs_update_q failed to get client %d\n", queue_item->client_id);
+			return;
+		}
+
+		if (send_client_message(tnt, queue_item, FS_UPDATE) != 1) {
+			fprintf(stderr,"failed to send file system update to client %d\n", queue_item->client_id);
+		}
+
+		free(queue_item->data);
 		free(queue_item);
 	}
 	return;

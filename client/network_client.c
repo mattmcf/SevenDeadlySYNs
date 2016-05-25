@@ -30,7 +30,9 @@
 #define INIT_PEER_SIZE 10
 
 /* --- 	queue definitions --- */
-#define TKR_2_ME_TRANSACTION_UPDATE 0
+//#define TKR_2_ME_TRANSACTION_UPDATE 0
+#define TKR_2_ME_FS_UPDATE 0 
+
 #define TKR_2_ME_FILE_ACQ 1
 #define TKR_2_ME_PEER_ADDED 2
 #define TKR_2_ME_PEER_DELETED 3
@@ -54,7 +56,7 @@ typedef struct _CNT {
 	 * *** INCOMING QUEUES ***
 	 * 
 	 * -- tracker 2 client --
-	 * tkr_queues_to_client[0] -> transaction update queue (JFS of updated files)
+	 * tkr_queues_to_client[0] -> FileSystem update queue
 	 * tkr_queues_to_client[1] -> file acquisition status queue
 	 * tkr_queues_to_client[2] -> peer added queue
 	 * tkr_queues_to_client[3] -> peer deleted queue
@@ -113,7 +115,7 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 
 	/* -- incoming client to tracker -- */
 	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(5, sizeof(AsyncQueue *));
-	client_thread->tkr_queues_to_client[TKR_2_ME_TRANSACTION_UPDATE] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_FS_UPDATE] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_FILE_ACQ] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_ADDED] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_DELETED] = asyncqueue_new();
@@ -162,7 +164,7 @@ void EndClientNetwork(CNT * thread_block) {
 	if (!cnt)
 		return;
 
-	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_TRANSACTION_UPDATE]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_FS_UPDATE]);
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_FILE_ACQ]);
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED]);
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_DELETED]);
@@ -212,10 +214,32 @@ void EndClientNetwork(CNT * thread_block) {
 
 /* ----- receiving ----- */
 
-// receive transaction update : TKR_2_ME_TRANSACTION_UPDATE
-int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions) {
+// receive file system update: TKR_2_ME_FS_UPDATE
+// 	thread : (not claimed) thread_block
+// 	additions : (not claimed) will fill in with addition part of FS
+// 	additions : (not claimed) will will in with deletion part of FS
+//	author_id : (not claimed) will fill with diff's author id
+// 	ret : (static) 1 if diff was present, -1 if diff wasn't present
+int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, int * author_id) {
+	if (!thread || !additions || !deletions) {
+		return -1;
+	}
 
-	return -1;
+	_CNT_t * cnt = (_CNT_t *) thread;
+	int len1 = 0, len2 = 0;
+
+	client_data_t * queue_item = asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_FS_UPDATE]);
+	if (queue_item != NULL) {
+
+		*additions = filesystem_deserialize((char *)queue_item->data, &len1);
+		*deletions = filesystem_deserialize(((char *)(long)queue_item->data + (long)len1), &len2);
+		*author_id = *(int *)((long)queue_item->data + (long)len1 + (long)len2); 
+
+		free(queue_item->data);
+		free(queue_item);
+	}
+
+	return (len1 > 0) ? 1 : -1;
 }
 
 // receive acq status update : TKR_2_ME_FILE_ACQ
@@ -250,7 +274,9 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 	FileSystem * fs = NULL;
 	if (queue_item) {
 		printf("LOGIC -- Receiving master off of queue\n");
-		//fs = filesystem_deserialize(queue_item->data, length_deserialized);
+
+		// deserialized in handle_client_message() side
+		// fs = filesystem_deserialize(queue_item->data, length_deserialized);
 		fs = queue_item->data;
 		
 		//free(queue_item->data);
@@ -309,6 +335,7 @@ int send_status(CNT * thread, FileSystem * fs) {
 // 	thread : (not claimed) thread block
 //	additions : (not claimed) addition FS - claim after call
 // 	deletions : (not claimed) deletions FS - claim after call
+//	source_originator_id : (not claimed) will hold diff's author id
 //	ret : 1 on success, -1 on failure
 int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deletions) {
 	if (!thread || !additions || !deletions)
@@ -346,18 +373,6 @@ int send_request_for_master(CNT * cnt) {
 	return 1;
 }
 
-
-// send chunk to client : ME_2_CLT_SEND_CHUNK
-/* client calls this to send a chunk update to another client 
- * 	cnt - current state of the network 
- * 	peer_id - the peer that we are sending it to
- *	(claimed) buf	- the chunk that we are sending
- * 	len - the length of the chunk that we are sending 
- */
-int send_chunk(CNT *cnt, int peer_id, char *buf, int len) {
-	return -1;
-}
-
 // send request for chunk to peer : ME_2_CLT_REQ_CHUNK
 /* send a chunk request from the client app to a peer client 
  * 	cnt - the current state of the network
@@ -366,15 +381,32 @@ int send_chunk(CNT *cnt, int peer_id, char *buf, int len) {
  * 	buf - the chunk that we are requesting
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
- 	len - the expected length (DO WE NEED THIS)
  */
-int send_chunk_request(CNT *cnt, char *filepath, int peer_id, int chunk_id, int len){
+int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id) {
+	if (!cnt || !filepath) {
+		fprintf(stderr,"send_chunk_request error: null cnt or filepath\n");
+		return -1;
+	} 
+
+	//chunk_data_t * queue_item = 
+
+	return -1;
+}
+
+// send chunk to client : ME_2_CLT_SEND_CHUNK
+/* client calls this to send a chunk update to another client 
+ * 	cnt - current state of the network 
+ * 	peer_id - the peer that we are sending it to
+ *	(claimed) buf	- the chunk that we are sending
+ * 	len - the length of the chunk that we are sending 
+ */
+int send_chunk(CNT *cnt, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len) {
 	return -1;
 }
 
 
 // send chunk request error response : ME_2_CLT_SEND_ERROR
-int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id){
+int send_chunk_rejection(CNT * cnt, int peer_id, char *filepath, int chunk_id) {
 	return -1;
 }
 
@@ -385,8 +417,14 @@ int send_chunk_rejection(CNT * cnt, char *filepath, int peer_id, int chunk_id){
  *
  * ###################### */
 
-// puts transaction update on 
-int notify_transaction_update(_CNT_t * cnt, tracker_pkt_t * pkt);
+// puts fs update update on queue : TKR_2_ME_FS_UPDATE
+int notify_fs_update(_CNT_t * cnt, client_data_t * queue_item) {
+	if (!cnt || !queue_item)
+		return -1;
+
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_FS_UPDATE], queue_item);
+	return -1;
+}
 
 // pushes received master onto queue
 //	returns 1 on success, -1 on failure
@@ -596,7 +634,8 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 	struct sockaddr_in servaddr;
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
-	inet_pton(AF_INET, ip_addr, &servaddr.sin_addr);
+	memcpy(&servaddr.sin_addr, ip_addr, ip_len);
+	//inet_pton(AF_INET, ip_addr, &servaddr.sin_addr);
 	// servaddr.sin_addr = inet_addr(ip_addr);
 	servaddr.sin_port = htons(TRACKER_LISTENING_PORT);
 
@@ -675,9 +714,19 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 	switch (pkt.type) {
 		case TRANSACTION_UPDATE:
-			printf("NETWORK -- received transaction update from tracker\n");
+			printf("NETWORK -- received transaction update from tracker -- unhandled\n");
 			// process transaction update
-			
+			break;
+
+		case FS_UPDATE:
+			printf("NETWORK -- received a file system UPDATE from tracker\n");
+
+			client_data_t * queue_item = malloc(sizeof(client_data_t));
+			queue_item->data_len = pkt.data_len;
+			queue_item->data = buf;
+			buf = NULL; 	// pass buff to queue and don't claim here
+
+			notify_fs_update(cnt, queue_item);
 			break;
 
 		case MASTER_STATUS:

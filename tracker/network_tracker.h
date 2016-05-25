@@ -62,8 +62,13 @@ int receive_master_request(TNT * tnt);
 // 	ret : (static) 1 is success, -1 is failure ()
 int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * deletions, int clientid);
 
-// Sends file system update
-int send_FS_update(TNT * tnt);
+// Sends file system update (client updated @ file)
+// 	tnt : (not claimed) thread block
+// 	destination_client : (static) which client to send to
+//	originator_client : (static) which client originated the FS update
+// 	additions : (not claimed) additions part of FS to update -- tracker logic must claim when all done
+// 	deletions : (not claimed) deletions part of FS to update -- tracker logic must claim when all done
+int send_FS_update(TNT * thread_block, int destination_client, int originator_client, FileSystem * additions, FileSystem * deletions);
 
 // send to all peers to notify that a new peer has appeared
 int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);

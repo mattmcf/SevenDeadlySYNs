@@ -36,6 +36,7 @@
 typedef enum {
 	TRANSACTION_UPDATE,
 	FILE_ACQ_UPDATE,
+	FS_UPDATE,
 	MASTER_STATUS,
 	PEER_ADDED,
 	PEER_DELETED,
@@ -84,5 +85,23 @@ typedef enum {
 	CHUNK,
 	ERROR,
 } client_to_client_t;
+
+typedef struct chunk {
+	int chunk_num;
+	int file_str_len;
+	char * file_name;
+	int data_len;
+	char * data;
+} chunk_data_t;
+
+typedef struct c2c_pkt {
+	client_to_client_t type;
+	int src_client;
+	int chunk_num;
+	int file_str_len;
+	int data_len;
+	//char * file_str
+	//char * data;
+} c2c_pkt_t;
 
 #endif // _PACKETS_H
