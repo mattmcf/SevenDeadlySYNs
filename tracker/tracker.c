@@ -125,6 +125,7 @@ int main() {
 			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
 			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
 			filesystem_print(fs);
+			filesystemUpdateBroadcast(additions, deletions, network);
 			filesystem_destroy(additions);
 			filesystem_destroy(deletions);
 			printf("\tFinished updating file system\n");
@@ -313,6 +314,18 @@ int lostPeerBroadcast(int lostPeerID, TNT *network){
 	return 1;
 }
 
+// broadcast to all peers that there is a file update
+int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network){
+	for (int i = 0; i < peerTableSize; i++){
+		if(peerTable->peerIDs[i] != -1){
+			// if(send_FS_update(network, peerTable->peerIDs[i], additions, deletions)<0){
+			// 	printf("Failed to send transaction update to peer %d\n", peerTable->peerIDs[i]);
+			// }
+		}
+	}
+	return 1;
+}
+
 // identifies files that the peer needs and sends table of files and clients
 int sendUpdates(int peerID){
 	printf("sendUpdates.\n");
@@ -364,64 +377,64 @@ int numberOfLines(char *fileName){
 }
 
 void addNewBrowser(char *browserName){
-    FILE *output = fopen("temp.txt", "w+");
-    FILE *source = fopen("browser_history.txt", "r");
-    char buffer[100];
-    size_t bytesRead;
+    // FILE *output = fopen("temp.txt", "w+");
+    // FILE *source = fopen("browser_history.txt", "r");
+    // char buffer[100];
+    // size_t bytesRead;
 
-    memset(buffer, 0, sizeof(buffer));
+    // memset(buffer, 0, sizeof(buffer));
 
-    fprintf(output, "%s\n", browserName);
+    // fprintf(output, "%s\n", browserName);
 
-    int iter = 0;
-    while((fgets(buffer, sizeof(buffer), source) != NULL) && iter < 9){
-        fprintf(output, buffer);
-        iter ++;
-        memset(buffer, 0, sizeof(buffer));
-    }
-    fclose(source);
-    fclose(output);
+    // int iter = 0;
+    // while((fgets(buffer, sizeof(buffer), source) != NULL) && iter < 9){
+    //     fprintf(output, buffer);
+    //     iter ++;
+    //     memset(buffer, 0, sizeof(buffer));
+    // }
+    // fclose(source);
+    // fclose(output);
 
 
-    FILE *output2 = fopen("temp.txt", "r");
-    FILE *source2 = fopen("browser_history.txt", "w+");
+    // FILE *output2 = fopen("temp.txt", "r");
+    // FILE *source2 = fopen("browser_history.txt", "w+");
 
-     while(!feof(output2)){
-        bytesRead = fread(&buffer, 1, sizeof(buffer), output2);
-        fwrite(&buffer, 1, bytesRead, source2);
-    }
-    fclose(output2);
-    fclose(source2);
+    //  while(!feof(output2)){
+    //     bytesRead = fread(&buffer, 1, sizeof(buffer), output2);
+    //     fwrite(&buffer, 1, bytesRead, source2);
+    // }
+    // fclose(output2);
+    // fclose(source2);
 
 }
 
 void addNewIP(char *ip){
     // FILE *output = fopen("temp2.txt", "w+");
     // FILE *source = fopen("ip_addresses.txt", "r");
-    char buffer[100];
-    size_t bytesRead;
+    // char buffer[100];
+    // size_t bytesRead;
 
-    memset(buffer, 0, sizeof(buffer));
+    // memset(buffer, 0, sizeof(buffer));
 
-    fprintf(output, "%s\n", ip);
+    // // fprintf(output, "%s\n", ip);
 
-    int iter = 0;
-    while((fgets(buffer, sizeof(buffer), source) != NULL) && iter < 9){
-        fprintf(output, buffer);
-        iter ++;
-    }
-    fclose(source);
-    fclose(output);
+    // int iter = 0;
+    // while((fgets(buffer, sizeof(buffer), source) != NULL) && iter < 9){
+    //     // fprintf(output, buffer);
+    //     iter ++;
+    // }
+    // // fclose(source);
+    // // fclose(output);
 
-    // FILE *output2 = fopen("temp2.txt", "r");
-    // FILE *source2 = fopen("ip_addresses.txt", "w+");
+    // // FILE *output2 = fopen("temp2.txt", "r");
+    // // FILE *source2 = fopen("ip_addresses.txt", "w+");
 
-     while(!feof(output2)){
-        bytesRead = fread(&buffer, 1, sizeof(buffer), output2);
-        fwrite(&buffer, 1, bytesRead, source2);
-    }
-    fclose(output2);
-    fclose(source2);
+    //  while(!feof(output2)){
+    //     bytesRead = fread(&buffer, 1, sizeof(buffer), output2);
+    //     fwrite(&buffer, 1, bytesRead, source2);
+    // }
+    // fclose(output2);
+    // fclose(source2);
 }
 
 // set up an empty read buffer and associates an open file descriptor with that buffer

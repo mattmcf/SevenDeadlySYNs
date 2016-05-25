@@ -18,21 +18,6 @@ typedef struct peer_table {
   int *peerIDs;						//peerID number
 } peer_table;
 
-// // Chunky file table, file information
-// typedef struct ChunkyFileTable_file {
-// 	char* name;						// file name/file path
-// 	int size;						// size of file (this may not matter)
-// 	int numChunks;					// number of chunks in the file
-// 	ChunkyFileTable_chunk* head;	// head of singly linked list of chunks
-// } ChunkyFileTable_file;
-
-// // file chunk
-// typedef struct ChunkyFileTable_chunk {
-// 	int chunkNum;					// the chunk number of this chunk
-// 	int* peerID;					// an array of the peers that have this chunk
-// 	ChunkyFileTable_chunk* next;	// singly linked list, point to next chunk
-// } ChunkyFileTable_chunk;
-
 
 void intHandler(int dummy);
 
@@ -54,9 +39,14 @@ int printPeerTable();
 //close everything, free memory
 int closeTracker();
 
+// broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network);
 
+// broadcast to all peers that there is a peer removed
 int lostPeerBroadcast(int lostPeerID, TNT *network);
+
+// broadcast to all peers that there is a file update
+int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network);
 
 // peer successfully retrieved master. Update file table
 // int clientFileRetrieveSuccess(int peerID, int fileID);
@@ -74,6 +64,10 @@ send difference
 */
 // broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network);
+
+// ****************************************************************
+//						Web Browser
+// ****************************************************************
 
 #define LISTENQ  1024  // second argument to listen()
 #define MAXLINE 1024   // max length of a line
