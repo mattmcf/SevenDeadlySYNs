@@ -304,9 +304,15 @@ int main(int argv, char* argc[]){
 		exit(0);
 	} 
 
+	char ip_addr[sizeof(struct in_addr)]; 	// IPv4 address length
+	if (inet_pton(AF_INET, argc[1], ip_addr) != 1) {
+		fprintf(stderr,"Could not parse host %s\n", argc[1]);
+		exit(0);
+	}
+
 	/* start the client connection to the tracker and network */
 	/* may eventually update to add password sending */
-	if (NULL == (cnt = StartClientNetwork(argc[1], argv))){
+	if (NULL == (cnt = StartClientNetwork(ip_addr, sizeof(struct in_addr)) ) ) {
 		printf("CLIENT MAIN: StartClientNetwork failed\n");
 		exit(0);
 	}

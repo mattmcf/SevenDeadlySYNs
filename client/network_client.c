@@ -575,9 +575,10 @@ void * clt_network_start(void * arg) {
 //	returns connected socket if successful
 // 	else returns -1
 int connect_to_tracker(char * ip_addr, int ip_len) {
-	if (!ip_addr)
-		printf("ip enter failed\n");
+	if (!ip_addr) {
+		fprintf(stderr, "failed to connect to tracker: null ip\n");
 		return -1;
+	}
 
 	// int sockfd;
 	// if ((sockfd = socket(AF_INET6, SOCK_STREAM, 6)) < 0) {
