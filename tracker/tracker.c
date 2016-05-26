@@ -68,26 +68,26 @@ int main() {
 			// broadcast to all other peers that there is a new peer
 		printf("checking for new client\n");
 		peerID = -1;
-		peerID = receive_new_client(network);
-		if(peerID>0){
+		while ((peerID = receive_new_client(network))>0){
 			if (addPeerToTable(peerID)<0){	// maybe print peer table after this
 				printf("\tFailed to add peer %d to peer table.\n", peerID);
 			}
 			// send_transaction_update(network, &fs, peerID);
 			printf("\tSend peer added\n");
 			newPeerBroadcast(peerID, network);
+			peerID = -1;
 		}
 
 		// If a peer requests master
 			// send master
-		printf("checking for master request\n");
 		peerID = -1;
-		peerID = receive_master_request(network);
-		if(peerID>0){
+		printf("checking for master request\n");
+		while ((peerID = receive_master_request(network))>0){
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
 			printf("\tSent master to peer %d\n", peerID);
+			peerID = -1;
 		}
 
 		// if there is a peer disconnect
@@ -95,14 +95,14 @@ int main() {
 			// broadcast to all otehr peers that peer left
 		printf("checking for lost client\n");
 		peerID = -1;
-		peerID = receive_lost_client(network);
-		if(peerID>0){
+		while ((peerID = receive_lost_client(network))>0){
 			if(removePeerFromTable(peerID)<0){
 				printf("\tFailed to remove peer %d from table.\n", peerID);
 			}
 			printf("\tRemoved peer %d from table.\n", peerID);
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
+			peerID = -1;
 		}
 
 		// if there is a file update
@@ -113,21 +113,9 @@ int main() {
 		FileSystem *additions;
 		FileSystem *deletions;
 		int *clientID = (int*)malloc(sizeof(int));
-		if(receive_client_update(network, clientID, &additions, &deletions)>0){
-			// ASSUMPTION: updates will happen in pairs and will be added to queues in pairs
-			filesystem_print(fs);
-			printf("\tUpdating File System\n");
-			filesystem_print(additions);
-			filesystem_print(deletions);
-			filesystem_plus_equals(fs, additions);
-			filesystem_minus_equals(fs, deletions);	
-			
-			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-			// send_FS_update(network); // NEED SOME WAY TO SEND THE DIFF AND LET THEM KNOW WHO TO REQUEST FROM 
-			filesystem_print(fs);
-			filesystemUpdateBroadcast(additions, deletions, network);
-			filesystem_destroy(additions);
-			filesystem_destroy(deletions);
+		while(receive_client_update(network, clientID, &additions, &deletions)>0){
+			printf("File Update Received\n");
+			filesystemUpdateBroadcast(additions, deletions, network, *clientID);
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
@@ -315,12 +303,12 @@ int lostPeerBroadcast(int lostPeerID, TNT *network){
 }
 
 // broadcast to all peers that there is a file update
-int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network){
+int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network, int originator){
 	for (int i = 0; i < peerTableSize; i++){
 		if(peerTable->peerIDs[i] != -1){
-			// if(send_FS_update(network, peerTable->peerIDs[i], additions, deletions)<0){
-			// 	printf("Failed to send transaction update to peer %d\n", peerTable->peerIDs[i]);
-			// }
+			if(send_FS_update(network, peerTable->peerIDs[i], originator, additions, deletions)<0){
+				printf("Failed to send transaction update to peer %d\n", peerTable->peerIDs[i]);
+			}
 		}
 	}
 	return 1;
@@ -332,12 +320,44 @@ int sendUpdates(int peerID){
 	return 1;
 }
 
+
+// ****************************************************************
+//						Update mode Fucntionality	
+// ****************************************************************
+int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions){
+	// update file system
+	printf("PRINTING ADDITIONS:\n");
+	filesystem_print(additions);
+	printf("PRINTING DELETIONS:\n");
+	filesystem_print(deletions);
+	filesystem_plus_equals(fs, additions);
+	filesystem_minus_equals(fs, deletions);	
+	// broadcast out update to all peers
+	filesystemUpdateBroadcast(additions, deletions, network, updatePusher);
+	printf("NEW FILE SYSTEM\n");
+	filesystem_print(fs);
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
+	// while file table update is not complete:
+	// use this: TKR_2_CLT_FILE_ACQ and CLT_2_TKR_CLIENT_GOT
+		// if acquisition update
+			// update file table
+			// broadcast out update
+	return 1;
+}
+
+int isNetworkUpdated(){
+	// Use this function to check if the file being updated hasbeen fully updated
+	return 1;
+}
+
+
+
+
+
 // ****************************************************************
 //						Browser Interface Controls	
 // ****************************************************************
-
-
-
  
 mime_map meme_types [] = {
     {".css", "text/css"},
@@ -541,8 +561,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen){
 // pre-process files in the "home" directory and send the list to the client
 // DONE
 void handle_directory_request(int out_fd, int dir_fd, char *filename){
-    char buf[MAXLINE], m_time[32], size[16];
-    struct stat statbuf;
+    char buf[MAXLINE];
 
     // send response headers to client e.g., "HTTP/1.1 200 OK\r\n"
     sprintf(buf, "HTTP/1.1 200 OK\r\n%s%s%s%s%s",
@@ -554,7 +573,7 @@ void handle_directory_request(int out_fd, int dir_fd, char *filename){
     written(out_fd, buf, strlen(buf));
 
     // send recent browser data to the client
-    char s[100];
+    
     sprintf(buf, "</tbody></table><table><tbody><tr>Peer Table, %d Peers:</tr>\n", peerTable->numberOfEntries);
     written(out_fd, buf, strlen(buf));
 
@@ -642,7 +661,6 @@ int open_listenfd(int port){
 void parse_request(int fd, http_request *req){
     rio_t rio;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE], browser[MAXLINE];
-    int browserNotFound = 1;
 
     // set to default
     req->offset = 0;
@@ -840,7 +858,6 @@ void * webBrowser(){
 	printf("In file browser\n");
     struct sockaddr_in clientaddr;
     int default_port = 10467, listenfd, sockfd;
-    char buf[256];
     
     // // user input checking
     // if (checkargs(argc, argv) == -1){
