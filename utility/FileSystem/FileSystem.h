@@ -82,7 +82,7 @@ FileSystemIterator* filesystemiterator_new(FileSystem* fs);
 // Gets the next path of the filesystem
 //	iterator : (not claimed) The iterator being iterated over
 //	ret		 : (claimed) The path
-char* filesystemiterator_next(FileSystemIterator* iterator);
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
 
 // Destroys an iterator
 //	iterator : (claimed) The iterator to destroy

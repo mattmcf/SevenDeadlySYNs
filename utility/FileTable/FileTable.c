@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include "FileTable.h"
 #include "../HashTable/HashTable.h"
 #include "../Queue/Queue.h"
@@ -10,7 +12,7 @@ typedef struct
 typedef struct
 {
 	char* path;
-	Queue* peers;
+	Queue* chunks;
 } FileTableEntry;
 
 /* Peter Weinberger's hash function, from Aho, Sethi, & Ullman
@@ -32,23 +34,27 @@ int hashPJW(char *s)
 	return h;
 }
 
+int filetableentry_hash(FileTableEntry* element)
+{
+	return hashPJW(element->path);
+}
+
+int filetableentry_equals(FileTableEntry* e0, FileTableEntry* e1)
+{
+	return strcmp(e0->path, e1->path) == 0;
+}
+
 FileTable* filetable_new()
 {
-	
+	_FileTable* ft = (_FileTable*)malloc(sizeof(_FileTable*));
+	ft->table = hashtable_new((HashFunction)filetableentry_hash, (ElementEqualsFunction)filetableentry_equals);
+	return (FileTable*)ft;
 }
 
 void filetable_destroy(FileTable* filetable);
 
-// Serializes the provided filesystem to save it to disk or send over the network.
-//	filetable  : (not claimed) The filetable to serialize
-//	data	   : (not claimed) The serialized data
-//	length	   : (not claimed) The length of the serialized data
 void filetable_serialize(FileTable* filetable, char** data, int* length);
 
-// Takes some data and deserializes it into a filetable.
-//	data      : (not claimed) The data to deserialize
-//  bytesRead : (not claimed) The number of bytes read by the deserializer
-//	ret	      : (not claimed) The returned filetable
 FileTable* filetable_deserialize(char* data, int* bytesRead);
 
 Queue* filetable_get_peers_have_file(FileTable* filetable, char* path);
