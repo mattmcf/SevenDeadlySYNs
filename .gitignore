@@ -30,9 +30,5 @@
 
 # Debug files
 *.dSYM/
-
-
-
 tracker/tracker_app
-
-tracker/tracker_app
+client/client_app

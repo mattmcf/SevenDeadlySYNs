@@ -66,7 +66,7 @@ int main() {
 		// If there is a new peer in the Queue
 			// get peerID and add peer to peer table
 			// broadcast to all other peers that there is a new peer
-		printf("checking for new client\n");
+		// printf("checking for new client\n");
 		peerID = -1;
 		while ((peerID = receive_new_client(network))>0){
 			if (addPeerToTable(peerID)<0){	// maybe print peer table after this
@@ -81,7 +81,7 @@ int main() {
 		// If a peer requests master
 			// send master
 		peerID = -1;
-		printf("checking for master request\n");
+		// printf("checking for master request\n");
 		while ((peerID = receive_master_request(network))>0){
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
@@ -93,7 +93,7 @@ int main() {
 		// if there is a peer disconnect
 			// get peerID and remove peer from peer table
 			// broadcast to all otehr peers that peer left
-		printf("checking for lost client\n");
+		// printf("checking for lost client\n");
 		peerID = -1;
 		while ((peerID = receive_lost_client(network))>0){
 			if(removePeerFromTable(peerID)<0){
@@ -109,7 +109,7 @@ int main() {
 			// take the diff
 			// apply diff to local fs
 			// broadcast diff to all peers
-		printf("Checking peer updates\n");
+		// printf("Checking peer updates\n");
 		FileSystem *additions;
 		FileSystem *deletions;
 		int *clientID = (int*)malloc(sizeof(int));
@@ -294,7 +294,7 @@ int newPeerBroadcast(int newPeerID, TNT *network){
 int lostPeerBroadcast(int lostPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
 		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != lostPeerID){
-			if(send_peer_added(network, peerTable->peerIDs[i], lostPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
+			if(send_peer_removed(network, peerTable->peerIDs[i], lostPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
 				printf("Failed to send lost peer update to peer %d\n", peerTable->peerIDs[i]);
 			}
 		}

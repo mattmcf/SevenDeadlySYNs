@@ -192,6 +192,26 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 
 	return -1;
 }
+// sending file acquisition: first 4 bytes (int) is chunk number, rest is filepath
+// Receives a "got file chunk" message from client : CLT_2_TKR_CLIENT_GOT
+//	path : (not claimed) the filepath of the acquired file
+// chunkNum: (not claimed) the chunk number of the file that was acquired
+// 	clientid : (not claimed) pointer to int that will be filled with client id if update is present
+// 	ret : (static) 1 is success, -1 is failure (communications broke) 
+int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid){
+	_TNT_t * thread_block = (_TNT_t *)tnt;
+	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[CLT_2_TKR_CLIENT_GOT]);
+	if (data_pkt != NULL) {
+		*clientid = data_pkt->client_id;
+		memmove(chunkNum, data_pkt->data, sizeof(int));
+		memmove(path, (char *)((long)data_pkt->data + (long)sizeof(int)), data_pkt->data_len - sizeof(int));	
+
+		free(data_pkt->data);	
+		free(data_pkt);
+		return 1;
+	} 
+	return -1;
+}
 
 // Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
 // 	tnt : (not claimed) thread block 
@@ -410,6 +430,22 @@ int notify_client_lost(_TNT_t * tnt, peer_t * lost_client) {
 	return 1;
 }
 
+int notify_client_lost_by_id(_TNT_t * tnt, int lost_client_id) {
+	if (!tnt)
+		return -1;
+
+	asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_REMOVE_CLIENT],(void *)(long)lost_client_id);
+	return 1;
+}
+// notify about client file acquiring update
+int notify_client_got(_TNT_t * tnt, client_data_t * queue_item){
+    if (!tnt || !queue_item)
+        return -1;
+
+    asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_GOT], (void *)queue_item);
+    return 1;
+}
+
 // notify about file acquiring update (success and failure)
 
 // notify that client has requested master : CLT_2_TKR_CLIENT_REQ_MASTER
@@ -535,6 +571,14 @@ void * tkr_network_start(void * arg) {
 					if (handle_client_msg(i, tnt) != 1) {
 						fprintf(stderr,"failed to handle client message on socket %d\n", i);
 
+						peer_t * lost_client = get_peer_by_socket(tnt->peer_table, i);
+						if (lost_client != NULL) {
+
+							// tracker should send out the updated file system to clients
+							notify_client_lost_by_id(tnt, lost_client->id);
+							delete_peer(tnt->peer_table, lost_client->id);
+						}
+						
 						// don't listen to broken connection
 						FD_CLR(i, &active_fd_set);
 						close(i);
@@ -765,8 +809,8 @@ void poll_queues(_TNT_t * tnt) {
 
 void check_txn_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_TXN_UPDATE];
-	tracker_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		printf("NETWORK -- sending transaction update -- UNFILLED FUNCTION!\n");
 		//free(queue_item->data);
@@ -777,8 +821,8 @@ void check_txn_update_q(_TNT_t * tnt) {
 
 void check_file_acq_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ];
-	tracker_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		printf("NETWORK -- sending file acquisition update -- UNFILLED FUNCTION!\n");
 		//free(queue_item->data);
@@ -789,8 +833,8 @@ void check_file_acq_q(_TNT_t * tnt) {
 
 void check_fs_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FS_UPDATE];
-	tracker_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		printf("NETWORK -- sending file system update!\n");
 
@@ -812,8 +856,8 @@ void check_fs_update_q(_TNT_t * tnt) {
 
 void check_add_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER];
-	tracker_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		printf("NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
@@ -831,8 +875,8 @@ void check_add_peer_q(_TNT_t * tnt) {
 }
 void check_remove_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER];
-	tracker_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		printf("NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
@@ -850,8 +894,9 @@ void check_remove_peer_q(_TNT_t * tnt) {
 // deseminate master to client
 void check_send_master_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER];
-	tracker_data_t * queue_item = (tracker_data_t *)asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	tracker_data_t * queue_item ;
+	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
+
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 
 		printf("NETWORK -- sending master JFS to client %d\n", client->id);
@@ -864,51 +909,3 @@ void check_send_master_q(_TNT_t * tnt) {
 	return;
 }
 
-/* ###################### *
- * 
- * The Tracker New Connections Thread is below -- UNUSED
- *
- * ###################### */
-
-// void * accept_connections(void * listening_socket_arg) {
-
-// 	_TNT_t * thread_block = (_TNT_t*)arg;
-// 	struct sockaddr_in6 clientaddr;
-// 	int addrlen = sizeof(addr);
-// 	peer_t * new_client;
-
-// 	int connected = 1, new_sockfd;
-
-// 	// listen on it
-// 	if (listen(thread_block->listening_sockfd, INIT_CLIENT_NUM) != 0) {
-// 		perror("network tracker accept_connections thread failed to listen on socket");
-// 		return (void *)1;
-// 	}
-
-// 	while (connected) {
-// 		new_sockfd = accept(new_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
-// 		if (new_sockfd < 0) {
-// 			fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
-// 			connected = 0;
-// 			continue;
-// 		}
-
-// 		// add new peer to table
-// 		if ((new_client = add_peer(thread_block->peer_table, &clientaddr.sin6_addr, sizeof(in6_addr))) == NULL) {
-// 			fprintf(stderr,"network tracker accept_connections thread received peer connection but couldn't add it to the table\n");
-// 			continue;
-// 		}
-
-// 		new_client->socketfd = new_sockfd;
-// 		new_client->time_last_last = time();
-
-// 		// notify tracker
-// 		notify_new_client(thread_block, new_client);
-
-// 		// TODO queue how to add new socket to list of tracked sockets???
-// 	}
-
-// 	printf("network tracker accept_connections thread is ending\n");
-// 	close(thread_block->listening_sockfd);
-// 	return (void *)1;
-// }
