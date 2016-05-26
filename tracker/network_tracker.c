@@ -192,6 +192,26 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 
 	return -1;
 }
+// sending file acquisition: first 4 bytes (int) is chunk number, rest is filepath
+// Receives a "got file chunk" message from client : CLT_2_TKR_CLIENT_GOT
+//	path : (not claimed) the filepath of the acquired file
+// chunkNum: (not claimed) the chunk number of the file that was acquired
+// 	clientid : (not claimed) pointer to int that will be filled with client id if update is present
+// 	ret : (static) 1 is success, -1 is failure (communications broke) 
+int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid){
+	_TNT_t * thread_block = (_TNT_t *)tnt;
+	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[CLT_2_TKR_CLIENT_GOT]);
+	if (data_pkt != NULL) {
+		*clientid = data_pkt->client_id;
+		memmove(chunkNum, data_pkt->data, sizeof(int));
+		memmove(path, (char *)((long)data_pkt->data + (long)sizeof(int)), data_pkt->data_len - sizeof(int));	
+
+		free(data_pkt->data);	
+		free(data_pkt);
+		return 1;
+	} 
+	return -1;
+}
 
 // Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
 // 	tnt : (not claimed) thread block 
@@ -416,6 +436,14 @@ int notify_client_lost_by_id(_TNT_t * tnt, int lost_client_id) {
 
 	asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_REMOVE_CLIENT],(void *)(long)lost_client_id);
 	return 1;
+}
+// notify about client file acquiring update
+int notify_client_got(_TNT_t * tnt, client_data_t * queue_item){
+    if (!tnt || !queue_item)
+        return -1;
+
+    asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_GOT], (void *)queue_item);
+    return 1;
 }
 
 // notify about file acquiring update (success and failure)
