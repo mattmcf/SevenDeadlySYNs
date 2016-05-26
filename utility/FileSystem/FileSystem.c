@@ -722,7 +722,14 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
 	File* file = queue_get(fsi->current_files, fsi->file_index);
 	fsi->file_index += 1;
 	fsi->path = add_strings(3, path, "/", file_get_name(file));
-	*length = (int)(((_File*)file)->size);
+	if (((_File*)file)->is_folder)
+	{
+		*length = -1;
+	}
+	else
+	{
+		*length = (int)(((_File*)file)->size);
+	}
 	return fsi->path;
 }
 
