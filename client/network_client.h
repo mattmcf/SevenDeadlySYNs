@@ -71,7 +71,7 @@ int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_i
  * 	peer_id - (not claimed) will be filled with responder id
  * 	file_name - (not claimed) will be filled with filename
  * 	chunk_id 	- (not claimed) will be filled with chunk id
- *	data_len - (not claimed) will be filled with length of chunk data
+ *	data_len - (not claimed) will be filled with length of chunk data (-1 if error)
  * 	data - (not claimed) will be filled with pointer to data
  * 	ret : (static) 1 if chunk was received, -1 if no chunk
  *
