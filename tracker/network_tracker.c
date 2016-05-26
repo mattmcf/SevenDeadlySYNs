@@ -515,7 +515,7 @@ void * tkr_network_start(void * arg) {
 
 				/* client opening new connection */
 				if (i == tnt->listening_sockfd) {
-					printf("network tracker received new client connection\n");
+					printf("\nnetwork tracker received new client connection\n");
 					new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_sockfd < 0) {
 						perror("network tracker failed to accept new connection");
@@ -539,7 +539,7 @@ void * tkr_network_start(void * arg) {
 				/* data on existing connection */
 				} else {
 
-					printf("network tracker received message from client on socket %d\n", i);
+					printf("\nnetwork tracker received message from client on socket %d\n", i);
 					if (handle_client_msg(i, tnt) != 1) {
 						fprintf(stderr,"failed to handle client message on socket %d\n", i);
 
