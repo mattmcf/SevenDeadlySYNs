@@ -665,7 +665,7 @@ void filesystemiterator_destroy(FileSystemIterator* iterator)
 	}
 }
 
-char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	assert(fsi);
