@@ -48,10 +48,10 @@ typedef struct peer_table{
  * request those chunks from peers and update our fs */
 int SendMasterFSRequest();
 
-void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs);
+void UpdateLocalFilesystem(FileSystem *new_fs);
 
 /* monitor filesystem */
-void CheckLocalFilesystem(FileSystem *cur_fs);
+void CheckLocalFilesystem();
 
 /* drop from network */
 void DropFromNetwork();

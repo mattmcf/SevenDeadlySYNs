@@ -101,11 +101,11 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		sleep(1);
 	}
 
-	UpdateLocalFilesystem(cur_fs, master);
+	UpdateLocalFilesystem(master);
 	return 1;
 }
 
-void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs){
+void UpdateLocalFilesystem(FileSystem *new_fs){
 	printf("UpdateLocalFilesystem: received update from master!\n");
 
 	/* received the master file system, iterate over it to look for differences */
@@ -162,7 +162,7 @@ void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs){
 	filesystem_destroy(deletions);
 }
 
-void CheckLocalFilesystem(FileSystem *cur_fs){
+void CheckLocalFilesystem(){
 	FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
 	FileSystem *adds = NULL, *dels = NULL;
 
@@ -532,13 +532,13 @@ int main(int argv, char* argc[]){
 		 * copy master to our local pointer of the filesystem */
 		printf("CLIENT MAIN: checking for updates from master\n");
 		while (NULL != (master = recv_master(cnt, &recv_len))){
-			UpdateLocalFilesystem(cur_fs, master);
+			UpdateLocalFilesystem(master);
 		}
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
 		printf("CLIENT MAIN: checking local file system\n");
-		CheckLocalFilesystem(cur_fs);
+		CheckLocalFilesystem();
 	}
 
 }
