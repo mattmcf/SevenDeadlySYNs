@@ -934,7 +934,7 @@ int increment_conn_record(_CNT_t * cnt, int client_id) {
 		entry = new_record;
 	}
 
-	return (entry != NULL) ? entry->outstanding_requests++ : -1;
+	return (entry != NULL) ? ++entry->outstanding_requests : -1;
 }
 int decrement_conn_record(_CNT_t * cnt, int client_id) {
 	if (!cnt) {
@@ -945,7 +945,7 @@ int decrement_conn_record(_CNT_t * cnt, int client_id) {
 	record.client_id = client_id;
 	conn_rec_t * entry = hashtable_get_element(cnt->request_table, &record);
 
-	return (entry != NULL) ? entry->outstanding_requests-- : -1;
+	return (entry != NULL) ? --entry->outstanding_requests : -1;
 }
 
 int handle_tracker_msg(_CNT_t * cnt) {
