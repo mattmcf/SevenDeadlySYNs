@@ -46,7 +46,7 @@ int newPeerBroadcast(int newPeerID, TNT *network);
 int lostPeerBroadcast(int lostPeerID, TNT *network);
 
 // broadcast to all peers that there is a file update
-int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network);
+int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network, int originator);
 
 // peer successfully retrieved master. Update file table
 // int clientFileRetrieveSuccess(int peerID, int fileID);
@@ -65,6 +65,9 @@ send difference
 // broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network);
 
+int updateNetwork(TNT* netowrk, int updatePusher, FileSystem *additions, FileSystem *deletions);
+
+int isNetworkUpdated();
 // ****************************************************************
 //						Web Browser
 // ****************************************************************

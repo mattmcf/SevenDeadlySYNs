@@ -665,7 +665,7 @@ void filesystemiterator_destroy(FileSystemIterator* iterator)
 	}
 }
 
-char* filesystemiterator_next(FileSystemIterator* iterator)
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	assert(fsi);
@@ -684,6 +684,7 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		Folder* folder = queue_spop(fsi->folder_stack);
 		if (folder == NULL)
 		{
+			*length = -1;
 			return NULL;
 		}
 		
@@ -706,10 +707,12 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		Folder* next_folder = queue_speek(fsi->folder_stack);
 		if (next_folder == NULL)
 		{
+			*length = -1;
 			return NULL;
 		}
 		fsi->current_files = folder_get_files(next_folder);
 		
+		*length = -1;
 		fsi->path = NULL;
 		return filesystemiterator_next(iterator);
 	}
@@ -719,6 +722,14 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 	File* file = queue_get(fsi->current_files, fsi->file_index);
 	fsi->file_index += 1;
 	fsi->path = add_strings(3, path, "/", file_get_name(file));
+	if (((_File*)file)->is_folder)
+	{
+		*length = -1;
+	}
+	else
+	{
+		*length = (int)(((_File*)file)->size);
+	}
 	return fsi->path;
 }
 

@@ -105,6 +105,14 @@ void chunkyfile_set_chunk(ChunkyFile* chunkyfile, int chunkNum, char*  chunk, in
 	memcpy(cf->data + chunkNum * CHUNKYFILE_CHUNK_SIZE, chunk, chunkSize);
 }
 
+void chunkyfile_destroy(ChunkyFile* chunkyfile)
+{
+	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
+	
+	free(cf->data);
+	free(data);
+}
+
 /*
 int main()
 {
