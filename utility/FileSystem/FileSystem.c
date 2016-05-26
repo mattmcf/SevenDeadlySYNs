@@ -469,7 +469,7 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	return fs->root_path;
+	return fs->root_path ? fs->root_path : "";
 }
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
