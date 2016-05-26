@@ -8,7 +8,7 @@ int main()
 {
 	printf("Testing serialization and deserialization...\n");
 	
-	char* path = "../";
+	char* path = "/Users/jacob/dart_sync/";
 	printf("Loading filesystem at %s\n", path);
 	FileSystem* fs = filesystem_new(path);
 	filesystem_print(fs);
@@ -44,6 +44,9 @@ int main()
 	filesystem_print(additions);
 	printf("Deletions\n");
 	filesystem_print(deletions);
+	FileSystem* updates = filesystem_get_updates(additions, deletions);
+	printf("Updates\n");
+	filesystem_print(updates);
 	
 	FileSystem* withChanges = filesystem_copy(fs);
 	filesystem_minus_equals(withChanges, deletions);	

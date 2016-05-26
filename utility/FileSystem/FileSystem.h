@@ -33,6 +33,8 @@ void filesystem_print(FileSystem* fs);
 //	deletions  : (not claimed) After returning, contains a filesystem describing any files that were deleted.
 void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions);
 
+FileSystem* filesystem_get_updates(FileSystem* additions, FileSystem* deletions);
+
 // Subtracts one filesystem1 from filesystem0, filesystem0 -= filesystem1
 // filesystem0 : (not claimed) The filesystem that should have things removed from it. THIS IS MODIFIED!!!
 // filesystem1 : (not claimed) The other filesystem. Not modified. This argument should come from the
