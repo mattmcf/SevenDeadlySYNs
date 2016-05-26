@@ -221,7 +221,7 @@ void EndClientNetwork(CNT * thread_block) {
 //	author_id : (not claimed) will fill with diff's author id
 // 	ret : (static) 1 if diff was present, -1 if diff wasn't present
 int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, int * author_id) {
-	if (!thread || !additions || !deletions) {
+	if (!thread || !additions || !deletions || !author_id) {
 		return -1;
 	}
 
@@ -279,7 +279,7 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 		// fs = filesystem_deserialize(queue_item->data, length_deserialized);
 		fs = queue_item->data;
 		
-		//free(queue_item->data);
+		//free(queue_item->data); // freed in handle_client_message() side
 		free(queue_item);
 	}
 
@@ -295,19 +295,61 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
  * 	buf - the chunk that was requested
  * 		TODO - figure out how to combine this with chunky file and
  *		how to expand on it to allow for transerring an entire file
- 	len - the expected length (DO WE NEED THIS)
  */
-int receive_chunk_request(CNT *cnt, char **filepath, int *peer_id, int *chunk_id, int *len){
-	return -1;
+int receive_chunk_request(CNT * thread_block, int *peer_id, char **filepath, int *chunk_id){
+	if (!thread_block || !filepath || !peer_id || !chunk_id) {
+		fprintf(stderr,"receive_chunk_req failed due to null args\n");
+		return -1;
+	}
+
+	int rc = -1;
+
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	chunk_data_t * queue_item = asyncqueue_pop(cnt->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK]);
+	if (queue_item != NULL) {
+
+		*peer_id = queue_item->client_id;
+		*chunk_id = queue_item->chunk_num;
+		*filepath = queue_item->file_name;
+		rc = 1;
+
+		// free(queue_item->file_name)	-> just pass the buffer to client
+		free(queue_item);
+	}
+
+	return rc;
 }
 
 // receive chunk from peer : CLT_2_ME_RECEIVE_CHUNK
 /* client calls this to receive a chunk update from the network 
- * 	cnt - the current state of the network
- * 	(claimed) ret - the chunk that we received
+ * 	cnt - (not claimed) thread block
+ * 	peer_id - (not claimed) will be filled with responder id
+ * 	file_name - (not claimed) will be filled with filename
+ * 	chunk_id 	- (not claimed) will be filled with chunk id
+ *	data_len - (not claimed) will be filled with length of chunk data
+ * 	data - (not claimed) will be filled with pointer to data
+ * 	ret : (static) 1 if chunk was received, -1 if no chunk
  */
-char* receive_chunk(CNT *cnt) {
-	return NULL;
+int receive_chunk(CNT * thread_block, int *peer_id, char **file_name, int *chunk_id, int *data_len, char **data) {
+	if (!thread_block || !peer_id || !file_name || !chunk_id || !data_len || !data) {
+		fprintf(stderr, "receive_chunk error: null arguments\n");
+		return -1;
+	}
+
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	chunk_data_t * queue_item = (chunk_data_t*)asyncqueue_pop(cnt->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK]);
+	if (queue_item != NULL) {
+		*peer_id = queue_item->client_id;
+		*file_name = queue_item->file_name;
+		*chunk_id = queue_item->chunk_num;
+		*data_len = queue_item->data_len;
+		*data = queue_item->data;
+
+		// don't free file str or data buffer -> pass to logic
+		free(queue_item);
+	}
+
+	return (queue_item != NULL) ? 1 : -1;
 }
 
 
@@ -331,7 +373,7 @@ int send_status(CNT * thread, FileSystem * fs) {
 
 // send file acquistion update : ME_2_TKR_ACQ_UPDATE
 
-// send quit message to tracker : ME_2_TKR_UPDATED_FILE_DIFF
+// send updated file message to tracker : ME_2_TKR_UPDATED_FILE_DIFF
 // 	thread : (not claimed) thread block
 //	additions : (not claimed) addition FS - claim after call
 // 	deletions : (not claimed) deletions FS - claim after call
@@ -376,19 +418,29 @@ int send_request_for_master(CNT * cnt) {
 // send request for chunk to peer : ME_2_CLT_REQ_CHUNK
 /* send a chunk request from the client app to a peer client 
  * 	cnt - the current state of the network
- * 	filepath - a pointer to a filepath for the chunky file
+ * 	filepath - (not claimed) a pointer to a filepath for the chunky file
  *	peer_id - the peer to request the chunk from 
  * 	buf - the chunk that we are requesting
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
  */
-int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id) {
-	if (!cnt || !filepath) {
+int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chunk_id) {
+	if (!thread_block || !filepath) {
 		fprintf(stderr,"send_chunk_request error: null cnt or filepath\n");
 		return -1;
 	} 
 
-	//chunk_data_t * queue_item = 
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+
+	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+	queue_item->client_id = peer_id;
+	queue_item->chunk_num = chunk_id;
+	queue_item->file_name = strdup(filepath);
+	queue_item->file_str_len = strlen(queue_item->file_name) + 1;	// include null terminator
+	queue_item->data_len = 0;
+	queue_item->data = 0;
+
+	asyncqueue_push(cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK], (void *)queue_item);
 
 	return -1;
 }
@@ -400,8 +452,27 @@ int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id) {
  *	(claimed) buf	- the chunk that we are sending
  * 	len - the length of the chunk that we are sending 
  */
-int send_chunk(CNT *cnt, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len) {
-	return -1;
+int send_chunk(CNT * thread_block, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len) {
+	if (!thread_block || !file_name || !chunk_data) {
+		fprintf(stderr,"send_chunk error : null arguments\n");
+		return -1;
+	}
+
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+
+	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+	queue_item->client_id = peer_id;
+	queue_item->chunk_num = chunk_id;
+	queue_item->file_str_len = strlen(file_name) + 1;
+	queue_item->file_name = strdup(file_name);
+	queue_item->data_len = chunk_len;
+
+	// make data copy
+	queue_item->data = (char *)malloc(chunk_len); 	
+	memcpy(queue_item->data, chunk_data, chunk_len);
+
+	asyncqueue_push(cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK], (void*)queue_item);
+	return 1;
 }
 
 
@@ -457,6 +528,27 @@ int notify_peer_removed(_CNT_t * cnt, int removed_client_id) {
 	return 1;
 }
 
+int notify_chunk_request(_CNT_t * cnt, chunk_data_t * queue_item) {
+	if (!cnt || !queue_item)
+		return -1;
+
+	asyncqueue_push(cnt->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK],(void*)queue_item);
+	return 1;
+}
+
+int notify_chunk_received(_CNT_t * cnt, chunk_data_t * queue_item) {
+	if (!cnt || !queue_item)
+		return -1;
+
+	asyncqueue_push(cnt->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK], (void*)queue_item);
+	return 1;
+}
+
+int notify_error_received(_CNT_t * cnt) {
+
+	return -1;
+}
+
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
 
 /* --- Network Side Packet Functions --- */
@@ -466,6 +558,8 @@ int connect_to_tracker(char * ip_addr, int ip_len);
 
 // returns listening port for client connections
 int open_peer_listening_port();
+int connect_to_peer(peer_t * peer, int id);
+int disconnect_from_peer(peer_t * peer, int id);
 
 int handle_tracker_msg(_CNT_t * cnt);
 int handle_peer_msg(int sockfd, _CNT_t * cnt);
@@ -693,6 +787,56 @@ int open_peer_listening_port() {
   return(sockfd);
 }
 
+// returns connected socket for peer (also in the peer struct)
+int connect_to_peer(peer_t * peer, int id) {
+	if (!peer || id < 1) {
+		fprintf(stderr,"cannot connect to null peer %d\n", id);
+		return -1;
+	}
+
+	if (peer->socketfd > 0)
+		return peer->socketfd;
+
+	int sockfd = socket(AF_INET, SOCK_STREAM, 6);
+	if (sockfd < 1) {
+		perror("failed to open peer 2 peer socket");
+		return -1;
+	}
+
+	// fill out server struct
+	// struct sockaddr_in6 servaddr;
+	struct sockaddr_in servaddr;
+	memset(&servaddr, 0, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	memcpy(&servaddr.sin_addr, peer->ip_addr, sizeof(servaddr.sin_addr));
+	servaddr.sin_port = htons(CLIENT_LISTENING_PORT);
+
+	// connect
+	if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+		fprintf(stderr,"client_network thread failed to connect to peer %d at %s", id, inet_ntoa(*(struct in_addr*)&peer->ip_addr));
+		perror("reason:");
+		return -1;
+	}
+
+	peer->socketfd = sockfd;
+
+	printf("NETWORK -- connected to peer %d at %s on socket %d\n", id, inet_ntoa(*(struct in_addr*)&peer->ip_addr), sockfd);
+	return sockfd;
+}
+
+int disconnect_from_peer(peer_t * peer, int id) {
+	if (!peer)
+		return -1;
+
+	if (peer->socketfd > 0) {
+		printf("NETWORK -- closing connection to peer %d at %s\n", id, inet_ntoa(*(struct in_addr *)&peer->ip_addr));
+		close(peer->socketfd);
+		peer->socketfd = -1;
+	}
+
+	return 1;
+}
+
 int handle_tracker_msg(_CNT_t * cnt) {
 	if (!cnt)
 		return -1;
@@ -796,7 +940,87 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 
-	return -1;
+	if (!cnt)
+		return -1;
+
+	peer_t * peer = get_peer_by_socket(cnt->peer_table, sockfd);
+
+	c2c_pkt_t pkt;
+	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(c2c_pkt_t)) {
+		fprintf(stderr,"didn't recv full pkt on socket %d\n", sockfd);
+		return -1;
+	}
+
+	char * file_name_buf = NULL;
+	char * data_buf = NULL;
+
+	if (pkt.file_str_len > 0) {
+		file_name_buf = (char *)malloc(pkt.file_str_len);
+		if (recv(sockfd, file_name_buf, pkt.file_str_len, 0) != pkt.file_str_len) {
+			fprintf(stderr,"didn't recv full file str on socket %d\n", sockfd);
+			return -1;
+		}
+	}
+
+	if (pkt.data_len > 0) {
+		data_buf = (char *)malloc(pkt.data_len);
+		if (recv(sockfd, data_buf, pkt.data_len, 0) != pkt.data_len) {
+			fprintf(stderr,"didn't recv full data length on socket %d\n", sockfd);
+			return -1;
+		}
+	}
+
+	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+
+	switch (pkt.type) {
+		case REQUEST_CHUNK:
+
+			printf("NETWORK -- received chunk request (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
+			queue_item->client_id = peer->id;
+			queue_item->chunk_num = pkt.chunk_num;
+			queue_item->file_str_len = pkt.file_str_len;
+
+			queue_item->file_name = file_name_buf;
+			file_name_buf = NULL; 	// don't free at the end of this function
+
+			queue_item->data_len = 0;
+			queue_item->data = NULL;
+
+			notify_chunk_request(cnt, queue_item);
+			break;
+
+		case CHUNK:
+
+			printf("NETWORK -- received chunk (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
+			queue_item->client_id = peer->id;
+			queue_item->chunk_num = pkt.chunk_num;
+			queue_item->file_str_len = pkt.file_str_len;
+
+			queue_item->file_name = file_name_buf;
+			file_name_buf = NULL; 	// don't free at the end of this function
+
+			queue_item->data_len = pkt.data_len;
+			queue_item->data = data_buf;
+			data_buf = NULL; // don't free here -- pass to notify queue
+
+			notify_chunk_received(cnt, queue_item);
+			break;
+
+		case ERROR:
+		default:
+			printf("NETWORK -- handled client message received (%d)\n", pkt.type);
+			break;
+	}
+
+	if (file_name_buf) {
+		free(file_name_buf);
+	}
+
+	if (data_buf) {
+		free(data_buf);
+	}
+
+	return 1;
 }
 
 int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_tracker_t type) {
@@ -913,11 +1137,27 @@ void check_master_req_q(_CNT_t * cnt) {
 
 void check_req_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
-	client_data_t * queue_item = asyncqueue_pop(q);
+	chunk_data_t * queue_item = asyncqueue_pop(q);
 	if (queue_item != NULL) {
 
-		printf("NETWORK -- sending request for chunk -- UNFILLED FUNCTION!\n");
-		//free(queue_item->data);
+		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
+		if (connect_to_peer(peer, queue_item->client_id) < 0) {
+			fprintf(stderr,"network client failed to send connect to client %d\n",queue_item->client_id);
+			return;
+		}
+
+		c2c_pkt_t pkt;
+		pkt.type = REQUEST_CHUNK;
+		pkt.chunk_num = queue_item->chunk_num;
+		pkt.file_str_len = queue_item->file_str_len;
+		pkt.data_len = queue_item->data_len;
+
+		send(peer->socketfd, &pkt, sizeof(pkt),0);
+		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
+
+		printf("NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
+
+		free(queue_item->file_name);
 		free(queue_item);
 	}
 	return;
@@ -925,13 +1165,36 @@ void check_req_chunk_q(_CNT_t * cnt) {
 
 void check_send_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK];
-	client_data_t * queue_item = asyncqueue_pop(q);
-	if (queue_item != NULL) {
+	chunk_data_t * queue_item = asyncqueue_pop(q);
 
-		printf("NETWORK -- sending chunk -- UNFILLED FUNCTION!\n");
-		//free(queue_item->data);
+	int conn_open = 0;
+	while ((queue_item = asyncqueue_pop(q)) != NULL) {
+		conn_open = 1;
+
+		printf("NETWORK -- sending chunk (%s, %d) to client %d\n", 
+			queue_item->file_name, queue_item->chunk_num, queue_item->client_id);
+
+		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
+		if (!peer) {
+			fprintf(stderr,"check_send_chunk_q error: cannot find peer %d\n", queue_item->client_id);
+			return;
+		}
+
+		c2c_pkt_t pkt;
+		pkt.type = CHUNK;
+		pkt.chunk_num = queue_item->chunk_num;
+		pkt.file_str_len = queue_item->file_str_len;
+		pkt.data_len = queue_item->data_len;
+
+		send(peer->socketfd, &pkt, sizeof(pkt), 0);
+		send(peer->socketfd, queue_item->file_name, pkt.file_str_len, 0);
+		send(peer->socketfd, queue_item->data, pkt.data_len, 0);
+
+		free(queue_item->file_name);
+		free(queue_item->data);
 		free(queue_item);
 	}
+
 	return;
 }
 

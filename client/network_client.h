@@ -63,15 +63,19 @@ FileSystem * recv_master(CNT * thread, int * received_length);
  * 	buf - the chunk that was requested
  * 		TODO - figure out how to combine this with chunky file and
  *		how to expand on it to allow for transerring an entire file
- 	len - the expected length (DO WE NEED THIS)
  */
-int receive_chunk_request(CNT *cnt, char **filepath, int *peer_id, int *chunk_id, int *len);
+int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_id);
 
 /* client calls this to receive a chunk update from the network 
- * 	cnt - the current state of the network
- * 	(claimed) ret - the chunk that we received
+ * 	cnt - (not claimed) thread block
+ * 	peer_id - (not claimed) will be filled with responder id
+ * 	file_name - (not claimed) will be filled with filename
+ * 	chunk_id 	- (not claimed) will be filled with chunk id
+ *	data_len - (not claimed) will be filled with length of chunk data
+ * 	data - (not claimed) will be filled with pointer to data
+ * 	ret : (static) 1 if chunk was received, -1 if no chunk
  */
-char* receive_chunk(CNT *cnt);
+int receive_chunk(CNT *cnt, int *peer_id, char **file_name, int *chunk_id, int *data_len, char **data);
 
 /* ----- sending ----- */
 

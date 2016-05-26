@@ -80,13 +80,9 @@ typedef struct client_data {
 
 /* ----- CLIENT TO CLIENT ----- */
 
-typedef enum {
-	REQUEST_CHUNK,
-	CHUNK,
-	ERROR,
-} client_to_client_t;
-
+// client to client queues
 typedef struct chunk {
+	int client_id;
 	int chunk_num;
 	int file_str_len;
 	char * file_name;
@@ -94,14 +90,21 @@ typedef struct chunk {
 	char * data;
 } chunk_data_t;
 
+// client to client packets
+typedef enum {
+	REQUEST_CHUNK,
+	CHUNK,
+	ERROR,
+} client_to_client_t;
+
 typedef struct c2c_pkt {
 	client_to_client_t type;
 	int src_client;
 	int chunk_num;
 	int file_str_len;
 	int data_len;
-	//char * file_str
-	//char * data;
+	//char * file_str -> will send next
+	//char * data; 	-> will send next
 } c2c_pkt_t;
 
 #endif // _PACKETS_H
