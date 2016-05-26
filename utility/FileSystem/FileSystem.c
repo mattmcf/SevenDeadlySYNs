@@ -714,7 +714,7 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 		
 		*length = -1;
 		fsi->path = NULL;
-		return filesystemiterator_next(iterator);
+		return filesystemiterator_next(iterator, length);
 	}
 	
 	char* path = queue_speek(fsi->path_stack);
