@@ -260,6 +260,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
 		/* destroy the chunky file */
+		chunkyfile_destroy(file);
 
 		path = NULL;
 	}
@@ -467,6 +468,7 @@ int main(int argv, char* argc[]){
 			}
 
 			/* destroy that chunky file */
+			chunkyfile_destroy(file);
 
 			filepath = NULL;
 		}
@@ -490,6 +492,7 @@ int main(int argv, char* argc[]){
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
 
 			/* destroy the chunky file */
+			chunkyfile_destroy(file);
 
 			free(chunk_data);
 			filepath = NULL;

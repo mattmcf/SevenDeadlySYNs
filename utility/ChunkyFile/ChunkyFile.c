@@ -110,7 +110,7 @@ void chunkyfile_destroy(ChunkyFile* chunkyfile)
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
 	free(cf->data);
-	free(data);
+	free(cf);
 }
 
 /*
