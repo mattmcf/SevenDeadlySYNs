@@ -203,10 +203,10 @@ int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid){
 	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[CLT_2_TKR_CLIENT_GOT]);
 	if (data_pkt != NULL) {
 		*clientid = data_pkt->client_id;
-		memmove(chunkNum, data, sizeof(int));
-		memmove(path, (char *)((long)data + (long)sizeof(int)), data_pkt->data_len - sizeof(int));	
+		memmove(chunkNum, data_pkt->data, sizeof(int));
+		memmove(path, (char *)((long)data_pkt->data + (long)sizeof(int)), data_pkt->data_len - sizeof(int));	
 
-		free(data_pkt->data)	
+		free(data_pkt->data);	
 		free(data_pkt);
 		return 1;
 	} 
@@ -743,8 +743,6 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 
 			rc = 1;
 			break;
-
-		case 
 
 		default:
 			printf("NETWORK -- Unknown packet type (%d) from client id %d\n", pkt.type, client->id);
