@@ -18,11 +18,13 @@
 #include "client.h"
 #include "network_client.h"
 #include "../utility/FileSystem/FileSystem.h"
+#include "../utility/ChunkyFile/ChunkyFile.h"
 #include "../common/constant.h"
 
 /* ----------------------------- Constants ----------------------------- */
 #define CONN_ACTIVE 0
 #define CONN_CLOSED 1
+#define GET_ALL_CHUNKS 99999
 
 /* ------------------------- Global Variables -------------------------- */
 CNT* cnt;
@@ -75,7 +77,7 @@ int RemoveFileDeletions(FileSystem *deletions);
  * iterate over a filesystem that is assumed to be the additions filesystem
  * after a diff and make requests for the files' chunks from peers
  */
-int GetFileAdditions(FileSystem *additions);
+int GetFileAdditions(FileSystem *additions, int author_id);
 
 /* ----------------------- Public Function Bodies ---------------------- */
 
@@ -131,7 +133,8 @@ void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs){
 		}
 
 		char *path;
-		while (NULL != (path = filesystemiterator_next(add_iterator))){
+		int len;
+		while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
 			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
 			/* figure out which client to get the file from */
@@ -143,7 +146,6 @@ void UpdateLocalFilesystem(FileSystem *cur_fs, FileSystem *new_fs){
 			/* update local file system with received file */
 
 			/* get ready for next iteration */
-			free(path);
 			path = NULL;
 		}
 
@@ -204,6 +206,7 @@ int RemoveFileDeletions(FileSystem *deletions){
 	printf("RemoveFileDeletions: ready to iterate over deletions!\n");
 	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
 	char *path;
+	int len;
 
 	if (!del_iterator){
 		printf("RemoveFileDeletions: failed to make del iterator\n");
@@ -211,13 +214,12 @@ int RemoveFileDeletions(FileSystem *deletions){
 	}
 
 	/* iterate over the fileystem, delete any files that are in it */
-	while (NULL != (path = filesystemiterator_next(del_iterator))){
+	while (NULL != (path = filesystemiterator_next(del_iterator, &len))){
 		printf("RemoveFileDeletions: found deletion at: %s\n", path);
 		if (-1 == remove(path)){
 			printf("RemoveFileDeletions: remove() failed on path\n");
 		}
 
-		free(path);
 		path = NULL;
 	}
 
@@ -225,9 +227,9 @@ int RemoveFileDeletions(FileSystem *deletions){
 	return 1;
 }
 
-int GetFileAdditions(FileSystem *additions){
+int GetFileAdditions(FileSystem *additions, int author_id){
 	printf("GetFileAdditions: ready to iterate over additions!\n");
-	FileSystemIterator* add_iterator = filesystemiterator_new(deletions);
+	FileSystemIterator* add_iterator = filesystemiterator_new(additions);
 	char *path;
 
 	if (!add_iterator){
@@ -236,14 +238,29 @@ int GetFileAdditions(FileSystem *additions){
 	}
 
 	/* iterate over the fileystem, delete any files that are in it */
-	while (NULL != (path = filesystemiterator_next(add_iterator))){
+	int len;
+	while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
 		printf("GetFileAdditions: found addition at: %s\n", path);
 
-		/* figure out who to request from */
+		/* if this is a folder */
+		if (-1 == len){
+			if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				printf("GetFileAdditions: failed to create %s\n", path);
+			}
+			continue;
+		}
 
-		/* make that request */
+		/* open chunk file and get the number of chunks */
+		ChunkyFile* file = chunkyfile_new_empty(len);
 
-		free(path);
+		/* write that file to the path */
+		chunkyfile_write_to_path(file, path);
+
+		/* request all chunks */
+		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
+
+		/* destroy the chunky file */
+
 		path = NULL;
 	}
 
@@ -329,11 +346,11 @@ int DestroyPeerTable(peer_table_t *pt){
 
 int CheckFileSystem(FileSystem *fs){
 	char *path;
+	int len;
 	FileSystemIterator *iterator = filesystemiterator_new(fs);
-	if (NULL != (path = filesystemiterator_next(iterator))){
+	if (NULL != (path = filesystemiterator_next(iterator, &len))){
 		printf("CheckFileSystem: FileSystem is nonempty\n");
 		filesystemiterator_destroy(iterator);
-		free(path);
 		return 1;
 	}
 	printf("CheckFileSystem: FileSystem is empty\n");
@@ -394,7 +411,7 @@ int main(int argv, char* argc[]){
 	/* start the loop process that will run while we are connected to the tracker 
 	 * this will handle peer adds and dels and receive updates from the master 
 	 * filesystem and monitor the local filesystem */
-	int new_client = -1, del_client = -1;
+	int new_client = -1, del_client = -1, peer_id = -1, chunk_id = -1, len = -1;
 	FileSystem *master;
 	int recv_len;
 	while (1){
@@ -417,45 +434,78 @@ int main(int argv, char* argc[]){
 		}
 
 		/* check to see if any requests for files have been made to you */
-		int *peer_id = malloc(sizeof(int));
-		int *chunk_id = malloc(sizeof(int));
-		int *len = malloc(sizeof(int));
 		char *filepath;
-		while (-1 != receive_chunk_request(cnt, &filepath, peer_id, chunk_id, len)){
-			printf("CLIENT MAIN: received chunk request from peer: %d\n", *peer_id);
+		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
+			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
 
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_from_path(filepath);
+
+			if (!file){	// need to send a rejection message somehow
+				printf("chunkyfile_new_from_path() failed on %s\n", filepath);
+				continue;
+			}
+
 			// should chunk be already malloc'd?  what about chunk size?
 			char *chunk_text;
 			int chunk_len;
-			chunkyfile_get_chunk(file, chunk_id, char** chunk, int* chunkSize);
+			if (GET_ALL_CHUNKS == chunk_id){	// send the entire file
+				int num_chunks = chunkyfile_num_chunks(file);
 
-			/* send that chunk to the peer */
-			send_chunk(cnt, peer_id, chunk_text, chunk_len);
+				for (int i = 0; i < num_chunks; i++){
+					printf("CLIENT MAIN: sending chunk %d to peer %d\n", i, peer_id);
 
-			/* destroy that chunky file how? */
+					chunkyfile_get_chunk(file, i, &chunk_text, &chunk_len);
+
+					send_chunk(cnt, peer_id, filepath, i, chunk_text, chunk_len);
+				}
+			} else {
+				chunkyfile_get_chunk(file, chunk_id, &chunk_text, &chunk_len);
+
+				/* send that chunk to the peer */
+				send_chunk(cnt, peer_id, filepath, chunk_id, chunk_text, chunk_len);
+			}
+
+			/* destroy that chunky file */
+
+			filepath = NULL;
 		}
-		free(peer_id);
-		free(chunk_id);
-		free(len);
 
 		/* poll for any received chunks */
 		char *chunk_data;
 		int chunk_id;
-		while (NULL != (chunk_data = receive_chunk(cnt))){
+		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
+				&len, &chunk_data)){
 
+			/* if len is -1, then we received a rejection response */
+			if (-1 == len){	// how should I handle this???
+				printf("CLIENT MAIN: receive_chunk got a rejection response\n");
+				continue;
+			}
+
+			/* open the chunky file */
+			ChunkyFile *file = chunkyfile_new_from_path(filepath);
+
+			/* set the correct chunk */
+			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
+
+			/* destroy the chunky file */
+
+			free(chunk_data);
+			filepath = NULL;
+			chunk_data = NULL;
 		}
 
 		/* poll for any diffs, if they exist then we need to make updates to 
 		 * our filesystem */
 		FileSystem *additions, *deletions;
-		while (-1 != recv_diff(cnt, &additions, &deletions)){
+		int author_id;
+		while (-1 != recv_diff(cnt, &additions, &deletions, &author_id)){
 			/* get rid of the deletions */
 			RemoveFileDeletions(deletions);
 
 			/* get the file additions from peers, and update the filesystem */
-			GetFileAdditions(additions);
+			GetFileAdditions(additions, author_id);
 		}
 
 		/* poll to see if there are any changes to the master file system 
