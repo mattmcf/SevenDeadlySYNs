@@ -74,6 +74,9 @@ int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_i
  *	data_len - (not claimed) will be filled with length of chunk data
  * 	data - (not claimed) will be filled with pointer to data
  * 	ret : (static) 1 if chunk was received, -1 if no chunk
+ *
+ *	Note!!! If recieve_chunk returns 1 and data_len == -1, then that's a rejection response!
+ *
  */
 int receive_chunk(CNT *cnt, int *peer_id, char **file_name, int *chunk_id, int *data_len, char **data);
 

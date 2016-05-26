@@ -94,7 +94,7 @@ typedef struct chunk {
 typedef enum {
 	REQUEST_CHUNK,
 	CHUNK,
-	ERROR,
+	REQ_REJECT,
 } client_to_client_t;
 
 typedef struct c2c_pkt {
