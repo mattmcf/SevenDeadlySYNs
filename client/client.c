@@ -48,7 +48,7 @@ int CheckFileSystem(FileSystem *fs);
 /* calloc the peer table and check the return function 
  *		(not claimed) - pt: the peer table
  */
-int CreatePeerTable(peer_table_t *pt);
+int CreatePeerTable(peer_table_t ** pt);
 
 /* calloc a new peer for the table and append it to the list.
  * 		(not claimed) - peer: the new peer to be appended
@@ -271,8 +271,8 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 
 /* ----------------------- Private Function Bodies --------------------- */
 
-int CreatePeerTable(peer_table_t *pt){
-	if (!(pt = calloc(1, sizeof(peer_table_t)))){
+int CreatePeerTable(peer_table_t **pt){
+	if (!(*pt = calloc(1, sizeof(peer_table_t)))){
 		printf("CreatePeerTable: calloc() failed\n");
 		return -1;
 	}
@@ -401,7 +401,7 @@ int main(int argv, char* argc[]){
 
 	/* create a peer table that we will use to keep track of who to request what
 	 * file from */
-	if (-1 == CreatePeerTable(pt)){
+	if (-1 == CreatePeerTable(&pt)){
 		printf("CLIENT MAIN: CreatePeerTable() failed\n");
 	}
 
