@@ -26,6 +26,7 @@
 #include "../common/packets.h"
 #include "../utility/AsyncQueue/AsyncQueue.h" 
 #include "../utility/FileSystem/FileSystem.h" 
+#include "../utility/HashTable/HashTable.h"
 
 #define INIT_PEER_SIZE 10
 
@@ -99,10 +100,35 @@ typedef struct _CNT {
 
 	peer_table_t * peer_table;
 
+	HashTable * request_table;
+
 } _CNT_t;
 
 // network thread start point
 void * clt_network_start(void * arg);
+
+// structures for connection record table
+typedef struct connection_record {
+	int client_id;
+	int outstanding_requests;
+} conn_rec_t;
+
+int ConnRecHash(void * target) {
+	conn_rec_t * entry = (conn_rec_t *)target;
+	return entry->client_id;
+}
+
+int ConnEqualsFunction(void * e0, void * e1) {
+	conn_rec_t * entry0 = (conn_rec_t *)e0;
+	conn_rec_t * entry1 = (conn_rec_t *)e1;
+	return (entry0->client_id == entry1->client_id);
+}
+
+/* ################################################## *
+ * 
+ * Starting and ending network thread functions
+ *
+ * ################################################## */
 
 CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 
@@ -150,6 +176,8 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 		return NULL;
 	}
 
+	client_thread->request_table = hashtable_new(&ConnRecHash, &ConnEqualsFunction);
+
 	/* -- spin off network thread -- */
 	pthread_create(&client_thread->thread_id, NULL, clt_network_start, client_thread);
 
@@ -195,6 +223,9 @@ void EndClientNetwork(CNT * thread_block) {
 	}
 
 	destroy_table(cnt->peer_table);
+
+	hashtable_apply(cnt->request_table, &free);
+	hashtable_destroy(cnt->request_table);
 
 	close(cnt->tracker_fd);
 	close(cnt->peer_listening_fd);
@@ -597,6 +628,10 @@ int open_peer_listening_port();
 int connect_to_peer(peer_t * peer, int id);
 int disconnect_from_peer(peer_t * peer, int id);
 
+// both paranoidly return the incremented length 
+int increment_conn_record(_CNT_t * cnt, int client_id);
+int decrement_conn_record(_CNT_t * cnt, int client_id);
+
 int handle_tracker_msg(_CNT_t * cnt);
 int handle_peer_msg(int sockfd, _CNT_t * cnt);
 
@@ -708,18 +743,26 @@ void * clt_network_start(void * arg) {
 
 					printf("\nclient network received message from peer on socket %d\n", i);
 					if (handle_peer_msg(i, cnt) != 1) {
-						fprintf(stderr, "failed to handle client message. Ending.\n");
+						fprintf(stderr, "Error receiving from socket %d -- Ending session\n", i);
 
-						peer_t * bad_peer = get_peer_by_socket(cnt->peer_table, i);
-						if (bad_peer)
-							bad_peer->socketfd = -1;
+						// clean up existing peer connection data
+						peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
+						if (dead_peer != NULL) {
+							dead_peer->socketfd = -1;
 
+							conn_rec_t dead_record;
+							dead_record.client_id = dead_peer->id;
+							conn_rec_t * request_record = (conn_rec_t *)hashtable_get_element(cnt->request_table, &dead_record);
+							if (request_record) {
+								request_record->outstanding_requests = 0;
+							}
+						}
+						
 						FD_CLR(i, &active_fd_set);
 						close(i);
 					}
 				}
 			}
-
 		} 	// end of socket scan
 
 		/* send heart beat if necessary */
@@ -871,6 +914,38 @@ int disconnect_from_peer(peer_t * peer, int id) {
 	}
 
 	return 1;
+}
+
+// both paranoidly return the incremented length 
+int increment_conn_record(_CNT_t * cnt, int client_id) {
+	if (!cnt) {
+		return -1;
+	}
+
+	conn_rec_t record;
+	record.client_id = client_id;
+	conn_rec_t * entry = hashtable_get_element(cnt->request_table, &record);
+	if (!entry) {
+		// make a crecord 
+		conn_rec_t * new_record = (conn_rec_t *)malloc(sizeof(conn_rec_t));
+		new_record->client_id = client_id;
+		new_record->outstanding_requests = 0;
+		hashtable_add(cnt->request_table, (void*)new_record);
+		entry = new_record;
+	}
+
+	return (entry != NULL) ? entry->outstanding_requests++ : -1;
+}
+int decrement_conn_record(_CNT_t * cnt, int client_id) {
+	if (!cnt) {
+		return -1;
+	}
+
+	conn_rec_t record;
+	record.client_id = client_id;
+	conn_rec_t * entry = hashtable_get_element(cnt->request_table, &record);
+
+	return (entry != NULL) ? entry->outstanding_requests-- : -1;
 }
 
 int handle_tracker_msg(_CNT_t * cnt) {
@@ -1039,6 +1114,10 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			queue_item->data = data_buf;
 			data_buf = NULL; // don't free here -- pass to notify queue
 
+			if (decrement_conn_record(cnt, peer->id == 0)) {
+				disconnect_from_peer(peer, peer->id);
+			}
+
 			notify_chunk_received(cnt, queue_item);
 			break;
 
@@ -1054,6 +1133,10 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			queue_item->chunk_num = pkt.chunk_num;
 			queue_item->data_len = pkt.data_len;
 			queue_item->data = NULL;
+
+			if (decrement_conn_record(cnt, peer->id == 0)) {
+				disconnect_from_peer(peer, peer->id);
+			}
 
 			notify_error_received(cnt, queue_item);
 			break;
@@ -1207,6 +1290,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
 
 		printf("NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
+		increment_conn_record(cnt, peer->id);
 
 		free(queue_item->file_name);
 		free(queue_item);
