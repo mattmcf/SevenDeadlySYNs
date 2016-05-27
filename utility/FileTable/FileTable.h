@@ -21,9 +21,13 @@ void filetable_serialize(FileTable* filetable, char** data, int* length);
 //	ret	      : (not claimed) The returned filetable
 FileTable* filetable_deserialize(char* data, int* bytesRead);
 
-Queue* filetable_get_peers_have_file(FileTable* filetable, char* path);
-void   filetable_set_peer_has_file(FileTable* filetable, char* path, int id);
+
+void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer);
+void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem);
+
+
+Queue* filetable_get_peers_have_file(FileTable* filetable, char* path, int chunk);
+void   filetable_set_peer_has_file_chunk(FileTable* filetable, char* path, int chunk, int peer);
 void   filetable_remove_peer(FileTable* filetable, int id);
-void   filetable_clear_file(FileTable* filetable, char* path);
 
 #endif

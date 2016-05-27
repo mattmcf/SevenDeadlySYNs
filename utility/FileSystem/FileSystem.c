@@ -140,6 +140,20 @@ int file_equals(void* elementp, void* keyp)
 	
 	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified && (f0->is_folder == f1->is_folder);
 }
+int file_newer(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified > f1->last_modified && (f0->is_folder == f1->is_folder);
+}
+int file_older(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified < f1->last_modified && (f0->is_folder == f1->is_folder);
+}
 
 // ******************************** Folder ********************************
 
@@ -156,7 +170,7 @@ Folder* folder_new(char* path, char* name)
 	if (!d)
 	{
 		fprintf(stderr, "Bad folder path\n");
-		return NULL;
+		assert(0);
 	}
 		
 	_Folder* folder = create_new(_Folder);
@@ -289,14 +303,14 @@ Folder* folder_copy(Folder* folder)
 /*
 folder = folder - toSubtract
 */
-void folder_subtract(Folder* folder, Folder* toSubtract)
+void folder_subtract(Folder* folder, Folder* toSubtract, QueueSearchFunction equalsFunc)
 {
 	_Folder* f = (_Folder*)folder;
 	_Folder* toSub = (_Folder*)toSubtract;
 		
 	for (int i = 0; i < queue_length(toSub->files); i++)
 	{
-		File* removed = queue_remove(f->files, file_equals, queue_get(toSub->files, i));
+		File* removed = queue_remove(f->files, equalsFunc, queue_get(toSub->files, i));
 		if (removed)
 		{
 			file_destroy(removed);
@@ -310,7 +324,7 @@ void folder_subtract(Folder* folder, Folder* toSubtract)
 				
 		if (removed)
 		{			
-			folder_subtract(removed, toRemove);
+			folder_subtract(removed, toRemove, equalsFunc);
 			_Folder* tmp = (_Folder*)removed;
 			
 			if (queue_length(tmp->files) == 0 && queue_length(tmp->folders) == 0)
@@ -357,7 +371,7 @@ void folder_remove(Folder* folder, Folder* toSubtract)
 				
 		if (removed)
 		{			
-			folder_subtract(removed, toRemove);
+			folder_subtract(removed, toRemove, folder_equals);
 		}
 	}
 }
@@ -455,7 +469,7 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	return fs->root_path;
+	return fs->root_path ? fs->root_path : "";
 }
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
@@ -475,12 +489,12 @@ void filesystem_print(FileSystem* filesystem)
 	assert(fs->root);
 	folder_print(fs->root, 0);
 }
-void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1)
+void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1, QueueSearchFunction equalsFunc)
 {
 	_FileSystem* fs0 = (_FileSystem*)filesystem0;
 	_FileSystem* fs1 = (_FileSystem*)filesystem1;
 	
-	folder_subtract(fs0->root, fs1->root);
+	folder_subtract(fs0->root, fs1->root, equalsFunc);
 }
 void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 {
@@ -500,19 +514,47 @@ void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 
 	folder_add(fs0->root, fs1->root);
 }
-void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+void filesystem_diff_helper(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions, QueueSearchFunction equalsFunc)
 {
 	assert(old && new && additions && deletions);
 	
 	*additions = filesystem_copy(old);
 	*deletions = filesystem_copy(new);
 	
-	filesystem_minus_equals_diff(*deletions, *additions);
-	filesystem_minus_equals_diff(*additions, new);
+	filesystem_minus_equals_diff(*deletions, *additions, equalsFunc);
+	filesystem_minus_equals_diff(*additions, new, equalsFunc);
 	
 	FileSystem* tmp = *additions;
 	*additions = *deletions;
 	*deletions = tmp;
+}
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+{
+	filesystem_diff_helper(old, new, additions, deletions, file_equals);
+}
+
+FileSystem* filesystem_get_updates(FileSystem* additions, FileSystem* deletions)
+{
+	assert(additions && deletions);
+	
+	FileSystem* a1;
+	FileSystem* d1;
+	
+	filesystem_diff_helper(additions, deletions, &a1, &d1, file_older);
+	
+	printf("A1\n");
+	filesystem_print(a1);
+	printf("A2\n");
+	filesystem_print(d1);
+	
+	FileSystem* a0 = filesystem_copy(additions);
+	
+	filesystem_minus_equals(a0, d1);
+	
+	filesystem_destroy(a1);
+	filesystem_destroy(d1);
+	
+	return a0;
 }
 
 #define FILE_MARKER (0xFF)
