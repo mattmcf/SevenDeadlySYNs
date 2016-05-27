@@ -226,6 +226,7 @@ void DropFromNetwork(){
 	/* close our files and free our memory */
 	filesystem_destroy(cur_fs);
 	DestroyPeerTable();
+	filetable_destroy(ft);
 
 	exit(0);
 }
@@ -566,6 +567,12 @@ int main(int argv, char* argc[]){
 
 			/* get the file additions from peers, and update the filesystem */
 			GetFileAdditions(additions, author_id);
+
+			/* get ready for next recv diff or iteration of loop */
+			filesystem_destroy(deletions);
+			filesystem_destroy(additions);
+			additions = NULL;
+			deletions = NULL;
 		}
 
 		/* poll to see if there are any changes to the master file system 
