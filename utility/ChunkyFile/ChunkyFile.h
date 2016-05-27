@@ -17,4 +17,6 @@ void chunkyfile_set_chunk(ChunkyFile* chunkyfile, int chunkNum, char*  chunk, in
 
 void chunkyfile_destroy(ChunkyFile* chunkyfile);
 
+int num_chunks_for_size(int size);
+
 #endif

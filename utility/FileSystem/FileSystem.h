@@ -3,6 +3,8 @@
 
 #include "../Queue/Queue.h"
 
+char* copy_string(char* string);
+
 /*
 A nice c "class" that deals with the filesystem. See the bottom of FileSystem.c for example usage.
 */
@@ -33,8 +35,6 @@ void filesystem_print(FileSystem* fs);
 //	deletions  : (not claimed) After returning, contains a filesystem describing any files that were deleted.
 void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions);
 
-FileSystem* filesystem_get_updates(FileSystem* additions, FileSystem* deletions);
-
 // Subtracts one filesystem1 from filesystem0, filesystem0 -= filesystem1
 // filesystem0 : (not claimed) The filesystem that should have things removed from it. THIS IS MODIFIED!!!
 // filesystem1 : (not claimed) The other filesystem. Not modified. This argument should come from the
@@ -56,6 +56,11 @@ FileSystem* filesystem_copy(FileSystem* filesystem);
 //	filesystem : (not claimed) The filesystem in question
 //	ret        : (claimed) The path to the root directory of the filesystem
 char* filesystem_get_root_path(FileSystem* filesystem);
+
+// Sets the root path of the given filesystem.
+//	filesystem : (not claimed) The filesystem in question
+//	path       : (not claimed) The path to the root directory of the filesystem
+void filesystem_set_root_path(FileSystem* filesystem, char* path);
 
 // Serializes the provided filesystem to save it to disk or send over the network.
 //	filesystem : (not claimed) The filesystem to serialize

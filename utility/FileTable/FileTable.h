@@ -3,6 +3,7 @@
 
 #include "../HashTable/HashTable.h"
 #include "../Queue/Queue.h"
+#include "../FileSystem/FileSystem.h"
 
 typedef struct FileTable FileTable;
 
@@ -25,9 +26,10 @@ FileTable* filetable_deserialize(char* data, int* bytesRead);
 void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer);
 void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem);
 
-
-Queue* filetable_get_peers_have_file(FileTable* filetable, char* path, int chunk);
-void   filetable_set_peer_has_file_chunk(FileTable* filetable, char* path, int chunk, int peer);
+Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path, int chunk);
+void   filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, int peer, int chunk);
 void   filetable_remove_peer(FileTable* filetable, int id);
+
+void filetable_print(FileTable* filetable);
 
 #endif

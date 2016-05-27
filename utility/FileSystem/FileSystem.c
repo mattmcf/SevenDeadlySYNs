@@ -140,19 +140,26 @@ int file_equals(void* elementp, void* keyp)
 	
 	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified && (f0->is_folder == f1->is_folder);
 }
-int file_newer(void* elementp, void* keyp)
+int file_ignore_time(void* elementp, void* keyp)
 {
 	_File* f0 = (_File*)elementp;
 	_File* f1 = (_File*)keyp;
 	
-	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified > f1->last_modified && (f0->is_folder == f1->is_folder);
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && (f0->is_folder == f1->is_folder);
 }
 int file_older(void* elementp, void* keyp)
 {
 	_File* f0 = (_File*)elementp;
 	_File* f1 = (_File*)keyp;
 	
-	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified < f1->last_modified && (f0->is_folder == f1->is_folder);
+	return strcmp(f0->name, f1->name) == 0 && f0->last_modified <= f1->last_modified && (f0->is_folder == f1->is_folder);
+}
+int file_newer(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->last_modified > f1->last_modified && (f0->is_folder == f1->is_folder);
 }
 
 // ******************************** Folder ********************************
@@ -455,7 +462,10 @@ void filesystem_destroy(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	free(fs->root_path);
+	if (fs->root_path)
+	{
+		free(fs->root_path);
+	}
 	folder_destroy(fs->root);
 	free(fs);
 	return;
@@ -470,6 +480,12 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
 	return fs->root_path ? fs->root_path : "";
+}
+void filesystem_set_root_path(FileSystem* filesystem, char* path)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	fs->root_path = copy_string(path);
 }
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
@@ -528,33 +544,34 @@ void filesystem_diff_helper(FileSystem* old, FileSystem* new, FileSystem** addit
 	*additions = *deletions;
 	*deletions = tmp;
 }
-void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
-{
-	filesystem_diff_helper(old, new, additions, deletions, file_equals);
-}
-
-FileSystem* filesystem_get_updates(FileSystem* additions, FileSystem* deletions)
+void filesystem_handle_updates(FileSystem* additions, FileSystem* deletions)
 {
 	assert(additions && deletions);
 	
 	FileSystem* a1;
 	FileSystem* d1;
 	
-	filesystem_diff_helper(additions, deletions, &a1, &d1, file_older);
-	
-	printf("A1\n");
-	filesystem_print(a1);
-	printf("A2\n");
-	filesystem_print(d1);
-	
+	filesystem_diff_helper(additions, deletions, &a1, &d1, file_ignore_time);
+		
 	FileSystem* a0 = filesystem_copy(additions);
+	FileSystem* d0 = filesystem_copy(deletions);
 	
-	filesystem_minus_equals(a0, d1);
+	filesystem_minus_equals_diff(a0, d1, file_equals);
+	filesystem_minus_equals_diff(d0, a1, file_equals);
 	
 	filesystem_destroy(a1);
 	filesystem_destroy(d1);
-	
-	return a0;
+		
+	filesystem_minus_equals_diff(additions, d0, file_newer);
+	filesystem_minus_equals_diff(deletions, a0, file_older);
+			
+	filesystem_destroy(a0);
+	filesystem_destroy(d0);
+}
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+{
+	filesystem_diff_helper(old, new, additions, deletions, file_equals);
+	filesystem_handle_updates(*additions, *deletions);
 }
 
 #define FILE_MARKER (0xFF)
