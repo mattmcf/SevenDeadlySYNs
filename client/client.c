@@ -13,6 +13,7 @@
 #include <sys/stat.h>	//mkdir
 #include <arpa/inet.h>	// in_addr_t
 #include <pthread.h>	//thread stuff
+#include <signal.h>
 
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
