@@ -27,6 +27,7 @@
 #include "../utility/AsyncQueue/AsyncQueue.h" 
 #include "../utility/FileSystem/FileSystem.h" 
 #include "../utility/HashTable/HashTable.h"
+#include "../utility/FileTable/FileTable.h"
 
 #define INIT_PEER_SIZE 10
 
@@ -38,6 +39,7 @@
 #define TKR_2_ME_PEER_ADDED 2
 #define TKR_2_ME_PEER_DELETED 3
 #define TKR_2_ME_RECEIVE_MASTER_JFS 4
+#define TKR_2_ME_RECEIVE_MASTER_FT 5
 
 #define CLT_2_ME_REQUEST_CHUNK 0
 #define CLT_2_ME_RECEIVE_CHUNK 1
@@ -62,6 +64,7 @@ typedef struct _CNT {
 	 * tkr_queues_to_client[2] -> peer added queue
 	 * tkr_queues_to_client[3] -> peer deleted queue
 	 * tkr_queues_to_client[4] -> master JFS
+	 * tkr_queues_to_client[5] -> master file table
 	 * 
 	 * -- client 2 client --
 	 * clt_queues_to_client[0] -> receive request for chunk
@@ -140,12 +143,13 @@ CNT * StartClientNetwork(char * ip_addr, int ip_len) {
 	_CNT_t * client_thread = (_CNT_t *)calloc(1,sizeof(_CNT_t));
 
 	/* -- incoming client to tracker -- */
-	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(5, sizeof(AsyncQueue *));
+	client_thread->tkr_queues_to_client = (AsyncQueue **)calloc(6, sizeof(AsyncQueue *));
 	client_thread->tkr_queues_to_client[TKR_2_ME_FS_UPDATE] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_FILE_ACQ] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_ADDED] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_PEER_DELETED] = asyncqueue_new();
 	client_thread->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS] = asyncqueue_new();
+	client_thread->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT] = asyncqueue_new();
 
 	/* -- incoming client to client -- */
 	client_thread->clt_queues_to_client = (AsyncQueue **)calloc(2,sizeof(AsyncQueue *));
@@ -197,6 +201,7 @@ void EndClientNetwork(CNT * thread_block) {
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_ADDED]);
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_PEER_DELETED]);
 	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_JFS]);
+	asyncqueue_destroy(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT]);
 	free(cnt->tkr_queues_to_client);
 
 	asyncqueue_destroy(cnt->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK]);
@@ -315,6 +320,34 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 	}
 
  	return fs;
+}
+
+// receives a master file table from the tracker : TKR_2_ME_RECEIVE_MASTER_FT
+// 	thread_block : (not claimed) thread block
+//	length_deserialized : (not claimed) will be filled in with # of bytes deserialized
+// 	ret : (not claimed) master file table if one is present, NULL if not available
+FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
+	if (!thread_block || !length_deserialized) {
+		fprintf(stderr, "recv_master_ft error: null arguments\n");
+		return -1;
+	}
+
+	_CNT_t * cnt = (_CNT_t *)thread_block;
+	client_data_t * queue_item = asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT]);
+	FileTable * ft = NULL;
+	if (queue_item != NULL) {
+
+		ft = filesystem_deserialize(queue_item->data, length_deserialized);
+		if (*length_deserialized < 1) {
+			fprintf(stderr, "recv_master_ft error: didn't deserialize any bytes\n");
+			return NULL;
+		}
+
+		free(queue_item->data);
+		free(queue_item);
+	}
+
+	return ft;
 }
 
 // receive request for chunk : CLT_2_ME_REQUEST_CHUNK
@@ -614,6 +647,14 @@ int notify_error_received(_CNT_t * cnt, chunk_data_t * queue_item) {
 
 	asyncqueue_push(cnt->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK], (void*)queue_item);
 	return 1;
+}
+
+int notify_master_ft_received(_CNT_t * cnt, client_data_t * queue_item) {
+	if (!cnt || !queue_item) {
+		return -1;
+	}
+
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT], (void*)queue_item);
 }
 
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
@@ -994,6 +1035,14 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			}
 
 			notify_master_received(cnt, master_update);
+			break;
+
+		case MASTER_FT:
+			printf("NETWORK -- received master file table from tracker\n");
+			client_data_t * master_ft = malloc(sizeof(client_data_t));
+			master_ft->data = (void *)filetable_deserialize(buf, &master_ft->data_len);
+
+			notify_master_ft_received(cnt, master_ft);
 			break;
 
 		case PEER_TABLE:

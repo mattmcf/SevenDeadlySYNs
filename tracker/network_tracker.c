@@ -25,6 +25,7 @@
 #include "../common/constant.h"
 #include "../common/peer_table.h"
 #include "../common/packets.h"
+#include "../utility/FileTable/FileTable.h"
 
 #define INIT_CLIENT_NUM 10
 
@@ -44,6 +45,7 @@
 #define TKR_2_CLT_ADD_PEER 3
 #define TKR_2_CLT_REMOVE_PEER 4
 #define TKR_2_CLT_SEND_MASTER 5
+#define TKR_2_CLT_SEND_MASTER_FT 6
 
 typedef struct _TNT {
 
@@ -72,6 +74,7 @@ typedef struct _TNT {
  	 * queues_from_tracker[3] -> peer added messages to distribute
  	 * queues_from_tracker[4] -> peer removed messages to distribute
  	 * queues_from_tracker[5] -> send master file system to client
+ 	 * queues_from_tracker[6] -> send master file table to client
  	 *
  	 */
  	AsyncQueue ** queues_from_tracker;  	// from logic
@@ -103,13 +106,14 @@ TNT * StartTrackerNetwork() {
 	tracker_thread->queues_to_tracker[CLT_2_TKR_CLIENT_REQ_MASTER] = asyncqueue_new();
 
 	/* -- outgoing from tracker to client -- */
-	tracker_thread->queues_from_tracker = (AsyncQueue **)calloc(6,sizeof(AsyncQueue *));
+	tracker_thread->queues_from_tracker = (AsyncQueue **)calloc(7,sizeof(AsyncQueue *));
 	tracker_thread->queues_from_tracker[TKR_2_CLT_TXN_UPDATE] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[TKR_2_CLT_FILE_ACQ] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[TKR_2_CLT_FS_UPDATE] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[TKR_2_CLT_ADD_PEER] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[TKR_2_CLT_REMOVE_PEER] = asyncqueue_new();
 	tracker_thread->queues_from_tracker[TKR_2_CLT_SEND_MASTER] = asyncqueue_new();
+	tracker_thread->queues_from_tracker[TKR_2_CLT_SEND_MASTER_FT] = asyncqueue_new();
 
 	/* -- set up auxillary information -- */
 	tracker_thread->peer_table = init_peer_table(INIT_CLIENT_NUM);
@@ -146,6 +150,7 @@ void EndTrackerNetwork(TNT * thread_block) {
 	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER]);
 	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER]);
 	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER]);
+	asyncqueue_destroy(tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER_FT]);
 	free(tnt->queues_from_tracker);
 
 	close(tnt->listening_sockfd);
@@ -376,6 +381,36 @@ int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 	filesystem_serialize(fs, (char **)&queue_item->data, &queue_item->data_len);
 	
 	asyncqueue_push(thread_block->queues_from_tracker[TKR_2_CLT_SEND_MASTER], (void *)queue_item);
+	return 1;
+}
+
+// send master FileTable to client
+//	tnt : (not claimed) thread block
+// 	client_id : (static) client to send to
+// 	ft : (not claimed) FileTable to send
+// 	ret : (static) 1 on success, -1 on failure
+int send_master_filetable(TNT * thread_block, int client_id, FileTable * ft) {
+	if (!thread_block || !ft) {
+		fprintf(stderr,"send_master_filetable error: null arguments\n");
+		return -1;
+	}
+
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+
+	if (!get_peer_by_id(tnt->peer_table, client_id)) {
+		fprintf(stderr, "send_master_filetable error: cannot find client %d\n", client_id);
+		return -1;
+	}
+
+	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
+	queue_item->client_id = client_id;
+	filetable_serialize(ft, (char **)&queue_item->data, &queue_item->data_len);
+	if (queue_item->data_len < 1) {
+		fprintf(stderr, "send_master_filetable error: did not serialize any bytes\n");
+		return -1;
+	}	
+
+	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER_FT], (void*)queue_item);
 	return 1;
 }
 
@@ -914,5 +949,20 @@ void check_send_master_q(_TNT_t * tnt) {
 	}
 
 	return;
+}
+
+void check_send_master_ft_q(_TNT_t * tnt) {
+	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_SEND_MASTER_FT];
+	tracker_data_t * queue_item;
+	while ((queue_item = asyncqueue_pop(q)) != NULL) {
+
+		printf("NETWORK -- sending master file table to client %d\n", queue_item->client_id);
+		if (send_client_message(tnt, queue_item, MASTER_FT) != 1) {
+			fprintf(stderr,"failed to send master file table to client %d\n", queue_item->client_id);
+		}
+
+		free(queue_item->data);
+		free(queue_item);
+	}
 }
 

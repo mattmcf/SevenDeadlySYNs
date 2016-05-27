@@ -9,6 +9,7 @@
 #define _NETWORK_CLIENT_H
 
 #include "../utility/FileSystem/FileSystem.h"
+#include "../utility/FileTable/FileTable.h"
 
 #define IP_MAX_LEN 16
 
@@ -54,6 +55,12 @@ int recv_peer_deleted(CNT * thread_block);
 //	ret : (not claimed) master file system
 //				null if no update
 FileSystem * recv_master(CNT * thread, int * received_length);
+
+// receives a master file table from the tracker
+// 	thread_block : (not claimed) thread block
+//	length_deserialized : (not claimed) will be filled in with # of bytes deserialized
+// 	ret : (not claimed) master file table if one is present, NULL if not available
+FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized);
 
 /* poll the network to see if we have received a chunk request
  * from a peer client 

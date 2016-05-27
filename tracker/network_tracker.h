@@ -9,7 +9,8 @@
 #define _NETWORK_TRACKER_H
 
 #include "../utility/FileSystem/FileSystem.h"
-
+#include "../utility/FileTable/FileTable.h"
+ 
 #define SEND_TO_ALL_PEERS -1 	// used for send_peer() call
 
 typedef struct TNT TNT;
@@ -77,6 +78,17 @@ int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);
 int send_peer_removed(TNT * tnt, int destination_client_id, int removed_client_id);
 
 // send master JFS to client
+// 	tnt : (not claimed) thread block
+//	client_id : (not claimed) who to send to
+//	fs : (not claimed) FileSystem to send
+//	ret : (static) 1 on success, -1 on failure
 int send_master(TNT * tnt, int client_id, FileSystem * fs);
+
+// send master FileTable to client
+//	tnt : (not claimed) thread block
+// 	client_id : (static) client to send to
+// 	ft : (not claimed) FileTable to send
+// 	ret : (static) 1 on success, -1 on failure
+int send_master_filetable(TNT * tnt, int client_id, FileTable * ft);
 
 #endif // _NETWORK_TRACKER_H 
