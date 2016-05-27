@@ -562,6 +562,11 @@ void * tkr_network_start(void * arg) {
 					// notify tracker
 					notify_new_client(tnt, new_client);
 					send_peer_table_to_client(tnt, new_client->socketfd);
+
+					// DEBUG -- 
+					printf("New Peer Table\n");
+					print_table(tnt->peer_table);
+
 					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
@@ -579,6 +584,10 @@ void * tkr_network_start(void * arg) {
 							delete_peer(tnt->peer_table, lost_client->id);
 						}
 						
+						// DEBUG -- 
+						printf("New Peer table\n");
+						print_table(tnt->peer_table);
+
 						// don't listen to broken connection
 						FD_CLR(i, &active_fd_set);
 						close(i);
