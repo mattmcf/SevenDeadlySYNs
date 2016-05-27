@@ -1036,6 +1036,8 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 		case FILE_ACQ_UPDATE:
 		case PEER_ADDED:
+			printf("Received new peer. Adding to peer table\n");
+			break;
 		case PEER_DELETED:
 		default:
 			printf("CLIENT NETWORK received unhandled packet of type %d\n", pkt.type);
