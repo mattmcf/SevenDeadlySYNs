@@ -4,6 +4,7 @@
 #include "../Queue/Queue.h"
 
 char* copy_string(char* string);
+void push_string(Queue* queue, char* str);
 
 /*
 A nice c "class" that deals with the filesystem. See the bottom of FileSystem.c for example usage.

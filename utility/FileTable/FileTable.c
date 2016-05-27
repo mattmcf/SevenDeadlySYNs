@@ -26,7 +26,6 @@ void filetableentry_destroy(FileTableEntry* fte)
 	free(fte);
 }
 	
-
 /* Peter Weinberger's hash function, from Aho, Sethi, & Ullman
  * p. 436. */
 int hashPJW(char *s)
@@ -63,7 +62,13 @@ FileTable* filetable_new()
 	return (FileTable*)ft;
 }
 
-void filetable_destroy(FileTable* filetable);
+void filetable_destroy(FileTable* filetable)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	hashtable_apply(ft->table, (HashTableApplyFunction)filetableentry_destroy);
+	hashtable_destroy(ft->table);
+	free(ft);
+}
 
 void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer)
 {
@@ -125,8 +130,126 @@ void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem)
 	filesystemiterator_destroy(fsi);
 }
 
-void filetable_serialize(FileTable* filetable, char** data, int* length);
-FileTable* filetable_deserialize(char* data, int* bytesRead);
+#define START_TABLE  (0xFF)
+#define START_ENTRY  (0xFE)
+#define START_CHUNK  (0xFC)
+#define START_ID     (0xFB)
+#define END_CHUNK    (0xFA)
+#define END_ENTRY    (0xF8)
+#define END_TABLE	 (0xF7)
+
+void filetable_serialize(FileTable* filetable, char** data, int* length)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	Queue* ser = queue_new();
+	
+	queue_push(ser, (void*)(long)START_TABLE);
+		
+	HashTableIterator* hti = hashtableiterator_new(ft->table);
+	if (hti)
+	{
+		FileTableEntry* entry;
+		while ((entry = hashtableiterator_next(hti)))
+		{
+			queue_push(ser, (void*)(long)START_ENTRY);
+			push_string(ser, entry->path);
+			
+			for (int i = 0; i < queue_length(entry->chunks); i++)
+			{
+				queue_push(ser, (void*)(long)START_CHUNK);
+				Queue* chunk = queue_get(entry->chunks, i);
+				
+				for (int j = 0; j < queue_length(chunk); j++)
+				{
+					queue_push(ser, (void*)(long)START_ID);
+					int peer = (int)(long)queue_get(chunk, j);
+					char buf[50];
+					sprintf(buf, "%d", peer);
+					push_string(ser, buf);
+				}
+				queue_push(ser, (void*)(long)END_CHUNK);
+			}
+			queue_push(ser, (void*)(long)END_ENTRY);
+		}
+	}
+	
+	queue_push(ser, (void*)(long)(END_TABLE));
+	
+	*length = queue_length(ser);
+	*data = (char*)malloc(*length * sizeof(char));
+	for (int i = 0; i < *length; i++)
+	{
+		(*data)[i] = (char)(long)queue_get(ser, i);
+	}
+	queue_destroy(ser);
+}
+
+FileTable* filetable_deserialize(char* data, int* bytesRead)
+{
+	_FileTable* deser = NULL;
+	FileTableEntry* entry = NULL;
+	Queue* chunk = NULL;
+	
+	int i = 0;
+	
+	switch ((unsigned char)data[i])
+	{
+		case START_TABLE:
+		{
+			deser = (_FileTable*)filetable_new();
+			i += 1;
+			break;
+		}
+		case START_ENTRY:
+		{
+			entry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
+			entry->chunks = queue_new();
+			i += 1;
+			entry->path = copy_string(data + i);
+			i += strlen(entry->path) + 1;
+			break;
+		}
+		case START_CHUNK:
+		{
+			chunk = queue_new();
+			i += 1;
+			break;
+		}
+		case START_ID:
+		{
+			i += 1;
+			int numRead;
+			int peer;
+			sscanf(data + i, "%d%n", &peer, &numRead);
+			queue_push(chunk, (void*)(long)peer);
+			i += numRead + 1;
+			break;
+		}
+		case END_CHUNK:
+		{
+			queue_push(entry->chunks, chunk);
+			i += 1;
+			break;
+		}
+		case END_ENTRY:
+		{
+			hashtable_add(deser->table, entry);
+			i += 1;
+			break;
+		}
+		case END_TABLE:
+		{
+			*bytesRead = i;
+			return (FileTable*)deser;
+		}
+		default:
+		{
+			printf("Filetable deserialization error.\n");
+			assert(0);
+		}
+	}
+	return NULL;
+}
 
 Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path, int chunk)
 {

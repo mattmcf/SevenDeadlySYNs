@@ -19,6 +19,7 @@
 #include "network_client.h"
 #include "../utility/FileSystem/FileSystem.h"
 #include "../utility/ChunkyFile/ChunkyFile.h"
+#include "../utility/FileTable/FileTable.h"
 #include "../common/constant.h"
 
 /* ----------------------------- Constants ----------------------------- */
@@ -30,6 +31,7 @@
 CNT* cnt;
 FileSystem *cur_fs;
 peer_table_t *pt;
+FileTable *ft;
 
 /* ------------------------------- TODO -------------------------------- */
 
@@ -137,15 +139,29 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
 			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
-			/* figure out which client to get the file from */
+			/* re make that deleted file */
+			ChunkyFile *file = chunkyfile_new_empty(len);
+			if (!file){
+				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
+				continue;
+			}
 
-			/* make the requet */
+			/* save that file to the path */
+			chunkyfile_write_to_path(file, path);
 
-			/* receive the file from the peer */
+			/* figure out how many chunks we need to request */
+			int num_chunks = chunkyfile_num_chunks(file);
+			if (-1 == num_chunks){
+				printf("UpdateLocalFilesystem: chunkyfile_num_chunks() failed\n");
+			}
 
-			/* update local file system with received file */
+			/* for each chunk, find a peer who has it, and request it */
+			for (int i = 0; i < num_chunks; i++){//???
+				printf("UpdateLocalFilesystem: need to request a chunk\n");
+			}
 
 			/* get ready for next iteration */
+			chunkyfile_destroy(file);
 			path = NULL;
 		}
 
@@ -210,6 +226,8 @@ void DropFromNetwork(){
 	/* close our files and free our memory */
 	filesystem_destroy(cur_fs);
 	DestroyPeerTable();
+
+	exit(0);
 }
 
 int RemoveFileDeletions(FileSystem *deletions){
@@ -346,10 +364,13 @@ int RemovePeer(int peer_id){
 int DestroyPeerTable(){
 	printf("DestroyPeerTable: destroying the peer table\n");
 	while (pt->head){
+		printf("DestroyPeerTable: destroying peer: %d\n", pt->head->peer_id);
 		peer_t *temp = pt->head;
 		pt->head = pt->head->next;
 		free(temp);
 	}
+
+	printf("DestroyPeerTable: destroyed all peer_t\n");
 
 	free(pt);
 	return 1;
@@ -382,36 +403,46 @@ int main(int argv, char* argc[]){
 	char ip_addr[sizeof(struct in_addr)]; 	// IPv4 address length
 	if (inet_pton(AF_INET, argc[1], ip_addr) != 1) {
 		fprintf(stderr,"Could not parse host %s\n", argc[1]);
-		exit(0);
+		exit(-1);
 	}
 
 	/* create a peer table that we will use to keep track of who to request what
 	 * file from */
 	if (-1 == CreatePeerTable()){
 		printf("CLIENT MAIN: CreatePeerTable() failed\n");
+		exit(-1);
+	}
+
+	/* create a filetable that we use to request files from peers */
+	if (NULL == (ft = filetable_new())){
+		printf("CLIENT MAIN: filetable_new() failed\n");
+		DestroyPeerTable();
+		exit(-1);
 	}
 
 	/* start the client connection to the tracker and network */
 	/* may eventually update to add password sending */
 	if (NULL == (cnt = StartClientNetwork(ip_addr, sizeof(struct in_addr)) ) ) {
 		printf("CLIENT MAIN: StartClientNetwork failed\n");
-		exit(0);
+		exit(-1);
 	}
 
 	/* catch sig int so that we can politely close networks on kill */
 	signal(SIGINT, DropFromNetwork);
 	
 	/* check if the folder already exists, if it doesn't then make it */
-	if (0 != access(DARTSYNC_DIR, (F_OK))){
-		/* it doesn't exist, so make it */
-		if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-			printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
-		}
-	} 
+	// if (0 != access(DARTSYNC_DIR, (F_OK))){
+	// 	/* it doesn't exist, so make it */
+	// 	if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+	// 		printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
+	// 	}
+	// } 
 
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
+		DestroyPeerTable();
+		filetable_destroy(ft);
 		exit(-1);
 	}
 	filesystem_print(cur_fs);
@@ -520,6 +551,10 @@ int main(int argv, char* argc[]){
 		FileSystem *additions, *deletions;
 		int author_id;
 		while (-1 != recv_diff(cnt, &additions, &deletions, &author_id)){
+			/* set the root paths of the additions and deletions filesystems */
+			filesystem_set_root_path(additions, DARTSYNC_DIR);
+			filesystem_set_root_path(deletions, DARTSYNC_DIR);
+
 			/* get rid of the deletions */
 			RemoveFileDeletions(deletions);
 
@@ -532,6 +567,9 @@ int main(int argv, char* argc[]){
 		 * copy master to our local pointer of the filesystem */
 		printf("CLIENT MAIN: checking for updates from master\n");
 		while (NULL != (master = recv_master(cnt, &recv_len))){
+			/* set the root path of the master filesystem */
+			filesystem_set_root_path(master, DARTSYNC_DIR);
+
 			UpdateLocalFilesystem(master);
 		}
 
