@@ -10,7 +10,7 @@
 HEADER_FILES = common/constant.h 
 
 OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utility/AsyncQueue/asyncqueue.o \
-	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/SDSet/SDSet.o \
+	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
 	common/peer_table.o
 
 CFLAGS = -Wall -pedantic -std=c99 -g
@@ -49,6 +49,9 @@ utility/ChunkyFile/ChunkyFile.o: utility/ChunkyFile/ChunkyFile.c utility/ChunkyF
 
 utility/FileSystem/FileSystem.o: utility/FileSystem/FileSystem.c utility/FileSystem/FileSystem.h
 	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -o utility/FileSystem/FileSystem.o
+
+utility/FileTable/FileTable.o: utility/FileTable/FileTable.c utility/FileTable/FileTable.h
+	gcc $(CFLAGS) -c utility/FileTable/FileTable.c -o utility/FileTable/FileTable.o
 
 utility/HashTable/HashTable.o: utility/HashTable/HashTable.c utility/HashTable/HashTable.h utility/LinkedList/LinkedList.o
 	gcc $(CFLAGS) -c utility/HashTable/HashTable.c -o utility/HashTable/HashTable.o 
