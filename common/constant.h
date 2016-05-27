@@ -23,7 +23,7 @@
 #define NETWORK_WAIT 3
 
 // defined DART_SYNC directory that will be syncronized across peers
-#define DARTSYNC_DIR "~/dart_sync/"
+#define DARTSYNC_DIR "~/dart_sync"
 
 // metadata file that contains the most recent serialized 
 // version of the filesystem received from the tracker

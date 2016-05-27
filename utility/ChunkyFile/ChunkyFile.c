@@ -54,6 +54,7 @@ void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 	
 	for (int i = 0; i < cf->size; i++)
 	{
+		printf("i = %d\n", i);
 		fputc(cf->data[i], file);
 	}
 	
