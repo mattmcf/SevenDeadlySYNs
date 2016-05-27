@@ -36,7 +36,7 @@ int main()
 	
 		
 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
-	sleep(5);
+	sleep(10);
 		
 	FileSystem* changes = filesystem_new(path);
 	filesystem_diff(fs, changes, &additions, &deletions);
@@ -44,9 +44,11 @@ int main()
 	filesystem_print(additions);
 	printf("Deletions\n");
 	filesystem_print(deletions);
-	FileSystem* updates = filesystem_get_updates(additions, deletions);
-	printf("Updates\n");
-	filesystem_print(updates);
+	filesystem_get_updates(additions, deletions);
+	printf("Additions\n");
+	filesystem_print(additions);
+	printf("Deletions\n");
+	filesystem_print(deletions);
 	
 	FileSystem* withChanges = filesystem_copy(fs);
 	filesystem_minus_equals(withChanges, deletions);	

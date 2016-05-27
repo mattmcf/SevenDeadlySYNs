@@ -210,9 +210,8 @@ void linkedlist_apply(LinkedList* list, LinkedListApplyFunction func)
 	
 	while (ln)
 	{
-		_LinkedNode* next = ln->forward;
-		func(ln);
-		ln = next;
+		func(ln->element);
+		ln = ln->forward;
 	}
 }
 

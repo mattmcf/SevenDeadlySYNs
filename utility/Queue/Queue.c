@@ -146,6 +146,11 @@ void* queue_get(Queue* qp, int index)
 	
 	return q->elements[(index + q->tail) % q->space];
 }
+void  queue_set(Queue* qp, void* element, int index)
+{
+	_Queue* q = (_Queue*)qp;
+	q->elements[(index + q->tail) % q->space]  = element;
+}
 
 void queue_apply(Queue* qp, QueueApplyFunction af)
 {

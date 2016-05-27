@@ -56,15 +56,20 @@ void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 	fclose(file);
 }
 
+int num_chunks_for_size(int size)
+{
+	if (size % CHUNKYFILE_CHUNK_SIZE == 0)
+	{
+		return size / CHUNKYFILE_CHUNK_SIZE;
+	}
+	return size / CHUNKYFILE_CHUNK_SIZE + 1;
+}
+
 int chunkyfile_num_chunks(ChunkyFile* chunkyfile)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
-	if (cf->size % CHUNKYFILE_CHUNK_SIZE == 0)
-	{
-		return cf->size / CHUNKYFILE_CHUNK_SIZE;
-	}
-	return cf->size / CHUNKYFILE_CHUNK_SIZE + 1;
+	return num_chunks_for_size(cf->size);
 }
 
 void chunkyfile_get_chunk(ChunkyFile* chunkyfile, int chunkNum, char** chunk, int* chunkSize)
