@@ -210,6 +210,8 @@ void DropFromNetwork(){
 	/* close our files and free our memory */
 	filesystem_destroy(cur_fs);
 	DestroyPeerTable();
+
+	exit(0);
 }
 
 int RemoveFileDeletions(FileSystem *deletions){
@@ -346,11 +348,13 @@ int RemovePeer(int peer_id){
 int DestroyPeerTable(){
 	printf("DestroyPeerTable: destroying the peer table\n");
 	while (pt->head){
-		printf("DestroyPeerTable: destroying peer: %d", pt->head->peer_id);
+		printf("DestroyPeerTable: destroying peer: %d\n", pt->head->peer_id);
 		peer_t *temp = pt->head;
 		pt->head = pt->head->next;
 		free(temp);
 	}
+
+	printf("DestroyPeerTable: destroyed all peer_t\n");
 
 	free(pt);
 	return 1;
