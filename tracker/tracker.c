@@ -90,7 +90,7 @@ int main() {
 			printf("\tSent master to peer %d\n", peerID);
 			peerID = -1;
 		}
-		printf("\tcheck master request peer: %d\n", peerID);
+		// printf("\tcheck master request peer: %d\n", peerID);
 
 		// if there is a peer disconnect
 			// get peerID and remove peer from peer table
