@@ -462,7 +462,10 @@ void filesystem_destroy(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	free(fs->root_path);
+	if (fs->root_path)
+	{
+		free(fs->root_path);
+	}
 	folder_destroy(fs->root);
 	free(fs);
 	return;
