@@ -319,7 +319,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_minus_equals(fs, deletions);
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
-	filetable_remove_filesystem(filesystem, deletions, updatePusher);
+	filetable_remove_filesystem(filetable, deletions);
 	filetable_add_filesystem(filetable, additions, updatePusher);
 	printf("File table updated\n");
 	filetable_print(filetable);
@@ -336,9 +336,6 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 			// broadcast out update
 	return 1;
 }
-
-int 
-
 
 int isNetworkUpdated(){
 	// Use this function to check if the file being updated hasbeen fully updated
