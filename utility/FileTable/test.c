@@ -14,5 +14,14 @@ int main()
 	
 	filetable_print(ft);
 	
+	char* data;
+	int length;
+	filetable_serialize(ft, &data, &length);
+	printf("Serialized %d bytes\n", length);
+	
+	FileTable* deser = filetable_deserialize(data, &length);
+	printf("Deserialized %d bytes\n", length);
+	filetable_print(ft);
+	
 	return 0;
 }
