@@ -29,8 +29,10 @@
 #include "../common/constant.h"
 #include "network_tracker.h"
 #include "../utility/FileSystem/FileSystem.h"
+#include "../utility/FileTable/FileTable.h"
 
 FileSystem* fs;
+FileTable* filetable;
 peer_table* peerTable;
 int peerTableSize = 16;
 static volatile int keepRunning = 1;
@@ -45,6 +47,9 @@ int main() {
 	// create file system
 	fs = filesystem_new(DARTSYNC_DIR);
 	filesystem_print(fs);
+
+	filetable = filetable_new();
+	filetable_print(filetable);
 
 	pthread_t browser_thread;
 	pthread_create(&browser_thread, NULL, webBrowser, (void*)0);
@@ -90,7 +95,7 @@ int main() {
 			printf("\tSent master to peer %d\n", peerID);
 			peerID = -1;
 		}
-		printf("\tcheck master request peer: %d\n", peerID);
+		// printf("\tcheck master request peer: %d\n", peerID);
 
 		// if there is a peer disconnect
 			// get peerID and remove peer from peer table
@@ -101,6 +106,7 @@ int main() {
 			if(removePeerFromTable(peerID)<0){
 				printf("\tFailed to remove peer %d from table.\n", peerID);
 			}
+			filetable_remove_peer(filetable, peerID);
 			printf("\tRemoved peer %d from table.\n", peerID);
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
@@ -223,34 +229,6 @@ int removePeerFromTable(int peerID){
 	return -1;
 }
 
-// // Polls queue to see if new peer has tried to connect.
-// // returns 1 if new peer exists
-// // returns -1 if no new peer exists
-// int checkForNewPeer(){
-// 	int peerID = trkr_network_checkNewPeer();
-// 	// if new peer, add peer to table, alert other peers
-// 	if (peerID != -1){
-// 		addPeerToTable(peerID);
-// 		// trkr_network_broadcastNewPeer(peerID);
-// 		return 1;
-// 	}
-// 	return -1;
-// }
-
-// // Polls queue to see if peer has disconnected
-// // returns 1 if peer left
-// // returns -1 if no peer has left
-// int checkForPeerDisconnect(){
-// 	int peerID = trkr_network_checkPeerDisconnect();
-// 	// if disconnect peer, delete from table, alert other peers
-// 	if (peerID != -1){
-// 		removePeerFromTable(peerID);
-// 		// trkr_network_breoadcastPeerLeft(peerID);
-// 		return 1;
-// 	}
-// 	return -1;
-// }
-
 // print the peer table
 int printPeerTable(){
 	printf("\n####################\n     Peer Table     \n####################\n\n");
@@ -323,17 +301,28 @@ int sendUpdates(int peerID){
 }
 
 
+
+
+
 // ****************************************************************
 //						Update mode Fucntionality	
 // ****************************************************************
 int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions){
 	// update file system
+
+	filesystem_set_root_path(additions, filesystem_get_root_path(fs));
+	filesystem_set_root_path(deletions, filesystem_get_root_path(fs));
 	printf("PRINTING ADDITIONS:\n");
 	filesystem_print(additions);
 	printf("PRINTING DELETIONS:\n");
 	filesystem_print(deletions);
+	filesystem_minus_equals(fs, deletions);
 	filesystem_plus_equals(fs, additions);
-	filesystem_minus_equals(fs, deletions);	
+	printf("Updating file table\n");
+	filetable_remove_filesystem(filesystem, deletions, updatePusher);
+	filetable_add_filesystem(filetable, additions, updatePusher);
+	printf("File table updated\n");
+	filetable_print(filetable);
 	// broadcast out update to all peers
 	filesystemUpdateBroadcast(additions, deletions, network, updatePusher);
 	printf("NEW FILE SYSTEM\n");
@@ -347,6 +336,9 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 			// broadcast out update
 	return 1;
 }
+
+int 
+
 
 int isNetworkUpdated(){
 	// Use this function to check if the file being updated hasbeen fully updated
