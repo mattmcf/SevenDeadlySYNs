@@ -310,6 +310,7 @@ int CreatePeerTable(){
 }
 
 int InsertPeer(int peer_id, int status){
+	printf("InsertPeer: inserting peer %d\n", peer_id);
 	peer_t *peer = calloc(1, sizeof(peer_t));
 	if (!peer){
 		printf("InsertPeer: calloc failed\n");
@@ -334,6 +335,7 @@ int InsertPeer(int peer_id, int status){
 }
 
 int RemovePeer(int peer_id){
+	printf("RemovePeer: removing peer: %d\n", peer_id);
 	peer_t *peer = pt->head;
 	if (!peer){
 		printf("RemovePeer: pt is empty\n");
@@ -365,20 +367,16 @@ int RemovePeer(int peer_id){
 int DestroyPeerTable(){
 	printf("DestroyPeerTable: destroying the peer table\n");
 	while (pt->head){
-		printf("DestroyPeerTable: destroying peer: %d\n", pt->head->peer_id);
 		peer_t *temp = pt->head;
 		pt->head = pt->head->next;
 		free(temp);
 	}
-
-	printf("DestroyPeerTable: destroyed all peer_t\n");
 
 	free(pt);
 	return 1;
 }
 
 int CheckFileSystem(FileSystem *fs){
-	printf("CheckFileSystem: about to check if fs is empty\n");
 	char *path;
 	int len;
 	FileSystemIterator *iterator = filesystemiterator_new(fs);
@@ -462,7 +460,7 @@ int main(int argv, char* argc[]){
 		sleep(POLL_STATUS_DIFF);
 
 		/* get any new clients first */
-		printf("CLIENT MAIN: checking for new clients\n");
+		// printf("CLIENT MAIN: checking for new clients\n");
 		while (-1 != (new_client = recv_peer_added(cnt))){
 			if (-1 == InsertPeer(new_client, CONN_ACTIVE)){
 				printf("CLIENT MAIN: InsertPeer() failed\n");
@@ -471,7 +469,7 @@ int main(int argv, char* argc[]){
 		}
 
 		/* figure out if any clients have dropped from the network */
-		printf("CLIENT MAIN: checking for deleted clients\n");
+		// printf("CLIENT MAIN: checking for deleted clients\n");
 		while (-1 != (del_client = recv_peer_deleted(cnt))){
 			if (-1 == RemovePeer(del_client)){
 				printf("CLIENT MAIN: RemovePeer() failed\n");
@@ -480,7 +478,7 @@ int main(int argv, char* argc[]){
 		}
 
 		/* check to see if any requests for files have been made to you */
-		printf("CLIENT MAIN: checking for chunk requests\n");
+		// printf("CLIENT MAIN: checking for chunk requests\n");
 		char *filepath;
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
@@ -520,11 +518,12 @@ int main(int argv, char* argc[]){
 		}
 
 		/* poll for any received chunks */
-		printf("CLIENT MAIN: checking for chunks received\n");
+		// printf("CLIENT MAIN: checking for chunks received\n");
 		char *chunk_data;
 		int chunk_id;
 		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
 				&len, &chunk_data)){
+			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, filepath);
 
 			/* if len is -1, then we received a rejection response */
 			if (-1 == len){	// how should I handle this???
@@ -548,16 +547,23 @@ int main(int argv, char* argc[]){
 
 		/* poll for any diffs, if they exist then we need to make updates to 
 		 * our filesystem */
-		printf("CLIENT MAIN: checking for diffs\n");
+		// printf("CLIENT MAIN: checking for diffs\n");
 		FileSystem *additions, *deletions;
 		int author_id;
 		while (-1 != recv_diff(cnt, &additions, &deletions, &author_id)){
+			printf("CLIENT MAIN: received a diff from author %d\n", author_id);
 			/* set the root paths of the additions and deletions filesystems */
 			filesystem_set_root_path(additions, DARTSYNC_DIR);
 			filesystem_set_root_path(deletions, DARTSYNC_DIR);
 
 			/* get rid of the deletions */
 			RemoveFileDeletions(deletions);
+
+			/* remove them from the file table */
+			filetable_remove_filesystem(ft, deletions);
+
+			/* the originator of this diff has the master, so tell the filetable */
+			filetable_add_filesystem(ft, additions, author_id);
 
 			/* get the file additions from peers, and update the filesystem */
 			GetFileAdditions(additions, author_id);
@@ -566,8 +572,9 @@ int main(int argv, char* argc[]){
 		/* poll to see if there are any changes to the master file system 
 		 * if there are then we need to get those parts from peers and then
 		 * copy master to our local pointer of the filesystem */
-		printf("CLIENT MAIN: checking for updates from master\n");
+		// printf("CLIENT MAIN: checking for updates from master\n");
 		while (NULL != (master = recv_master(cnt, &recv_len))){
+			printf("CLIENT MAIN: received master from tracker\n");
 			/* set the root path of the master filesystem */
 			filesystem_set_root_path(master, DARTSYNC_DIR);
 
@@ -576,7 +583,7 @@ int main(int argv, char* argc[]){
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
-		printf("CLIENT MAIN: checking local file system\n");
+		// printf("CLIENT MAIN: checking local file system\n");
 		CheckLocalFilesystem();
 	}
 
