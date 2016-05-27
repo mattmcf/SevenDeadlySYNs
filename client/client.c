@@ -281,15 +281,19 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		}
 
 		/* open chunk file and get the number of chunks */
+		printf("Opening new chunky file\n");
 		ChunkyFile* file = chunkyfile_new_empty(len);
 
 		/* write that file to the path */
+		printf("chunky file write to path: %s\n", path);
 		chunkyfile_write_to_path(file, path);
 
 		/* request all chunks */
+		printf("Send chunk request\n");
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
 		/* destroy the chunky file */
+		printf("destroy chunky file\n");
 		chunkyfile_destroy(file);
 
 		path = NULL;

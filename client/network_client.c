@@ -408,6 +408,22 @@ int send_status(CNT * thread, FileSystem * fs) {
 
 // send file acquistion update : ME_2_TKR_ACQ_UPDATE
 
+// send current status : ME_2_TKR_CUR_STATUS
+// 	thread : (not claimed) thread block
+// 	path : (not claimed) filepath for file updated
+// 	chunkNum : (not claimed) the chunk number that client receives
+// 	ret : (static) 1 on success, -1 on failure
+// int send_chunk_got(CNT * thread, char * path, int chunkNum) {
+// 	if (!thread || !path)
+// 		return -1;
+	
+// 	_CNT_t * cnt = (_CNT_t *)thread;
+
+// 	client_data_t * queue_item = malloc(sizeof(client_data_t));
+// 	filesystem_serialize(fs, (char **)&queue_item->data, &queue_item->data_len);
+// 	asyncqueue_push(cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS], (void *)queue_item);
+// 	return 1;
+// }
 // send updated file message to tracker : ME_2_TKR_UPDATED_FILE_DIFF
 // 	thread : (not claimed) thread block
 //	additions : (not claimed) addition FS - claim after call
@@ -572,8 +588,7 @@ int notify_master_received(_CNT_t * cnt, client_data_t * queue_item) {
 	return 1;
 }
 
-int notify_file_acq_update() {
-
+int notify_file_acq_update(_CNT_t * cnt, client_data_t * queue_item) {
 	return -1;
 }
 
