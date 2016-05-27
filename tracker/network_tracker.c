@@ -497,7 +497,7 @@ void * tkr_network_start(void * arg) {
 	_TNT_t * tnt = (_TNT_t*)arg;
 
 	// for receiving new connections
-	struct sockaddr_in6 clientaddr;
+	struct sockaddr_in clientaddr;
 	unsigned int addrlen = sizeof(clientaddr);
 	peer_t * new_client;
 	int new_sockfd;
@@ -543,7 +543,7 @@ void * tkr_network_start(void * arg) {
 
 				/* client opening new connection */
 				if (i == tnt->listening_sockfd) {
-					printf("network tracker received new client connection\n");
+					printf("\nnetwork tracker received new client connection\n");
 					new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_sockfd < 0) {
 						perror("network tracker failed to accept new connection");
@@ -552,7 +552,7 @@ void * tkr_network_start(void * arg) {
 					}
 
 					// add new peer to table
-					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin6_addr, new_sockfd)) == NULL) {
+					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin_addr, new_sockfd)) == NULL) {
 						fprintf(stderr,"network tracker received peer connection but couldn't add it to the table\n");
 						continue;
 					}
@@ -562,12 +562,17 @@ void * tkr_network_start(void * arg) {
 					// notify tracker
 					notify_new_client(tnt, new_client);
 					send_peer_table_to_client(tnt, new_client->socketfd);
+
+					// DEBUG -- 
+					printf("New Peer Table\n");
+					print_table(tnt->peer_table);
+
 					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
 				} else {
 
-					printf("network tracker received message from client on socket %d\n", i);
+					printf("\nnetwork tracker received message from client on socket %d\n", i);
 					if (handle_client_msg(i, tnt) != 1) {
 						fprintf(stderr,"failed to handle client message on socket %d\n", i);
 
@@ -579,6 +584,10 @@ void * tkr_network_start(void * arg) {
 							delete_peer(tnt->peer_table, lost_client->id);
 						}
 						
+						// DEBUG -- 
+						printf("New Peer table\n");
+						print_table(tnt->peer_table);
+
 						// don't listen to broken connection
 						FD_CLR(i, &active_fd_set);
 						close(i);
