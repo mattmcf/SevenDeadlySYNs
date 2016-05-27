@@ -497,7 +497,7 @@ void * tkr_network_start(void * arg) {
 	_TNT_t * tnt = (_TNT_t*)arg;
 
 	// for receiving new connections
-	struct sockaddr_in6 clientaddr;
+	struct sockaddr_in clientaddr;
 	unsigned int addrlen = sizeof(clientaddr);
 	peer_t * new_client;
 	int new_sockfd;
@@ -552,7 +552,7 @@ void * tkr_network_start(void * arg) {
 					}
 
 					// add new peer to table
-					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin6_addr, new_sockfd)) == NULL) {
+					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin_addr, new_sockfd)) == NULL) {
 						fprintf(stderr,"network tracker received peer connection but couldn't add it to the table\n");
 						continue;
 					}
