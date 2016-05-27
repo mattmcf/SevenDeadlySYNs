@@ -83,12 +83,14 @@ int main() {
 		peerID = -1;
 		// printf("checking for master request\n");
 		while ((peerID = receive_master_request(network))>0){
+			printf("Send master\n");
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
 			printf("\tSent master to peer %d\n", peerID);
 			peerID = -1;
 		}
+		printf("\tcheck master request peer: %d\n", peerID);
 
 		// if there is a peer disconnect
 			// get peerID and remove peer from peer table
@@ -305,7 +307,7 @@ int lostPeerBroadcast(int lostPeerID, TNT *network){
 // broadcast to all peers that there is a file update
 int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network, int originator){
 	for (int i = 0; i < peerTableSize; i++){
-		if(peerTable->peerIDs[i] != -1){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != originator){
 			if(send_FS_update(network, peerTable->peerIDs[i], originator, additions, deletions)<0){
 				printf("Failed to send transaction update to peer %d\n", peerTable->peerIDs[i]);
 			}
