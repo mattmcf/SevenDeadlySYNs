@@ -91,7 +91,10 @@ void format_printf(int formatID, char* format, ...)
 	
 	if (formatID >= queue_length(q) || formatID < 0)
 	{
+	    va_list args;
+	    va_start(args, format);
 	    vprintf(format, args);
+	    va_end(args);
 		return;
 	}
 
