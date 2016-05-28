@@ -736,7 +736,7 @@ void * clt_network_start(void * arg) {
 
 	// for connecting with new clients
 	struct sockaddr_in clientaddr;
-	unsigned int addrlen;
+	unsigned int addrlen = sizeof(sockaddr_in);
 
 	// set up timer
 	struct timeval timeout;
@@ -781,12 +781,12 @@ void * clt_network_start(void * arg) {
 
 					int new_peer_fd = accept(cnt->peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_peer_fd < 0) {
-						fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+						fprintf(stderr,"network client failed to accept new client connection\n");
 						continue;
 					}
 
 					printf("\nclient network received new connection from peer at %s (socket %d)\n",inet_ntoa(clientaddr.sin_addr),i);
-					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char*)&clientaddr.sin_addr);
+					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char *)&clientaddr.sin_addr);
 					if (!new_peer) {
 						fprintf(stderr, "client network doesn't has a peer record for new peer\n");
 						close(new_peer_fd);
@@ -1097,7 +1097,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 			// replace current peer table with received peer table
 			cnt->peer_table = new_table;
-			printf("\n new peer table\n");
+			printf("\nnew peer table\n");
 			print_table(cnt->peer_table);
 			break;
 
