@@ -599,6 +599,9 @@ int main(int argv, char* argc[]){
 			/* set the correct chunk */
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
 
+			// You should write the chunkyfile to a path here :) 
+			chunkyfile_write_to_path(file, filepath);
+
 			/* destroy the chunky file */
 			chunkyfile_destroy(file);
 
