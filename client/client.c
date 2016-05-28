@@ -104,6 +104,9 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		sleep(1);
 	}
 
+	/* set root of returned file system */
+	filesystem_set_root_path(master, DARTSYNC_DIR);
+
 	UpdateLocalFilesystem(master);
 	return 1;
 }
@@ -140,6 +143,14 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
 			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
+			/* if addition is just a directory -> make that and then go onto files */
+			if (len == -1) {
+				if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+					printf("GetFileAdditions: failed to create %s\n", path);
+				}
+				continue;
+			}
+
 			/* re make that deleted file */
 			ChunkyFile *file = chunkyfile_new_empty(len);
 			if (!file){
@@ -157,7 +168,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* for each chunk, find a peer who has it, and request it */
-			for (int i = 0; i < num_chunks; i++){//???
+			for (int i = 0; i < num_chunks; i++){ //???
 				printf("UpdateLocalFilesystem: need to request a chunk\n");
 			}
 

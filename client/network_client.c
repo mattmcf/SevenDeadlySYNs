@@ -315,7 +315,8 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 		// deserialized in handle_client_message() side
 		// fs = filesystem_deserialize(queue_item->data, length_deserialized);
 		fs = queue_item->data;
-		
+		filesystem_print(fs);
+
 		//free(queue_item->data); // freed in handle_client_message() side
 		free(queue_item);
 	}

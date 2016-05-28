@@ -96,6 +96,5 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
 //	iterator : (claimed) The iterator to destroy
 void filesystemiterator_destroy(FileSystemIterator* iterator);
 
-
 #endif
 
