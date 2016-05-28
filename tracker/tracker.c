@@ -44,6 +44,15 @@ void intHandler(int dummy) {
 int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
+
+	/* check if the folder already exists, if it doesn't then make it */
+	if (0 != access(DARTSYNC_DIR, (F_OK))){
+		/* it doesn't exist, so make it */
+		if (system("mkdir ~/dart_sync") != 0) {
+			printf("TRACKER MAIN: failed to create DARTSYNC_DIR\n");
+		}
+	} 
+
 	// create file system
 	fs = filesystem_new(DARTSYNC_DIR);
 	filesystem_print(fs);

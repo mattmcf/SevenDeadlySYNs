@@ -463,12 +463,13 @@ int main(int argv, char* argc[]){
 	signal(SIGINT, DropFromNetwork);
 	
 	/* check if the folder already exists, if it doesn't then make it */
-	// if (0 != access(DARTSYNC_DIR, (F_OK))){
-	// 	/* it doesn't exist, so make it */
-	// 	if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-	// 		printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
-	// 	}
-	// } 
+	if (0 != access(DARTSYNC_DIR, (F_OK))){
+		/* it doesn't exist, so make it */
+		//if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+		if (system("mkdir ~/dart_sync") != 0) {
+			printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
+		}
+	} 
 
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
