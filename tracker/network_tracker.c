@@ -728,8 +728,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			return -1;
 		}
 		
-		printf("client %d on socketd %d -- waiting for data\n", client->id, client->socketfd); 	// debug
-		fflush(stdout);
+		//printf("client %d on socketd %d -- waiting for data\n", client->id, client->socketfd); 	// debug
+		//fflush(stdout);
 
 		// receive data
 		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
@@ -747,7 +747,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	int rc = -1;
 	switch(pkt.type) {
 		case HEARTBEAT:
-			printf("NETWORK -- received heartbeat from client %d\n", client->id);
+			//printf("NETWORK -- received heartbeat from client %d\n", client->id);
 			// update time last heard from client
 			client->time_last_alive = time(NULL);
 			free(client_data);

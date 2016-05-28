@@ -145,8 +145,21 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 
 			/* if addition is just a directory -> make that and then go onto files */
 			if (len == -1) {
-				if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-					printf("GetFileAdditions: failed to create %s\n", path);
+
+				// char dir_path[1024];
+				// char *home = getenv("HOME");
+				// if (home != NULL) {
+	   //      snprintf(dir_path, sizeof(dir_path), "%s/%s",home,path);
+	   //      // now use path in mkdir
+	   //      mkdir(path, PERM);
+				// }
+
+				//if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				char new_dir[1024];
+				snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
+				if (system(new_dir) != 0) {
+					printf("GetFileAdditions: failed to create \'%s\'\n", path);
+					perror("Failed because");
 				}
 				continue;
 			}
@@ -285,8 +298,12 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 
 		/* if this is a folder */
 		if (-1 == len){
-			if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+			//if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				char new_dir[1024];
+				snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
+				if (system(new_dir) != 0) {
 				printf("GetFileAdditions: failed to create %s\n", path);
+				perror("Failed because");
 			}
 			continue;
 		}
