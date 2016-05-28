@@ -736,7 +736,7 @@ void * clt_network_start(void * arg) {
 
 	// for connecting with new clients
 	struct sockaddr_in clientaddr;
-	unsigned int addrlen = sizeof(sockaddr_in);
+	unsigned int addrlen = sizeof(struct sockaddr_in);
 
 	// set up timer
 	struct timeval timeout;
