@@ -36,10 +36,12 @@
 typedef enum {
 	TRANSACTION_UPDATE,
 	FILE_ACQ_UPDATE,
+	FS_UPDATE,
 	MASTER_STATUS,
 	PEER_ADDED,
 	PEER_DELETED,
 	PEER_TABLE,
+	MASTER_FT,
 } tracker_to_client_t;
 
 typedef struct tracker_pkt {
@@ -79,10 +81,31 @@ typedef struct client_data {
 
 /* ----- CLIENT TO CLIENT ----- */
 
+// client to client queues
+typedef struct chunk {
+	int client_id;
+	int chunk_num;
+	int file_str_len;
+	char * file_name;
+	int data_len;
+	char * data;
+} chunk_data_t;
+
+// client to client packets
 typedef enum {
 	REQUEST_CHUNK,
 	CHUNK,
-	ERROR,
+	REQ_REJECT,
 } client_to_client_t;
+
+typedef struct c2c_pkt {
+	client_to_client_t type;
+	int src_client;
+	int chunk_num;
+	int file_str_len;
+	int data_len;
+	//char * file_str -> will send next
+	//char * data; 	-> will send next
+} c2c_pkt_t;
 
 #endif // _PACKETS_H

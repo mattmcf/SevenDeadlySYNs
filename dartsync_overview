@@ -1,0 +1,13 @@
+How the DartSync network works:
+
+When a peer joins the network:
+
+1) peer joins network (use StartClientNetwork)
+2) tracker adds new peer to peer table, broadcasts to other peers that there is a new peer
+3) peer requests master FS (use SendMasterFSRequest)
+4) tracker responds with current master FS
+5) peer checks against master table, gets necessary file updates
+
+When a peer updates a file:
+
+1) peer sends a file system update when they update their file system

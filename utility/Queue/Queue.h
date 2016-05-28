@@ -39,6 +39,7 @@ void* queue_pop(Queue* qp);
 
 /* get the item at the given index */
 void* queue_get(Queue* qp, int index);
+void  queue_set(Queue* qp, void* element, int index);
 
 /* apply a void function (e.g. a printing fn) to every element of a queue */
 void queue_apply(Queue* qp, QueueApplyFunction af);

@@ -3,6 +3,9 @@
 
 #include "../Queue/Queue.h"
 
+char* copy_string(char* string);
+void push_string(Queue* queue, char* str);
+
 /*
 A nice c "class" that deals with the filesystem. See the bottom of FileSystem.c for example usage.
 */
@@ -55,6 +58,11 @@ FileSystem* filesystem_copy(FileSystem* filesystem);
 //	ret        : (claimed) The path to the root directory of the filesystem
 char* filesystem_get_root_path(FileSystem* filesystem);
 
+// Sets the root path of the given filesystem.
+//	filesystem : (not claimed) The filesystem in question
+//	path       : (not claimed) The path to the root directory of the filesystem
+void filesystem_set_root_path(FileSystem* filesystem, char* path);
+
 // Serializes the provided filesystem to save it to disk or send over the network.
 //	filesystem : (not claimed) The filesystem to serialize
 //	data	   : (not claimed) The serialized data
@@ -82,7 +90,7 @@ FileSystemIterator* filesystemiterator_new(FileSystem* fs);
 // Gets the next path of the filesystem
 //	iterator : (not claimed) The iterator being iterated over
 //	ret		 : (claimed) The path
-char* filesystemiterator_next(FileSystemIterator* iterator);
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length);
 
 // Destroys an iterator
 //	iterator : (claimed) The iterator to destroy

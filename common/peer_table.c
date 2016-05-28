@@ -291,7 +291,7 @@ void print_table(peer_table_t * table) {
 
 			printf("Peer ID: %d, socketfd %d, IP address: %s, last alive %ld\n",
 				table->peer_list[i]->id, table->peer_list[i]->socketfd, 
-				inet_ntoa(*(struct in_addr*)table->peer_list[i]->ip_addr), table->peer_list[i]->time_last_alive);
+				inet_ntoa(*(struct in_addr *)table->peer_list[i]->ip_addr), table->peer_list[i]->time_last_alive);
 		}
 			
 	}

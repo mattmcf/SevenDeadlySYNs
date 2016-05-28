@@ -1,0 +1,12 @@
+You		Me		You > Me	
+0		0		0			?
+0		0		1			?
+0		1		0			You add the file
+0		1		1			You add the file
+1		0		0			I add the file
+1		0		1			I add the file
+1		1		0			You update yours
+1		1		1			I update mine
+
+remove all things newer then self from deletions
+remove all things older than self from additions

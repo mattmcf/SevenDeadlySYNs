@@ -140,6 +140,27 @@ int file_equals(void* elementp, void* keyp)
 	
 	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && f0->last_modified == f1->last_modified && (f0->is_folder == f1->is_folder);
 }
+int file_ignore_time(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->size == f1->size && (f0->is_folder == f1->is_folder);
+}
+int file_older(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->last_modified <= f1->last_modified && (f0->is_folder == f1->is_folder);
+}
+int file_newer(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0 && f0->last_modified > f1->last_modified && (f0->is_folder == f1->is_folder);
+}
 
 // ******************************** Folder ********************************
 
@@ -156,7 +177,7 @@ Folder* folder_new(char* path, char* name)
 	if (!d)
 	{
 		fprintf(stderr, "Bad folder path\n");
-		return NULL;
+		assert(0);
 	}
 		
 	_Folder* folder = create_new(_Folder);
@@ -289,14 +310,14 @@ Folder* folder_copy(Folder* folder)
 /*
 folder = folder - toSubtract
 */
-void folder_subtract(Folder* folder, Folder* toSubtract)
+void folder_subtract(Folder* folder, Folder* toSubtract, QueueSearchFunction equalsFunc)
 {
 	_Folder* f = (_Folder*)folder;
 	_Folder* toSub = (_Folder*)toSubtract;
 		
 	for (int i = 0; i < queue_length(toSub->files); i++)
 	{
-		File* removed = queue_remove(f->files, file_equals, queue_get(toSub->files, i));
+		File* removed = queue_remove(f->files, equalsFunc, queue_get(toSub->files, i));
 		if (removed)
 		{
 			file_destroy(removed);
@@ -310,7 +331,7 @@ void folder_subtract(Folder* folder, Folder* toSubtract)
 				
 		if (removed)
 		{			
-			folder_subtract(removed, toRemove);
+			folder_subtract(removed, toRemove, equalsFunc);
 			_Folder* tmp = (_Folder*)removed;
 			
 			if (queue_length(tmp->files) == 0 && queue_length(tmp->folders) == 0)
@@ -357,7 +378,7 @@ void folder_remove(Folder* folder, Folder* toSubtract)
 				
 		if (removed)
 		{			
-			folder_subtract(removed, toRemove);
+			folder_subtract(removed, toRemove, folder_equals);
 		}
 	}
 }
@@ -441,7 +462,10 @@ void filesystem_destroy(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	free(fs->root_path);
+	if (fs->root_path)
+	{
+		free(fs->root_path);
+	}
 	folder_destroy(fs->root);
 	free(fs);
 	return;
@@ -455,7 +479,13 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	return fs->root_path;
+	return fs->root_path ? fs->root_path : "";
+}
+void filesystem_set_root_path(FileSystem* filesystem, char* path)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	fs->root_path = copy_string(path);
 }
 FileSystem* filesystem_copy(FileSystem* filesystem)
 {
@@ -475,12 +505,12 @@ void filesystem_print(FileSystem* filesystem)
 	assert(fs->root);
 	folder_print(fs->root, 0);
 }
-void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1)
+void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1, QueueSearchFunction equalsFunc)
 {
 	_FileSystem* fs0 = (_FileSystem*)filesystem0;
 	_FileSystem* fs1 = (_FileSystem*)filesystem1;
 	
-	folder_subtract(fs0->root, fs1->root);
+	folder_subtract(fs0->root, fs1->root, equalsFunc);
 }
 void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 {
@@ -500,19 +530,48 @@ void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1)
 
 	folder_add(fs0->root, fs1->root);
 }
-void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+void filesystem_diff_helper(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions, QueueSearchFunction equalsFunc)
 {
 	assert(old && new && additions && deletions);
 	
 	*additions = filesystem_copy(old);
 	*deletions = filesystem_copy(new);
 	
-	filesystem_minus_equals_diff(*deletions, *additions);
-	filesystem_minus_equals_diff(*additions, new);
+	filesystem_minus_equals_diff(*deletions, *additions, equalsFunc);
+	filesystem_minus_equals_diff(*additions, new, equalsFunc);
 	
 	FileSystem* tmp = *additions;
 	*additions = *deletions;
 	*deletions = tmp;
+}
+void filesystem_handle_updates(FileSystem* additions, FileSystem* deletions)
+{
+	assert(additions && deletions);
+	
+	FileSystem* a1;
+	FileSystem* d1;
+	
+	filesystem_diff_helper(additions, deletions, &a1, &d1, file_ignore_time);
+		
+	FileSystem* a0 = filesystem_copy(additions);
+	FileSystem* d0 = filesystem_copy(deletions);
+	
+	filesystem_minus_equals_diff(a0, d1, file_equals);
+	filesystem_minus_equals_diff(d0, a1, file_equals);
+	
+	filesystem_destroy(a1);
+	filesystem_destroy(d1);
+		
+	filesystem_minus_equals_diff(additions, d0, file_newer);
+	filesystem_minus_equals_diff(deletions, a0, file_older);
+			
+	filesystem_destroy(a0);
+	filesystem_destroy(d0);
+}
+void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
+{
+	filesystem_diff_helper(old, new, additions, deletions, file_equals);
+	filesystem_handle_updates(*additions, *deletions);
 }
 
 #define FILE_MARKER (0xFF)
@@ -665,7 +724,7 @@ void filesystemiterator_destroy(FileSystemIterator* iterator)
 	}
 }
 
-char* filesystemiterator_next(FileSystemIterator* iterator)
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	assert(fsi);
@@ -684,6 +743,7 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		Folder* folder = queue_spop(fsi->folder_stack);
 		if (folder == NULL)
 		{
+			*length = -1;
 			return NULL;
 		}
 		
@@ -706,12 +766,14 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 		Folder* next_folder = queue_speek(fsi->folder_stack);
 		if (next_folder == NULL)
 		{
+			*length = -1;
 			return NULL;
 		}
 		fsi->current_files = folder_get_files(next_folder);
 		
+		*length = -1;
 		fsi->path = NULL;
-		return filesystemiterator_next(iterator);
+		return filesystemiterator_next(iterator, length);
 	}
 	
 	char* path = queue_speek(fsi->path_stack);
@@ -719,6 +781,14 @@ char* filesystemiterator_next(FileSystemIterator* iterator)
 	File* file = queue_get(fsi->current_files, fsi->file_index);
 	fsi->file_index += 1;
 	fsi->path = add_strings(3, path, "/", file_get_name(file));
+	if (((_File*)file)->is_folder)
+	{
+		*length = -1;
+	}
+	else
+	{
+		*length = (int)(((_File*)file)->size);
+	}
 	return fsi->path;
 }
 
@@ -785,37 +855,3 @@ int main()
 	return 0;
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

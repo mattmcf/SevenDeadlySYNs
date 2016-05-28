@@ -10,20 +10,24 @@
 HEADER_FILES = common/constant.h 
 
 OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utility/AsyncQueue/asyncqueue.o \
-	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/SDSet/SDSet.o \
+	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
 	common/peer_table.o
 
-CFLAGS = -Wall -pedantic -std=c99 -g
+CFLAGS = -Wall -pedantic -std=c99 -g -lm -pthread
 
 all: tracker/tracker_app client/client_app
 
 test: tracker/test_tracker_network client/test_client_network
 
+client: client/client_app
+
+tracker: tracker/tracker_app
+
 tracker/tracker_app: tracker/tracker.c tracker/tracker.h tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread  $(CFLAGS) tracker/tracker.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/tracker_app
+	gcc $(CFLAGS) tracker/tracker.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/tracker_app
 
 tracker/test_tracker_network: tracker/test_tracker_network.c tracker/network_tracker.o $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread $(CFLAGS) tracker/test_tracker_network.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/test_tracker_network
+	gcc $(CFLAGS) tracker/test_tracker_network.c tracker/network_tracker.o $(OBJ_FILES) -o tracker/test_tracker_network
 
 client/client_app: client/client.c client/client.h client/network_client.o $(OBJ_FILES) $(HEADER_FILES)
 	gcc $(CFLAGS) client/client.c client/network_client.o $(OBJ_FILES) -o client/client_app
@@ -32,10 +36,10 @@ client/test_client_network: client/test_client_network.c client/network_client.o
 	gcc $(CFLAGS) client/test_client_network.c client/network_client.o $(OBJ_FILES) -o client/test_client_network
 
 tracker/network_tracker.o: tracker/network_tracker.c tracker/network_tracker.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread  $(CFLAGS) -c tracker/network_tracker.c utility/FileSystem/FileSystem.o -o tracker/network_tracker.o
+	gcc $(CFLAGS) -c tracker/network_tracker.c utility/FileSystem/FileSystem.o -o tracker/network_tracker.o
 
 client/network_client.o: client/network_client.c client/network_client.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc -pthread $(CFLAGS) -c client/network_client.c utility/FileSystem/FileSystem.o utility/AsyncQueue/asyncqueue.o -o client/network_client.o
+	gcc $(CFLAGS) -c client/network_client.c utility/FileSystem/FileSystem.o utility/AsyncQueue/asyncqueue.o -o client/network_client.o
 
 common/peer_table.o: common/peer_table.h common/peer_table.c $(HEADER_FILES)
 	gcc $(CFLAGS) -c common/peer_table.c -o common/peer_table.o
@@ -45,6 +49,9 @@ utility/ChunkyFile/ChunkyFile.o: utility/ChunkyFile/ChunkyFile.c utility/ChunkyF
 
 utility/FileSystem/FileSystem.o: utility/FileSystem/FileSystem.c utility/FileSystem/FileSystem.h
 	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -lmath -o utility/FileSystem/FileSystem.o
+
+utility/FileTable/FileTable.o: utility/FileTable/FileTable.c utility/FileTable/FileTable.h
+	gcc $(CFLAGS) -c utility/FileTable/FileTable.c -o utility/FileTable/FileTable.o
 
 utility/HashTable/HashTable.o: utility/HashTable/HashTable.c utility/HashTable/HashTable.h utility/LinkedList/LinkedList.o
 	gcc $(CFLAGS) -c utility/HashTable/HashTable.c -o utility/HashTable/HashTable.o 

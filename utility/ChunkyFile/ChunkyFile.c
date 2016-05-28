@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <wordexp.h>
 
 typedef struct
 {
@@ -45,26 +46,35 @@ ChunkyFile* chunkyfile_new_empty(int size)
 
 void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 {
-	FILE* file = fopen(path, "w+");
+    wordexp_t exp_result;
+    wordexp(path, &exp_result, 0);
+	
+	FILE* file = fopen(exp_result.we_wordv[0], "w+");
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
 	for (int i = 0; i < cf->size; i++)
 	{
+		printf("i = %d\n", i);
 		fputc(cf->data[i], file);
 	}
 	
 	fclose(file);
 }
 
+int num_chunks_for_size(int size)
+{
+	if (size % CHUNKYFILE_CHUNK_SIZE == 0)
+	{
+		return size / CHUNKYFILE_CHUNK_SIZE;
+	}
+	return size / CHUNKYFILE_CHUNK_SIZE + 1;
+}
+
 int chunkyfile_num_chunks(ChunkyFile* chunkyfile)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
-	if (cf->size % CHUNKYFILE_CHUNK_SIZE == 0)
-	{
-		return cf->size / CHUNKYFILE_CHUNK_SIZE;
-	}
-	return cf->size / CHUNKYFILE_CHUNK_SIZE + 1;
+	return num_chunks_for_size(cf->size);
 }
 
 void chunkyfile_get_chunk(ChunkyFile* chunkyfile, int chunkNum, char** chunk, int* chunkSize)
@@ -103,6 +113,14 @@ void chunkyfile_set_chunk(ChunkyFile* chunkyfile, int chunkNum, char*  chunk, in
 	}
 	
 	memcpy(cf->data + chunkNum * CHUNKYFILE_CHUNK_SIZE, chunk, chunkSize);
+}
+
+void chunkyfile_destroy(ChunkyFile* chunkyfile)
+{
+	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
+	
+	free(cf->data);
+	free(cf);
 }
 
 /*

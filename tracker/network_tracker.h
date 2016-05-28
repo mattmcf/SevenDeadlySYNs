@@ -9,7 +9,8 @@
 #define _NETWORK_TRACKER_H
 
 #include "../utility/FileSystem/FileSystem.h"
-
+#include "../utility/FileTable/FileTable.h"
+ 
 #define SEND_TO_ALL_PEERS -1 	// used for send_peer() call
 
 typedef struct TNT TNT;
@@ -62,8 +63,13 @@ int receive_master_request(TNT * tnt);
 // 	ret : (static) 1 is success, -1 is failure ()
 int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * deletions, int clientid);
 
-// Sends file system update
-int send_FS_update(TNT * tnt);
+// Sends file system update (client updated @ file)
+// 	tnt : (not claimed) thread block
+// 	destination_client : (static) which client to send to
+//	originator_client : (static) which client originated the FS update
+// 	additions : (not claimed) additions part of FS to update -- tracker logic must claim when all done
+// 	deletions : (not claimed) deletions part of FS to update -- tracker logic must claim when all done
+int send_FS_update(TNT * thread_block, int destination_client, int originator_client, FileSystem * additions, FileSystem * deletions);
 
 // send to all peers to notify that a new peer has appeared
 int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);
@@ -72,6 +78,17 @@ int send_peer_added(TNT * tnt, int destination_client_id, int new_client_id);
 int send_peer_removed(TNT * tnt, int destination_client_id, int removed_client_id);
 
 // send master JFS to client
+// 	tnt : (not claimed) thread block
+//	client_id : (not claimed) who to send to
+//	fs : (not claimed) FileSystem to send
+//	ret : (static) 1 on success, -1 on failure
 int send_master(TNT * tnt, int client_id, FileSystem * fs);
+
+// send master FileTable to client
+//	tnt : (not claimed) thread block
+// 	client_id : (static) client to send to
+// 	ft : (not claimed) FileTable to send
+// 	ret : (static) 1 on success, -1 on failure
+int send_master_filetable(TNT * tnt, int client_id, FileTable * ft);
 
 #endif // _NETWORK_TRACKER_H 
