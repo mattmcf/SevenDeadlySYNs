@@ -28,7 +28,7 @@ typedef struct
 
 int default_hash_function(void* element)
 {
-	return (int)element;
+	return (int)(long)element;
 }
 
 int bucket_search_function(void* element, _BucketSearch* search)

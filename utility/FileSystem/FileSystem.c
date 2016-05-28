@@ -618,7 +618,7 @@ void filesystem_serialize(FileSystem* filesystem, char** data, int* length)
 	char* serialized = (char*)malloc(l * sizeof(char));
 	for (int i = 0; i < l; i++)
 	{
-		serialized[i] = (char)queue_get(buffer, i);
+		serialized[i] = (char)(long)queue_get(buffer, i);
 	}
 	
 	queue_destroy(buffer);
@@ -653,7 +653,7 @@ _Folder* filesystem_deserialize_helper(char** data)
 				file->name = copy_string(*data);
 				*data += strlen(file->name) + 1;
 				int numRead;
-				sscanf(*data, "%ld %ld %d%n", &(file->size), &(file->last_modified), &(file->is_folder), &numRead);
+				sscanf(*data, "%lu %ld %d%n", &(file->size), &(file->last_modified), &(file->is_folder), &numRead);
 				queue_push(folder->files, file);
 				*data += numRead + 1;
 				break;

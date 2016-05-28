@@ -26,9 +26,15 @@
 #include "../common/peer_table.h"
 #include "../common/packets.h"
 #include "../utility/FileTable/FileTable.h"
+#include "../utility/ColoredPrint/ColoredPrint.h"
 
 #define INIT_CLIENT_NUM 10
 
+int err_format = -1;
+int network_format = -1;
+int event_format = -1;
+int file_format = -1;
+int client_format = -1;
 
 /* --- 	queue definitions --- */
 #define CLT_2_TKR_CUR_STATE 0
@@ -122,6 +128,25 @@ TNT * StartTrackerNetwork() {
 		return NULL;
 	}
 
+	if (err_format < 0) {
+
+		FORMAT_ARG err_arr[] = {COLOR_L_RED, COLOR_BOLD, 0};
+		err_format = register_format(err_arr);
+
+		FORMAT_ARG network_arr[] = {COLOR_D_CYAN, 0};
+		network_format = register_format(network_arr);
+
+		// FORMAT_ARG event_arr[] = {COLOR_D_MAGENTA, 0};
+		// event_format = register_format(event_arr);
+
+		FORMAT_ARG file_arr[] = {COLOR_D_MAGENTA, 0};
+		file_format = register_format(file_arr);
+
+		FORMAT_ARG client_arr[] = {COLOR_D_GREEN, 0};
+		client_format = register_format(client_arr);
+
+	}
+
 	/* -- spin off network thread -- */
 	pthread_create(&tracker_thread->thread_id, NULL, tkr_network_start, tracker_thread);
 
@@ -165,7 +190,7 @@ void EndTrackerNetwork(TNT * thread_block) {
 
 	free(tnt);
 
-	printf("NETWORK -- ending network thread after cleaning up.\n");
+	format_printf(network_format,"NETWORK -- ending network thread after cleaning up.\n");
 	
 	return;
 }
@@ -299,13 +324,13 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 // 	deletions : (not claimed) deletions part of FS to update -- tracker logic must claim when all done
 int send_FS_update(TNT * thread_block, int destination_client, int originator_client, FileSystem * additions, FileSystem * deletions) {
 	if (!thread_block || !additions || !deletions) {
-		fprintf(stderr,"send_FS_update error: null tnt, additions FS, deletions FS\n");
+		format_printf(err_format,"send_FS_update error: null tnt, additions FS, deletions FS\n");
 		return -1;
 	}
 
 	_TNT_t * tnt = (_TNT_t *)thread_block;
 	if (!get_peer_by_id(tnt->peer_table, destination_client)) {
-		fprintf(stderr,"send_FS_update error: cannot find client %d\n", destination_client);
+		format_printf(err_format,"send_FS_update error: cannot find client %d\n", destination_client);
 		return -1;
 	}
 
@@ -372,7 +397,7 @@ int send_peer_removed(TNT * thread_block, int destination_client_id, int removed
 int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 	_TNT_t * thread_block = (_TNT_t *)tnt;
 	if (!thread_block || !fs) {
-		fprintf(stderr,"send master error: thread block or fs is null\n");
+		format_printf(err_format,"send master error: thread block or fs is null\n");
 		return -1;
 	}
 
@@ -391,14 +416,14 @@ int send_master(TNT * tnt, int client_id, FileSystem * fs) {
 // 	ret : (static) 1 on success, -1 on failure
 int send_master_filetable(TNT * thread_block, int client_id, FileTable * ft) {
 	if (!thread_block || !ft) {
-		fprintf(stderr,"send_master_filetable error: null arguments\n");
+		format_printf(err_format,"send_master_filetable error: null arguments\n");
 		return -1;
 	}
 
 	_TNT_t * tnt = (_TNT_t *)thread_block;
 
 	if (!get_peer_by_id(tnt->peer_table, client_id)) {
-		fprintf(stderr, "send_master_filetable error: cannot find client %d\n", client_id);
+		format_printf(err_format,"send_master_filetable error: cannot find client %d\n", client_id);
 		return -1;
 	}
 
@@ -406,7 +431,7 @@ int send_master_filetable(TNT * thread_block, int client_id, FileTable * ft) {
 	queue_item->client_id = client_id;
 	filetable_serialize(ft, (char **)&queue_item->data, &queue_item->data_len);
 	if (queue_item->data_len < 1) {
-		fprintf(stderr, "send_master_filetable error: did not serialize any bytes\n");
+		format_printf(network_format,"send_master_filetable error: did not serialize any bytes\n");
 		return -1;
 	}	
 
@@ -549,7 +574,7 @@ void * tkr_network_start(void * arg) {
 	// open connection on listening port
 	tnt->listening_sockfd = open_listening_port();
 	if (tnt->listening_sockfd < 0) {
-		fprintf(stderr, "tracker network thread failed to open listening port\n");
+		format_printf(network_format,"tracker network thread failed to open listening port\n");
 		exit(1);
 	}
 
@@ -567,7 +592,7 @@ void * tkr_network_start(void * arg) {
 
 		read_fd_set = active_fd_set;
 		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout) < 0) {
-			fprintf(stderr, "network tracker failed to select amongst inputs\n");
+			format_printf(network_format,"network tracker failed to select amongst inputs\n");
 			connected = 0;
 			continue;
 		}
@@ -578,7 +603,7 @@ void * tkr_network_start(void * arg) {
 
 				/* client opening new connection */
 				if (i == tnt->listening_sockfd) {
-					printf("\nnetwork tracker received new client connection\n");
+					format_printf(client_format,"\nnetwork tracker received new client connection\n");
 					new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_sockfd < 0) {
 						perror("network tracker failed to accept new connection");
@@ -588,7 +613,7 @@ void * tkr_network_start(void * arg) {
 
 					// add new peer to table
 					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin_addr, new_sockfd)) == NULL) {
-						fprintf(stderr,"network tracker received peer connection but couldn't add it to the table\n");
+						format_printf(network_format,"network tracker received peer connection but couldn't add it to the table\n");
 						continue;
 					}
 
@@ -599,17 +624,17 @@ void * tkr_network_start(void * arg) {
 					send_peer_table_to_client(tnt, new_client->socketfd);
 
 					// DEBUG -- 
-					printf("Updated Peer Table\n");
+					format_printf(client_format,"Updated Peer Table\n");
 					print_table(tnt->peer_table);
 
-					printf("NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
+					format_printf(client_format,"NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
 
 				/* data on existing connection */
 				} else {
 
-					printf("\nnetwork tracker received message from client on socket %d\n", i);
+					format_printf(event_format,"\nnetwork tracker received message from client on socket %d\n", i);
 					if (handle_client_msg(i, tnt) != 1) {
-						fprintf(stderr,"failed to handle client message on socket %d\n", i);
+						format_printf(err_format,"failed to handle client message on socket %d\n", i);
 
 						peer_t * lost_client = get_peer_by_socket(tnt->peer_table, i);
 						if (lost_client != NULL) {
@@ -620,7 +645,7 @@ void * tkr_network_start(void * arg) {
 						}
 						
 						// DEBUG -- 
-						printf("Updated Peer table\n");
+						format_printf(client_format,"Updated Peer table\n");
 						print_table(tnt->peer_table);
 
 						// don't listen to broken connection
@@ -641,7 +666,7 @@ void * tkr_network_start(void * arg) {
 
 	close(tnt->listening_sockfd);
 
-	printf("network tracker ending\n");
+	format_printf(network_format,"network tracker ending\n");
 	return (void *)1;
 }
 
@@ -672,7 +697,7 @@ int open_listening_port() {
 	assert(bind(listening_sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0);
 	// assert(listen(listening_sockfd, incoming_neighbors) == 0);
 
-	printf("NETWORK -- listening at IP address %s on port %d\n", inet_ntoa(serv_addr.sin_addr), TRACKER_LISTENING_PORT);
+	format_printf(network_format,"NETWORK -- listening at IP address %s on port %d\n", inet_ntoa(serv_addr.sin_addr), TRACKER_LISTENING_PORT);
 	return listening_sockfd;
 }
 
@@ -709,13 +734,13 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	char * buf;
 	peer_t * client = get_peer_by_socket(tnt->peer_table, sockfd);
 	if (!client) {
-		fprintf(stderr,"failed to find client on socket %d\n", sockfd);
+		format_printf(err_format,"failed to find client on socket %d\n", sockfd);
 		return -1;
 	}
 
 	// get type and data length
 	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
-		fprintf(stderr,"error receiving header data from client %d\n", client->id);
+		format_printf(err_format,"error receiving header data from client %d\n", client->id);
 		return -1;
 	}
 
@@ -724,7 +749,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		
 		buf = (char *)calloc(1,pkt.data_len);
 		if (!buf) {
-			fprintf(stderr, "error receiving data -- could not allocate buffer\n");
+			format_printf(err_format,"error receiving data -- could not allocate buffer\n");
 			return -1;
 		}
 		
@@ -733,7 +758,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 
 		// receive data
 		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
-			fprintf(stderr,"error receiving data from client %d\n", client->id);
+			format_printf(err_format,"error receiving data from client %d\n", client->id);
 			return -1;
 		}
 	} else {
@@ -756,10 +781,10 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		case CLIENT_STATE:
-			printf("NETWORK -- received state update from client %d\n", client->id);
+			format_printf(event_format,"NETWORK -- received state update from client %d\n", client->id);
 			FileSystem * fs = filesystem_deserialize(buf, &client_data->data_len);
 			if (!fs) {
-				printf("error deserializing client state update\n");
+				format_printf(err_format,"error deserializing client state update\n");
 				break;
 			}
 			client_data->data = (void *)fs;
@@ -769,7 +794,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		case CLIENT_UPDATE:
-			printf("NETWORK -- received client update from client %d\n", client->id);
+			format_printf(event_format,"NETWORK -- received client update from client %d\n", client->id);
 			client_data->client_id = client->id;
 			client_data->data_len = pkt.data_len;
 			client_data->data = buf;
@@ -781,7 +806,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		case REQUEST_MASTER:
-			printf("NETWORK -- received request for master JFS from client %d\n", client->id);
+			format_printf(event_format,"NETWORK -- received request for master JFS from client %d\n", client->id);
 			notify_master_req(tnt, client->id);
 			free(client_data);
 
@@ -789,7 +814,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		default:
-			printf("NETWORK -- Unknown packet type (%d) from client id %d\n", pkt.type, client->id);
+			format_printf(err_format,"NETWORK -- Unknown packet type (%d) from client id %d\n", pkt.type, client->id);
 			break;
 
 	}
@@ -811,7 +836,7 @@ void check_liveliness(_TNT_t * tnt) {
 	for (int i = 0; i < pt->size; i++) {
 		if (pt->peer_list[i] != NULL) {
 			if (pt->peer_list[i]->time_last_alive - current_time > DIASTOLE) {
-				printf("NETWORK -- notifying logic that client %d has died\n", pt->peer_list[i]->id);
+				format_printf(client_format,"NETWORK -- notifying logic that client %d has died\n", pt->peer_list[i]->id);
 				notify_client_lost(tnt, pt->peer_list[i]);
 				delete_peer(pt, pt->peer_list[i]->id);
 			}
@@ -829,7 +854,7 @@ void send_peer_table_to_client(_TNT_t * tnt, int new_client_fd) {
 
 	char * buf = serialize_peer_table(tnt->peer_table, &pkt.data_len);
 	if (!buf || pkt.data_len < 0) {
-		fprintf(stderr, "tracker failed to send peer table to client due to serialization error\n");
+		format_printf(err_format,"tracker failed to send peer table to client due to serialization error\n");
 		return;
 	}
 
@@ -856,7 +881,7 @@ void check_txn_update_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending transaction update -- UNFILLED FUNCTION!\n");
+		format_printf(err_format,"NETWORK -- sending transaction update -- UNFILLED FUNCTION!\n");
 		//free(queue_item->data);
 		free(queue_item);
 	}
@@ -868,7 +893,7 @@ void check_file_acq_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending file acquisition update -- UNFILLED FUNCTION!\n");
+		format_printf(err_format,"NETWORK -- sending file acquisition update -- UNFILLED FUNCTION!\n");
 		//free(queue_item->data);
 		free(queue_item);
 	}
@@ -880,16 +905,16 @@ void check_fs_update_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending file system update!\n");
+		format_printf(file_format,"NETWORK -- sending file system update!\n");
 
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 		if (!client) {
-			fprintf(stderr,"check_fs_update_q failed to get client %d\n", queue_item->client_id);
+			format_printf(err_format,"check_fs_update_q failed to get client %d\n", queue_item->client_id);
 			return;
 		}
 
 		if (send_client_message(tnt, queue_item, FS_UPDATE) != 1) {
-			fprintf(stderr,"failed to send file system update to client %d\n", queue_item->client_id);
+			format_printf(err_format,"failed to send file system update to client %d\n", queue_item->client_id);
 		}
 
 		free(queue_item->data);
@@ -903,10 +928,10 @@ void check_add_peer_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
+		format_printf(client_format,"NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 		if (!client) {
-			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");
+			format_printf(err_format, "check_add_peer_q: failed to find destination client\n");
 			return;
 		}
 
@@ -920,10 +945,10 @@ void check_remove_peer_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
+		format_printf(client_format,"NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 		if (!client) {
-			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");
+			format_printf(err_format,"check_add_peer_q: failed to find destination client\n");
 			return;
 		}
 
@@ -941,9 +966,9 @@ void check_send_master_q(_TNT_t * tnt) {
 
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 
-		printf("NETWORK -- sending master JFS to client %d\n", client->id);
+		format_printf(file_format,"NETWORK -- sending master JFS to client %d\n", client->id);
 		if (send_client_message(tnt, queue_item, MASTER_STATUS) != 1) {
-			fprintf(stderr,"failed to send master status update to client %d\n", queue_item->client_id);
+			format_printf(err_format,"failed to send master status update to client %d\n", queue_item->client_id);
 		}
 		free(queue_item);
 	}
@@ -956,9 +981,9 @@ void check_send_master_ft_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item;
 	while ((queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending master file table to client %d\n", queue_item->client_id);
+		format_printf(file_format,"NETWORK -- sending master file table to client %d\n", queue_item->client_id);
 		if (send_client_message(tnt, queue_item, MASTER_FT) != 1) {
-			fprintf(stderr,"failed to send master file table to client %d\n", queue_item->client_id);
+			format_printf(err_format,"failed to send master file table to client %d\n", queue_item->client_id);
 		}
 
 		free(queue_item->data);

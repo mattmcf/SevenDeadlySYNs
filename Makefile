@@ -11,7 +11,7 @@ HEADER_FILES = common/constant.h
 
 OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utility/AsyncQueue/asyncqueue.o \
 	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
-	common/peer_table.o
+	common/peer_table.o utility/ColoredPrint/ColoredPrint.o
 
 CFLAGS = -Wall -pedantic -std=gnu99 -g -lm -pthread
 
@@ -36,19 +36,22 @@ client/test_client_network: client/test_client_network.c client/network_client.o
 	gcc $(CFLAGS) client/test_client_network.c client/network_client.o $(OBJ_FILES) -o client/test_client_network
 
 tracker/network_tracker.o: tracker/network_tracker.c tracker/network_tracker.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc $(CFLAGS) -c tracker/network_tracker.c utility/FileSystem/FileSystem.o -o tracker/network_tracker.o
+	gcc $(CFLAGS) -c tracker/network_tracker.c -o tracker/network_tracker.o
 
 client/network_client.o: client/network_client.c client/network_client.h $(OBJ_FILES) $(HEADER_FILES)
-	gcc $(CFLAGS) -c client/network_client.c utility/FileSystem/FileSystem.o utility/AsyncQueue/asyncqueue.o -o client/network_client.o
+	gcc $(CFLAGS) -c client/network_client.c -o client/network_client.o
 
 common/peer_table.o: common/peer_table.h common/peer_table.c $(HEADER_FILES)
 	gcc $(CFLAGS) -c common/peer_table.c -o common/peer_table.o
+
+utility/ColoredPrint/ColoredPrint.o: utility/ColoredPrint/ColoredPrint.c utility/ColoredPrint/ColoredPrint.h utility/Queue/queue.o
+	gcc $(CFLAGS) -c utility/ColoredPrint/ColoredPrint.c -o utility/ColoredPrint/ColoredPrint.o
 
 utility/ChunkyFile/ChunkyFile.o: utility/ChunkyFile/ChunkyFile.c utility/ChunkyFile/ChunkyFile.h
 	gcc $(CFLAGS) -c utility/ChunkyFile/ChunkyFile.c -o utility/ChunkyFile/ChunkyFile.o
 
 utility/FileSystem/FileSystem.o: utility/FileSystem/FileSystem.c utility/FileSystem/FileSystem.h
-	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -lmath -o utility/FileSystem/FileSystem.o
+	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -o utility/FileSystem/FileSystem.o
 
 utility/FileTable/FileTable.o: utility/FileTable/FileTable.c utility/FileTable/FileTable.h
 	gcc $(CFLAGS) -c utility/FileTable/FileTable.c -o utility/FileTable/FileTable.o
