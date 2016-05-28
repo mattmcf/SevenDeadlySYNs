@@ -24,6 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <wordexp.h> // for shell expansion of ~
 
 #include "tracker.h"
 #include "../common/constant.h"
