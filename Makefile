@@ -44,7 +44,7 @@ utility/ChunkyFile/ChunkyFile.o: utility/ChunkyFile/ChunkyFile.c utility/ChunkyF
 	gcc $(CFLAGS) -c utility/ChunkyFile/ChunkyFile.c -o utility/ChunkyFile/ChunkyFile.o
 
 utility/FileSystem/FileSystem.o: utility/FileSystem/FileSystem.c utility/FileSystem/FileSystem.h
-	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -o utility/FileSystem/FileSystem.o
+	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -lmath -o utility/FileSystem/FileSystem.o
 
 utility/HashTable/HashTable.o: utility/HashTable/HashTable.c utility/HashTable/HashTable.h utility/LinkedList/LinkedList.o
 	gcc $(CFLAGS) -c utility/HashTable/HashTable.c -o utility/HashTable/HashTable.o 
