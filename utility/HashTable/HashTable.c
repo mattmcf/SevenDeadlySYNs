@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define INITIAL_TABLE_SIZE 127
+#define INITIAL_TABLE_SIZE 1023
 
 typedef struct
 {

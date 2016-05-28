@@ -54,7 +54,6 @@ void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 	
 	for (int i = 0; i < cf->size; i++)
 	{
-		printf("i = %d\n", i);
 		fputc(cf->data[i], file);
 	}
 	
@@ -126,7 +125,7 @@ void chunkyfile_destroy(ChunkyFile* chunkyfile)
 /*
 int main()
 {
-	ChunkyFile* cf = chunkyfile_new_from_path("/Users/jacob/markov.txt");
+	ChunkyFile* cf = chunkyfile_new_from_path("/Users/jacob/Cantor Deitell\'s Best - Cantor Paul Deitell - Mi Sheoso Nisim.mp3");
 	int nc = chunkyfile_num_chunks(cf);
 	
 	for (int i = 0; i < nc; i++)
@@ -141,11 +140,13 @@ int main()
 	}
 	
 	printf("Num Chunks: %d\n", chunkyfile_num_chunks(cf));
+	
+	chunkyfile_write_to_path(cf, "/Users/jacob/test.mp3");
+	
 	return 0;
 }
+
 */
-
-
 
 
 
