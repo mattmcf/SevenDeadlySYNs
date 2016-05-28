@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <wordexp.h>
+#include <sys/types.h>
 
 #define create_new(type) ((type*)malloc(sizeof(type)))
 #define max(a,b)	(a > b ? a : b)

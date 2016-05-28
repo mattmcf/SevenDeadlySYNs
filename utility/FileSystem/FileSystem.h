@@ -2,6 +2,7 @@
 #define FILESYSTEM_H
 
 #include "../Queue/Queue.h"
+#include <sys/types.h>
 
 char* copy_string(char* string);
 void push_string(Queue* queue, char* str);

@@ -170,6 +170,7 @@ void chunkyfile_destroy(ChunkyFile* chunkyfile)
 	free(cf);
 }
 
+/*
 int main()
 {
 	ChunkyFile* cf = chunkyfile_new_for_reading_from_path("/Users/jacob/Cantor Deitell\'s Best - Cantor Paul Deitell - Mi Sheoso Nisim.mp3");
@@ -199,7 +200,7 @@ int main()
 	
 	return 0;
 }
-
+*/
 
 
 

@@ -15,6 +15,7 @@ typedef struct
 typedef struct
 {
 	char* path;
+	ChunkyFile* file;
 	Queue* chunks;
 } FileTableEntry;
 
@@ -24,6 +25,10 @@ void filetableentry_destroy(FileTableEntry* fte)
 	queue_destroy(fte->chunks);
 	free(fte->path);
 	free(fte);
+	if (fte->file)
+	{
+		chunkyfile_destroy(fte->file);
+	}
 }
 	
 /* Peter Weinberger's hash function, from Aho, Sethi, & Ullman
@@ -77,7 +82,8 @@ void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int 
 	
 	FileTableEntry fte;
 	int length;
-	while ((fte.path = filesystemiterator_next(fsi, &length)))
+	time_t mod_time;
+	while ((fte.path = filesystemiterator_next(fsi, &length, &mod_time)))
 	{
 		if (length < 0)
 		{
@@ -95,6 +101,7 @@ void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int 
 		FileTableEntry* newEntry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
 		newEntry->path = copy_string(fte.path);
 		newEntry->chunks = queue_new();
+		newEntry->file = NULL;
 		for (int i = 0; i < numChunks; i++)
 		{
 			Queue* q = queue_new();
@@ -114,7 +121,8 @@ void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem)
 	
 	FileTableEntry fte;
 	int length;
-	while ((fte.path = filesystemiterator_next(fsi, &length)))
+	time_t mod_time;
+	while ((fte.path = filesystemiterator_next(fsi, &length, &mod_time)))
 	{
 		if (length < 0)
 		{
@@ -204,6 +212,7 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 		{
 			entry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
 			entry->chunks = queue_new();
+			entry->file = NULL;
 			i += 1;
 			entry->path = copy_string(data + i);
 			i += strlen(entry->path) + 1;
@@ -349,7 +358,34 @@ void filetable_print(FileTable* filetable)
 	hashtable_apply(ft->table, (HashTableApplyFunction)filetable_print_file);	
 }
 
+ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	
+	FileTableEntry search;
+	search.path = path;
+	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
+	
+	if (fte)
+	{
+		return fte->file;
+	}
+	return NULL;
+}
 
+void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	
+	FileTableEntry search;
+	search.path = path;
+	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
+	
+	if (fte)
+	{
+		fte->file = file;
+	}
+}
 
 
 
