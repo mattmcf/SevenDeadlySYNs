@@ -187,6 +187,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
 				continue;
 			}
+			chunkyfile_write(file);
 
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
 			filetable_set_chunkyfile(ft, path, file);
@@ -332,7 +333,8 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* open chunk file and get the number of chunks */
 		printf("Opening new chunky file\n");
 		ChunkyFile* file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
-
+		chunkyfile_write(file);
+		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", path);
 		 
