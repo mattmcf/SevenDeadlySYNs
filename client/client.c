@@ -225,14 +225,25 @@ void CheckLocalFilesystem(){
 
 	if (!new_fs){
 		printf("CheckLocalFilesystem: filesystem_new() failed\n");
+		return;
 	}
 
-	printf("CheckLocalFilesystem: about to diff: cur_fs ------------\n");
-	filesystem_print(cur_fs);
-	printf("CheckLocalFilesystem: about to diff: new_fs ------------\n");
-	filesystem_print(new_fs);
+	//printf("CheckLocalFilesystem: cur_fs ------------\n");
+	//filesystem_print(cur_fs);
+	//printf("CheckLocalFilesystem: new_fs ------------\n");
+	//filesystem_print(new_fs);
 	filesystem_diff(cur_fs, new_fs, &adds, &dels);
-	printf("CheckLocalFilesystem: got diff\n");
+	//printf("CheckLocalFilesystem: got diff\n");
+
+	if (1 == CheckFileSystem(adds)) {
+		printf("CheckLocalFilesystem: Additions Seen ----\n");
+		filesystem_print(adds);
+	}
+
+	if (1 == CheckLocalFilesystem(dels)) {
+		printf("CheckLocalFilesystem: Deletions Seen -----\n");
+		filesystem_print(dels);
+	}
 
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
@@ -317,9 +328,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* if this is a folder */
 		if (-1 == len){
 			if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-				// char new_dir[1024];
-				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
-				// if (system(new_dir) != 0) {
 				printf("GetFileAdditions: failed to create directory \'%s\'\n", path);
 				perror("Failed because");
 			}
@@ -432,11 +440,11 @@ int CheckFileSystem(FileSystem *fs){
 	int len;
 	FileSystemIterator *iterator = filesystemiterator_new(fs);
 	if (NULL != (path = filesystemiterator_next(iterator, &len))){
-		printf("CheckFileSystem: FileSystem is nonempty\n");
+		//printf("CheckFileSystem: FileSystem is nonempty\n");
 		filesystemiterator_destroy(iterator);
 		return 1;
 	}
-	printf("CheckFileSystem: FileSystem is empty\n");
+	//printf("CheckFileSystem: FileSystem is empty\n");
 	filesystemiterator_destroy(iterator);
 	return -1;
 }
@@ -550,6 +558,9 @@ int main(int argv, char* argc[]){
 
 			if (!file){	// need to send a rejection message somehow
 				printf("chunkyfile_new_from_path() failed on %s\n", filepath);
+
+				/* send an error response */
+				send_chunk_rejection(cnt, peer_id, filepath, chunk_id);
 				continue;
 			}
 
