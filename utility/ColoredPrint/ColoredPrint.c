@@ -89,7 +89,11 @@ void format_printf(int formatID, char* format, ...)
 {
 	Queue* q = get_format_queue();
 	
-	assert(formatID < queue_length(q));
+	if (formatID >= queue_length(q) || formatID < 0)
+	{
+	    vprintf(format, args);
+		return;
+	}
 
 	FORMAT_ARG* formats = queue_get(q, formatID);
 	
