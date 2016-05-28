@@ -73,15 +73,6 @@ int main() {
 		exit(-1);
 	}
 
-	// /* check if the folder already exists, if it doesn't then make it */
-	// if (0 != access(dartsync_dir, (F_OK))){
-	// 	/* it doesn't exist, so make it */
-	// 	//if (system("mkdir ~/dart_sync") != 0) {
-
-			
-	// 	}
-	// } 
-
 	/* check if the folder already exists, if it doesn't then make it */
 	if (0 != access(dartsync_dir, (F_OK)) ){
 		printf("Cannot access %s -- creating directory\n", dartsync_dir);
@@ -190,6 +181,7 @@ int main() {
 	 	printf("Failed to close everything. Quitting anyway.\n");
 	} 
 	EndTrackerNetwork(network);
+	free(dartsync_dir);
 	printf("buh-bye\n");
 
 	return 1;
