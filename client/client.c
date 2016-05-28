@@ -164,7 +164,8 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 
 		char *path;
 		int len;
-		while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
+		time_t mod_time;
+		while (NULL != (path = filesystemiterator_next(add_iterator, &len, &mod_time))){
 			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
 			/* if addition is just a directory -> make that and then go onto files */
@@ -181,14 +182,15 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* re make that deleted file */
-			ChunkyFile *file = chunkyfile_new_empty(len);
+			ChunkyFile *file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
 			if (!file){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
 				continue;
 			}
+			chunkyfile_write(file);
 
-			/* save that file to the path */
-			chunkyfile_write_to_path(file, path);
+			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
+			filetable_set_chunkyfile(ft, path, file);
 
 			/* figure out how many chunks we need to request */
 			int num_chunks = chunkyfile_num_chunks(file);
@@ -290,14 +292,15 @@ int RemoveFileDeletions(FileSystem *deletions){
 	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
 	char *path;
 	int len;
-
+	time_t mod_time;
+	
 	if (!del_iterator){
 		printf("RemoveFileDeletions: failed to make del iterator\n");
 		return -1;
 	}
 
 	/* iterate over the fileystem, delete any files that are in it */
-	while (NULL != (path = filesystemiterator_next(del_iterator, &len))){
+	while (NULL != (path = filesystemiterator_next(del_iterator, &len, &mod_time))){
 		printf("RemoveFileDeletions: found deletion at: %s\n", path);
 		if (-1 == remove(path)){
 			printf("RemoveFileDeletions: remove() failed on path\n");
@@ -322,7 +325,8 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 
 	/* iterate over the fileystem, delete any files that are in it */
 	int len;
-	while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
+	time_t mod_time;
+	while (NULL != (path = filesystemiterator_next(add_iterator, &len, &mod_time))){
 		printf("GetFileAdditions: found addition at: %s\n", path);
 
 		/* if this is a folder */
@@ -336,12 +340,15 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 
 		/* open chunk file and get the number of chunks */
 		printf("Opening new chunky file\n");
-		ChunkyFile* file = chunkyfile_new_empty(len);
-
+		ChunkyFile* file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
+		chunkyfile_write(file);
+		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", path);
-		chunkyfile_write_to_path(file, path);
-
+		 
+		// ADD CHUNKYFILE TO HASH TABLE!!!!!
+		filetable_set_chunkyfile(ft, path, file);
+		
 		/* request all chunks */
 		printf("Send chunk request\n");
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
@@ -438,9 +445,11 @@ int DestroyPeerTable(){
 int CheckFileSystem(FileSystem *fs){
 	char *path;
 	int len;
+	time_t mod_time;
 	FileSystemIterator *iterator = filesystemiterator_new(fs);
-	if (NULL != (path = filesystemiterator_next(iterator, &len))){
-		//printf("CheckFileSystem: FileSystem is nonempty\n");
+
+	if (NULL != (path = filesystemiterator_next(iterator, &len, &mod_time))){
+		printf("CheckFileSystem: FileSystem is nonempty\n");
 		filesystemiterator_destroy(iterator);
 		return 1;
 	}
@@ -554,7 +563,7 @@ int main(int argv, char* argc[]){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
 
 			/* get the chunk that they are requesting */
-			ChunkyFile *file = chunkyfile_new_from_path(filepath);
+			ChunkyFile *file = chunkyfile_new_for_reading_from_path(filepath);
 
 			if (!file){	// need to send a rejection message somehow
 				printf("chunkyfile_new_from_path() failed on %s\n", filepath);
@@ -604,17 +613,19 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
-			/* open the chunky file */
-			ChunkyFile *file = chunkyfile_new_from_path(filepath);
+			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
+			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
 
 			/* set the correct chunk */
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
 
-			// You should write the chunkyfile to a path here :) 
-			chunkyfile_write_to_path(file, filepath);
-
-			/* destroy the chunky file */
-			chunkyfile_destroy(file);
+			if (chunkyfile_all_chunks_written(file))
+			{
+				chunkyfile_write(file);
+				/* destroy the chunky file */
+				chunkyfile_destroy(file);
+				filetable_set_chunkyfile(ft, filepath, NULL);
+			}
 
 			free(chunk_data);
 			filepath = NULL;

@@ -4,6 +4,7 @@
 #include "../HashTable/HashTable.h"
 #include "../Queue/Queue.h"
 #include "../FileSystem/FileSystem.h"
+#include "../ChunkyFile/ChunkyFile.h"
 
 typedef struct FileTable FileTable;
 
@@ -59,5 +60,8 @@ void   filetable_remove_peer(FileTable* filetable, int id);
 
 // Prints the file table. 
 void filetable_print(FileTable* filetable);
+
+ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path);
+void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file);
 
 #endif

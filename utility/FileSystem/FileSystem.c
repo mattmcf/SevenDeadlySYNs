@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <wordexp.h>
+#include <sys/types.h>
 
 #define create_new(type) ((type*)malloc(sizeof(type)))
 #define max(a,b)	(a > b ? a : b)
@@ -724,7 +725,7 @@ void filesystemiterator_destroy(FileSystemIterator* iterator)
 	}
 }
 
-char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
+char* filesystemiterator_next(FileSystemIterator* iterator, int* length, time_t* mod_time)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	assert(fsi);
@@ -744,6 +745,7 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 		if (folder == NULL)
 		{
 			*length = -1;
+			*mod_time = 0;
 			return NULL;
 		}
 		
@@ -767,13 +769,15 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 		if (next_folder == NULL)
 		{
 			*length = -1;
+			*mod_time = 0;
 			return NULL;
 		}
 		fsi->current_files = folder_get_files(next_folder);
 		
 		*length = -1;
 		fsi->path = NULL;
-		return filesystemiterator_next(iterator, length);
+		*mod_time = 0;
+		return filesystemiterator_next(iterator, length, mod_time);
 	}
 	
 	char* path = queue_speek(fsi->path_stack);
@@ -784,9 +788,11 @@ char* filesystemiterator_next(FileSystemIterator* iterator, int* length)
 	if (((_File*)file)->is_folder)
 	{
 		*length = -1;
+		*mod_time = 0;
 	}
 	else
 	{
+		*mod_time = ((_File*)file)->last_modified;
 		*length = (int)(((_File*)file)->size);
 	}
 	return fsi->path;
