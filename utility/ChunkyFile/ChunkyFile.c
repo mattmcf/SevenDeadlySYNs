@@ -4,14 +4,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <wordexp.h>
+#include <sys/types.h>
+#include <utime.h>
+#include <string.h>
+#include <assert.h>
 
 typedef struct
 {
+	char* path;
 	char* data;
 	int size;
+	char* chunks_written;
+	time_t modify_time;
 } _ChunkyFile;
 
-ChunkyFile* chunkyfile_new_from_path(char* path)
+ChunkyFile* chunkyfile_new_for_reading_from_path(char* path)
 {
     struct stat st;
     stat(path, &st);
@@ -23,9 +30,10 @@ ChunkyFile* chunkyfile_new_from_path(char* path)
 	
 	_ChunkyFile* cf = (_ChunkyFile*)malloc(sizeof(_ChunkyFile));
 		
+	cf->path = NULL;
 	cf->size = st.st_size;
 	cf->data = (char*)malloc(st.st_size * sizeof(char));
-
+	cf->chunks_written = (char*)calloc(num_chunks_for_size(st.st_size), sizeof(char));
 	FILE* file = fopen(path, "r");
 	for (int i = 0; i < cf->size; i++)
 	{
@@ -36,11 +44,17 @@ ChunkyFile* chunkyfile_new_from_path(char* path)
 	return (ChunkyFile*)cf;
 }
 
-ChunkyFile* chunkyfile_new_empty(int size)
+ChunkyFile* chunkyfile_new_for_writing_to_path(char* path, int size, time_t modify_time)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)malloc(sizeof(_ChunkyFile));
+	
+    wordexp_t exp_result;
+    wordexp(path, &exp_result, 0);
+	
+	cf->path = strdup(exp_result.we_wordv[0]);
 	cf->data = (char*)malloc(size * sizeof(char));
 	cf->size = size;
+	cf->modify_time = modify_time;
 	
 	char* db = "DEADBEEF";
 	for (int i = 0; i < size; i++)
@@ -51,13 +65,13 @@ ChunkyFile* chunkyfile_new_empty(int size)
 	return (ChunkyFile*)cf;
 }
 
-void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
+void chunkyfile_write(ChunkyFile* chunkyfile)
 {
-    wordexp_t exp_result;
-    wordexp(path, &exp_result, 0);
-	
-	FILE* file = fopen(exp_result.we_wordv[0], "w+");
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
+	
+	assert(cf->path);
+	
+	FILE* file = fopen(cf->path, "w+");
 	
 	for (int i = 0; i < cf->size; i++)
 	{
@@ -65,6 +79,12 @@ void chunkyfile_write_to_path(ChunkyFile* chunkyfile, char* path)
 	}
 	
 	fclose(file);
+	
+    struct utimbuf tbuf;
+	tbuf.actime = cf->modify_time;
+	tbuf.modtime = cf->modify_time;
+	
+	utime(cf->path, &tbuf);
 }
 
 int num_chunks_for_size(int size)
@@ -118,21 +138,48 @@ void chunkyfile_set_chunk(ChunkyFile* chunkyfile, int chunkNum, char*  chunk, in
 		}
 	}
 	
+	cf->chunks_written[chunkNum] = 1;
+	
 	memcpy(cf->data + chunkNum * CHUNKYFILE_CHUNK_SIZE, chunk, chunkSize);
+}
+
+int chunkyfile_all_chunks_written(ChunkyFile* chunkyfile)
+{
+	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
+	
+	for (int i = 0; i < chunkyfile_num_chunks(chunkyfile); i++)
+	{
+		if (cf->chunks_written[i] == 0)
+		{
+			return 0;
+		}
+	}
+	return 1;
 }
 
 void chunkyfile_destroy(ChunkyFile* chunkyfile)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
+	if (cf->path)
+	{
+		free(cf->path);
+	}
+	free(cf->chunks_written);
 	free(cf->data);
 	free(cf);
 }
 
-/*
 int main()
 {
-	ChunkyFile* cf = chunkyfile_new_from_path("/Users/jacob/Cantor Deitell\'s Best - Cantor Paul Deitell - Mi Sheoso Nisim.mp3");
+	ChunkyFile* cf = chunkyfile_new_for_reading_from_path("/Users/jacob/Cantor Deitell\'s Best - Cantor Paul Deitell - Mi Sheoso Nisim.mp3");
+	
+	if (cf == NULL)
+	{
+		printf("cf is null\n");
+		return 0;
+	}
+	
 	int nc = chunkyfile_num_chunks(cf);
 	
 	for (int i = 0; i < nc; i++)
@@ -148,15 +195,10 @@ int main()
 	
 	printf("Num Chunks: %d\n", chunkyfile_num_chunks(cf));
 	
-	chunkyfile_write_to_path(cf, "/Users/jacob/test.mp3");
+	chunkyfile_write(cf);
 	
 	return 0;
 }
-
-*/
-
-
-
 
 
 
