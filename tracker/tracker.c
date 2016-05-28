@@ -24,6 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <wordexp.h> // for shell expansion of ~
 
 #include "tracker.h"
 #include "../common/constant.h"
@@ -31,6 +32,7 @@
 #include "../utility/FileSystem/FileSystem.h"
 #include "../utility/FileTable/FileTable.h"
 
+char * dartsync_dir;
 FileSystem* fs;
 FileTable* filetable;
 peer_table* peerTable;
@@ -41,11 +43,50 @@ void intHandler(int dummy) {
     keepRunning = 0;
 }
 
+// expands the ~/dart_sync dir
+//	original_path : (not claimed) DARTSYNC_DIR
+//	ret : (not claimed) expanded path (allocated string on heap)
+char * tilde_expand(char * original_path) {
+	if (!original_path)
+		return NULL;
+
+	printf("expanding string %s\n", original_path);
+
+	char * expanded_string = NULL;
+	wordexp_t exp_result;
+	wordexp(original_path, &exp_result, 0);
+  expanded_string = strdup(exp_result.we_wordv[0]);
+  wordfree(&exp_result);
+
+  printf("expanded_string: %s\n", expanded_string);
+  return expanded_string;
+}
+
 int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
+
+	/* set directory that will be used */
+	dartsync_dir = tilde_expand(DARTSYNC_DIR);
+	if (!dartsync_dir) {
+		fprintf(stderr, "Failed to expand %s\n", DARTSYNC_DIR);
+		exit(-1);
+	}
+
+	/* check if the folder already exists, if it doesn't then make it */
+	if (0 != access(dartsync_dir, (F_OK)) ){
+		printf("Cannot access %s -- creating directory\n", dartsync_dir);
+		perror("reason");
+		/* it doesn't exist, so make it */
+		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+		//if (system("mkdir ~/dart_sync") != 0) {
+			printf("TRACKER MAIN: failed to create DARTSYNC_DIR\n");
+			exit(-1);
+		}
+	} 
+
 	// create file system
-	fs = filesystem_new(DARTSYNC_DIR);
+	fs = filesystem_new(dartsync_dir);
 	filesystem_print(fs);
 
 	filetable = filetable_new();
@@ -140,6 +181,7 @@ int main() {
 	 	printf("Failed to close everything. Quitting anyway.\n");
 	} 
 	EndTrackerNetwork(network);
+	free(dartsync_dir);
 	printf("buh-bye\n");
 
 	return 1;

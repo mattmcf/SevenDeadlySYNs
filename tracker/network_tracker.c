@@ -728,8 +728,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			return -1;
 		}
 		
-		printf("client %d on socketd %d -- waiting for data\n", client->id, client->socketfd); 	// debug
-		fflush(stdout);
+		//printf("client %d on socketd %d -- waiting for data\n", client->id, client->socketfd); 	// debug
+		//fflush(stdout);
 
 		// receive data
 		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
@@ -747,7 +747,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	int rc = -1;
 	switch(pkt.type) {
 		case HEARTBEAT:
-			printf("NETWORK -- received heartbeat from client %d\n", client->id);
+			//printf("NETWORK -- received heartbeat from client %d\n", client->id);
 			// update time last heard from client
 			client->time_last_alive = time(NULL);
 			free(client_data);
@@ -903,7 +903,7 @@ void check_add_peer_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
+		printf("NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 		if (!client) {
 			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");
@@ -920,7 +920,7 @@ void check_remove_peer_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		printf("NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)queue_item->data);
+		printf("NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
 		peer_t * client = get_peer_by_id(tnt->peer_table, queue_item->client_id);
 		if (!client) {
 			fprintf(stderr, "check_add_peer_q: failed to find destination client\n");

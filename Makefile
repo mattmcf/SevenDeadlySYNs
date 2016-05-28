@@ -13,7 +13,7 @@ OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utilit
 	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
 	common/peer_table.o
 
-CFLAGS = -Wall -pedantic -std=c99 -g -lm -pthread
+CFLAGS = -Wall -pedantic -std=gnu99 -g -lm -pthread
 
 all: tracker/tracker_app client/client_app
 
@@ -48,7 +48,7 @@ utility/ChunkyFile/ChunkyFile.o: utility/ChunkyFile/ChunkyFile.c utility/ChunkyF
 	gcc $(CFLAGS) -c utility/ChunkyFile/ChunkyFile.c -o utility/ChunkyFile/ChunkyFile.o
 
 utility/FileSystem/FileSystem.o: utility/FileSystem/FileSystem.c utility/FileSystem/FileSystem.h
-	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -o utility/FileSystem/FileSystem.o
+	gcc $(CFLAGS) -c utility/FileSystem/FileSystem.c -lmath -o utility/FileSystem/FileSystem.o
 
 utility/FileTable/FileTable.o: utility/FileTable/FileTable.c utility/FileTable/FileTable.h
 	gcc $(CFLAGS) -c utility/FileTable/FileTable.c -o utility/FileTable/FileTable.o

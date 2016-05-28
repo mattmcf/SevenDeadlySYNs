@@ -315,7 +315,8 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 		// deserialized in handle_client_message() side
 		// fs = filesystem_deserialize(queue_item->data, length_deserialized);
 		fs = queue_item->data;
-		
+		filesystem_print(fs);
+
 		//free(queue_item->data); // freed in handle_client_message() side
 		free(queue_item);
 	}
@@ -330,7 +331,7 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	if (!thread_block || !length_deserialized) {
 		fprintf(stderr, "recv_master_ft error: null arguments\n");
-		return -1;
+		return NULL;
 	}
 
 	_CNT_t * cnt = (_CNT_t *)thread_block;
@@ -338,7 +339,7 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	FileTable * ft = NULL;
 	if (queue_item != NULL) {
 
-		ft = filesystem_deserialize(queue_item->data, length_deserialized);
+		ft = filetable_deserialize(queue_item->data, length_deserialized);
 		if (*length_deserialized < 1) {
 			fprintf(stderr, "recv_master_ft error: didn't deserialize any bytes\n");
 			return NULL;
@@ -671,6 +672,7 @@ int notify_master_ft_received(_CNT_t * cnt, client_data_t * queue_item) {
 	}
 
 	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT], (void*)queue_item);
+	return 1;
 }
 
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
@@ -734,7 +736,7 @@ void * clt_network_start(void * arg) {
 
 	// for connecting with new clients
 	struct sockaddr_in clientaddr;
-	unsigned int addrlen;
+	unsigned int addrlen = sizeof(struct sockaddr_in);
 
 	// set up timer
 	struct timeval timeout;
@@ -779,12 +781,12 @@ void * clt_network_start(void * arg) {
 
 					int new_peer_fd = accept(cnt->peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
 					if (new_peer_fd < 0) {
-						fprintf(stderr,"network tracker accept_connections thread failed to accept new connection\n");
+						fprintf(stderr,"network client failed to accept new client connection\n");
 						continue;
 					}
 
 					printf("\nclient network received new connection from peer at %s (socket %d)\n",inet_ntoa(clientaddr.sin_addr),i);
-					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char*)&clientaddr.sin_addr);
+					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char *)&clientaddr.sin_addr);
 					if (!new_peer) {
 						fprintf(stderr, "client network doesn't has a peer record for new peer\n");
 						close(new_peer_fd);
@@ -1095,7 +1097,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 			// replace current peer table with received peer table
 			cnt->peer_table = new_table;
-			printf("\n new peer table\n");
+			printf("\nnew peer table\n");
 			print_table(cnt->peer_table);
 			break;
 

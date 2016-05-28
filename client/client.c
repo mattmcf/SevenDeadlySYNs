@@ -14,6 +14,8 @@
 #include <arpa/inet.h>	// in_addr_t
 #include <pthread.h>	//thread stuff
 #include <signal.h>
+#include <wordexp.h> // for shell expansion of ~
+#include <string.h> // strdup
 
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
@@ -33,6 +35,7 @@ CNT* cnt;
 FileSystem *cur_fs;
 peer_table_t *pt;
 FileTable *ft;
+char * dartsync_dir; 	// global of absolute dartsync_dir path
 
 /* ------------------------------- TODO -------------------------------- */
 
@@ -82,15 +85,34 @@ int RemoveFileDeletions(FileSystem *deletions);
  */
 int GetFileAdditions(FileSystem *additions, int author_id);
 
+// expands the ~/dart_sync dir
+//	original_path : (not claimed) DARTSYNC_DIR
+//	ret : (not claimed) expanded path (allocated string on heap)
+char * tilde_expand(char * original_path) {
+	if (!original_path)
+		return NULL;
+
+	printf("expanding string %s\n", original_path);
+
+	char * expanded_string = NULL;
+	wordexp_t exp_result;
+	wordexp(original_path, &exp_result, 0);
+  expanded_string = strdup(exp_result.we_wordv[0]);
+  wordfree(&exp_result);
+
+  printf("expanded_string: %s\n", expanded_string);
+  return expanded_string;
+}
+
 /* ----------------------- Public Function Bodies ---------------------- */
 
 int SendMasterFSRequest(FileSystem *cur_fs){
 	FileSystem *master;
 
-	if (-1 == send_status(cnt, cur_fs)){
-		printf("SendMasterFSRequest: send_status failed\n");
-		return -1;
-	}
+	// if (-1 == send_status(cnt, cur_fs)){
+	// 	printf("SendMasterFSRequest: send_status failed\n");
+	// 	return -1;
+	// }
 
 	if (-1 == send_request_for_master(cnt)){
 		printf("SendMasterFSRequest: send_request_for_master() failed\n");
@@ -103,6 +125,11 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		printf("SendMasterFSRequest: recv_master returned NULL, sleeping\n");
 		sleep(1);
 	}
+
+	printf("SendMasterFSRequest: dartsync dir - %s\n", dartsync_dir);
+
+	/* set root of returned file system */
+	filesystem_set_root_path(master, dartsync_dir);
 
 	UpdateLocalFilesystem(master);
 	return 1;
@@ -140,6 +167,19 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		while (NULL != (path = filesystemiterator_next(add_iterator, &len))){
 			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
 
+			/* if addition is just a directory -> make that and then go onto files */
+			if (len == -1) {
+
+				if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				// char new_dir[1024];
+				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
+				// if (system(new_dir) != 0) {
+					printf("GetFileAdditions: failed to create directory \'%s\'\n", path);
+					perror("Failed because");
+				}
+				continue;
+			}
+
 			/* re make that deleted file */
 			ChunkyFile *file = chunkyfile_new_empty(len);
 			if (!file){
@@ -157,7 +197,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* for each chunk, find a peer who has it, and request it */
-			for (int i = 0; i < num_chunks; i++){//???
+			for (int i = 0; i < num_chunks; i++){ //???
 				printf("UpdateLocalFilesystem: need to request a chunk\n");
 			}
 
@@ -180,7 +220,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 }
 
 void CheckLocalFilesystem(){
-	FileSystem *new_fs = filesystem_new(DARTSYNC_DIR);
+	FileSystem *new_fs = filesystem_new(dartsync_dir);
 	FileSystem *adds = NULL, *dels = NULL;
 
 	if (!new_fs){
@@ -229,6 +269,8 @@ void DropFromNetwork(){
 	DestroyPeerTable();
 	filetable_destroy(ft);
 
+	free(dartsync_dir);
+
 	exit(0);
 }
 
@@ -275,7 +317,11 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* if this is a folder */
 		if (-1 == len){
 			if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-				printf("GetFileAdditions: failed to create %s\n", path);
+				// char new_dir[1024];
+				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
+				// if (system(new_dir) != 0) {
+				printf("GetFileAdditions: failed to create directory \'%s\'\n", path);
+				perror("Failed because");
 			}
 			continue;
 		}
@@ -434,16 +480,27 @@ int main(int argv, char* argc[]){
 	/* catch sig int so that we can politely close networks on kill */
 	signal(SIGINT, DropFromNetwork);
 	
+	/* set directory that will be used */
+	dartsync_dir = tilde_expand(DARTSYNC_DIR);
+	if (!dartsync_dir) {
+		fprintf(stderr, "Failed to expand %s\n", DARTSYNC_DIR);
+		exit(-1);
+	}
+
 	/* check if the folder already exists, if it doesn't then make it */
-	// if (0 != access(DARTSYNC_DIR, (F_OK))){
-	// 	/* it doesn't exist, so make it */
-	// 	if (-1 == mkdir(DARTSYNC_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-	// 		printf("CLIENT MAIN: failed to create DARTSYNC_DIR\n");
-	// 	}
-	// } 
+	if (0 != access(dartsync_dir, (F_OK)) ){
+		printf("Cannot access %s -- creating directory\n", dartsync_dir);
+		perror("reason");
+		/* it doesn't exist, so make it */
+		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+		//if (system("mkdir ~/dart_sync") != 0) {
+			printf("CLIENT MAIN: failed to create DARTSYNC_DIR (%s)\n",dartsync_dir);
+			exit(-1);
+		}
+	} 
 
 	/* get the current local filesystem */
-	if (NULL == (cur_fs = filesystem_new(DARTSYNC_DIR))){
+	if (NULL == (cur_fs = filesystem_new(dartsync_dir))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
 		DestroyPeerTable();
 		filetable_destroy(ft);
@@ -558,8 +615,8 @@ int main(int argv, char* argc[]){
 		while (-1 != recv_diff(cnt, &additions, &deletions, &author_id)){
 			printf("CLIENT MAIN: received a diff from author %d\n", author_id);
 			/* set the root paths of the additions and deletions filesystems */
-			filesystem_set_root_path(additions, DARTSYNC_DIR);
-			filesystem_set_root_path(deletions, DARTSYNC_DIR);
+			filesystem_set_root_path(additions, dartsync_dir);
+			filesystem_set_root_path(deletions, dartsync_dir);
 
 			/* get rid of the deletions */
 			RemoveFileDeletions(deletions);
@@ -587,7 +644,11 @@ int main(int argv, char* argc[]){
 		while (NULL != (master = recv_master(cnt, &recv_len))){
 			printf("CLIENT MAIN: received master from tracker\n");
 			/* set the root path of the master filesystem */
-			filesystem_set_root_path(master, DARTSYNC_DIR);
+			printf("dartsync_dir: %s\n", dartsync_dir);
+			fflush(stdout);
+			filesystem_set_root_path(master, dartsync_dir);
+
+			filesystem_print(master);
 
 			UpdateLocalFilesystem(master);
 		}
