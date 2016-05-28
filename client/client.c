@@ -589,6 +589,8 @@ int main(int argv, char* argc[]){
 			/* set the root path of the master filesystem */
 			filesystem_set_root_path(master, DARTSYNC_DIR);
 
+			filesystem_print(master);
+
 			UpdateLocalFilesystem(master);
 		}
 

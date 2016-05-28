@@ -22,7 +22,7 @@
 // time spent waiting for sockets to receive data before polling queues
 #define NETWORK_WAIT 3
 
-// defined DART_SYNC directory that will be syncronized across peers
+// defined DART_SYNC directory that will be synchronized across peers
 #define DARTSYNC_DIR "~/dart_sync"
 
 // metadata file that contains the most recent serialized 
