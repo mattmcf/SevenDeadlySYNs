@@ -41,6 +41,13 @@ ChunkyFile* chunkyfile_new_empty(int size)
 	_ChunkyFile* cf = (_ChunkyFile*)malloc(sizeof(_ChunkyFile));
 	cf->data = (char*)malloc(size * sizeof(char));
 	cf->size = size;
+	
+	char* db = "DEADBEEF";
+	for (int i = 0; i < size; i++)
+	{
+		cf->data[i] = db[i % 8];
+	}
+	
 	return (ChunkyFile*)cf;
 }
 
