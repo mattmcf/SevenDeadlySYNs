@@ -330,7 +330,7 @@ FileSystem * recv_master(CNT * thread, int * length_deserialized) {
 FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	if (!thread_block || !length_deserialized) {
 		fprintf(stderr, "recv_master_ft error: null arguments\n");
-		return -1;
+		return NULL;
 	}
 
 	_CNT_t * cnt = (_CNT_t *)thread_block;
@@ -338,7 +338,7 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	FileTable * ft = NULL;
 	if (queue_item != NULL) {
 
-		ft = filesystem_deserialize(queue_item->data, length_deserialized);
+		ft = filetable_deserialize(queue_item->data, length_deserialized);
 		if (*length_deserialized < 1) {
 			fprintf(stderr, "recv_master_ft error: didn't deserialize any bytes\n");
 			return NULL;
@@ -671,6 +671,7 @@ int notify_master_ft_received(_CNT_t * cnt, client_data_t * queue_item) {
 	}
 
 	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT], (void*)queue_item);
+	return 1;
 }
 
 /* ------------------------ FUNCTION DECLARATIONS ------------------------ */
