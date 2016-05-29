@@ -125,7 +125,7 @@ char * tilde_compress(char * original_path){
 			)
 		{
 			char buffer[strlen(original_path)-i];
-			printf("moving: %s", &original_path[i+1])
+			printf("moving: %s", &original_path[i+1]);
 			memcpy(buffer, &original_path[i+1], strlen(original_path)-i);
 			buffer[strlen(original_path)-i+1] = '\0';
 			printf("set new original address\n");
