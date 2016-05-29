@@ -97,11 +97,39 @@ char * tilde_expand(char * original_path) {
 	char * expanded_string = NULL;
 	wordexp_t exp_result;
 	wordexp(original_path, &exp_result, 0);
-  expanded_string = strdup(exp_result.we_wordv[0]);
-  wordfree(&exp_result);
+	expanded_string = strdup(exp_result.we_wordv[0]);
+	wordfree(&exp_result);
 
-  printf("expanded_string: %s\n", expanded_string);
-  return expanded_string;
+	printf("expanded_string: %s\n", expanded_string);
+  	return expanded_string;
+}
+
+char * tilde_compress(char * original_path){
+	if (!original_path){
+		return NULL;
+	}
+	printf("Tilde compressing string %s\n", original_path);
+
+	char * compressed_string = NULL;
+	for (int i = sizeof(original_path)-1; i <= 9; i--){
+		if (original_path[i] == 'c' &&
+			original_path[i-1] == 'n' &&
+			original_path[i-2] == 'y' &&
+			original_path[i-3] == 's' &&
+			original_path[i-4] == '_' &&
+			original_path[i-5] == 't' &&
+			original_path[i-6] == 'r' &&
+			original_path[i-7] == 'a' &&
+			original_path[i-8] == 'd'
+			)
+		{
+			original_path += (sizeof(original_path)-i);
+			sprintf(compressed_string, "~%s", original_path);
+			printf("compressed_string: %s\n", compressed_string);
+			return compressed_string;
+		}
+	}
+	return NULL;
 }
 
 /* ----------------------- Public Function Bodies ---------------------- */
@@ -251,6 +279,10 @@ void CheckLocalFilesystem(){
 		printf("CheckLocalFilesystem: Deletions Seen -----\n");
 		filesystem_print(dels);
 	}
+	// if (1 == CheckLocalFilesystem(dels)) {
+	// 	printf("CheckLocalFilesystem: Deletions Seen -----\n");
+	// 	filesystem_print(dels);
+	// }
 
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
@@ -350,11 +382,14 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", path);
+
 		 
 		// ADD CHUNKYFILE TO HASH TABLE!!!!!
 		filetable_set_chunkyfile(ft, path, file);
 		
 		/* request all chunks */
+		path = tilde_compress(path);
+		printf("New path is: %s\n", path);
 		printf("Send chunk request\n");
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
@@ -566,7 +601,7 @@ int main(int argv, char* argc[]){
 		char *filepath;
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
-
+			filepath = tilde_expand(filepath);
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(filepath);
 
