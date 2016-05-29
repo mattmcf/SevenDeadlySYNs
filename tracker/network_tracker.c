@@ -317,27 +317,28 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 
 // Send file acquisition update (client got # chunk of @ file) : TKR_2_CLT_FILE_ACQ
 // 	thread_block : (not claimed) thread_block
-//	client_id : (static) id to send to
+//	dest_id : (static) id to send to
+//	got_id : (static) client that got 
 // 	filename : (not claimed) name of file
 //	chunk_num : (static) chunk id that client has acquired
 //	ret : 1 on success, -1 on failure
-int send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num) {
+int send_got_chunk_update(TNT * thread_block, int dest_id, int got_id, char * filename, int chunk_num) {
 	if (!thread_block || !filename) {
 		format_printf(err_format, "send_got_chunk_update: null arguments\n");
 		return -1;
 	}
 
 	_TNT_t * tnt = (_TNT_t *)thread_block;
-	if (!get_peer_by_id(tnt->peer_table, client_id)) {
-		format_printf(err_format, "send_got_chunk_update: cannot find client with id %d\n", client_id);
+	if (!get_peer_by_id(tnt->peer_table, dest_id)) {
+		format_printf(err_format, "send_got_chunk_update: cannot find client with id %d\n", dest_id);
 		return -1;
 	}
 
 	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
-	queue_item->client_id = client_id;
+	queue_item->client_id = dest_id;
 	queue_item->data_len = strlen(filename) + 1 + sizeof(int);
 	queue_item->data = malloc(queue_item->data_len);
-	memcpy(queue_item->data, &client_id, sizeof(int));
+	memcpy(queue_item->data, &got_id, sizeof(int));
 	memcpy( (char *)((long)queue_item->data + (long)sizeof(int)), filename, queue_item->data_len);
 
 	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ], (void*)queue_item);

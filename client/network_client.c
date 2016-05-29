@@ -293,7 +293,7 @@ int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, in
 
 // receive acq status update : TKR_2_ME_FILE_ACQ
 // 	thread_block : (not cliamed) thread_block
-// 	client_id : (not claimed) filled in with client id
+// 	client_id : (not claimed) filled in with client id of new chunk owner
 // 	filename : (not claimed) filled in with pointer to file string
 // 	chunk_num : (not claimed) filled in with chunk id
 // 	ret : (static) 1 on chunk received notication, -1 in no update
@@ -1054,7 +1054,6 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			format_printf(err_format, "client network failed to get data from tracker\n");
 			return -1;
 		}
-		printf("received %d bytes\n", pkt.data_len);
 	}
 
 	switch (pkt.type) {

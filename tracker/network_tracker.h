@@ -73,11 +73,12 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 
 // Send file acquisition update (client got # chunk of @ file)
 // 	thread_block : (not claimed) thread_block
-//	client_id : (static) id to send to
+//	dest_id : (static) id to send to
+//	got_id : (static) client that got 
 // 	filename : (not claimed) name of file
 //	chunk_num : (static) chunk id that client has acquired
 //	ret : 1 on success, -1 on failure
-int send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num);
+int send_got_chunk_update(TNT * thread_block, int dest_id, int got_id, char * filename, int chunk_num);
 
 // Sends file system update (client updated @ file)
 // 	tnt : (not claimed) thread block

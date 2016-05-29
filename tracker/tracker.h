@@ -65,7 +65,7 @@ send difference
 // broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network);
 
-int updateNetwork(TNT* netowrk, int updatePusher, FileSystem *additions, FileSystem *deletions);
+int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions);
 
 int isNetworkUpdated();
 // ****************************************************************
