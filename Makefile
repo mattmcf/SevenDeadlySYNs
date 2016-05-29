@@ -13,7 +13,7 @@ OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utilit
 	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
 	common/peer_table.o utility/ColoredPrint/ColoredPrint.o
 
-CFLAGS = -Wall -pedantic -std=gnu99 -g -pthread -lM
+CFLAGS = -Wall -pedantic -std=gnu99 -g -pthread -lmath
 
 all: tracker/tracker_app client/client_app
 
