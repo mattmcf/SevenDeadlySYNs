@@ -36,9 +36,14 @@ peer_table_t * init_peer_table(int size) {
 	if (!table->peer_list)
 		return NULL;
 
+
 	table->size = size;
 	table->count = 0;
 	table->id_counter = 1;
+
+	for(int i = 0; i < table->size; i++){
+		table->peer_list[i] = NULL;
+	}
 
 	return table;	
 }
