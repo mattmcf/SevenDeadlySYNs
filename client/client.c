@@ -187,16 +187,20 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	FileSystem *deletions;
 	filesystem_diff(cur_fs, new_fs, &additions, &deletions);
 
-	if (!deletions && (-1 == CheckFileSystem(deletions))){
-		printf("UpdateLocalFilesystem: deletions is NULL or empty\n");
+	if (!deletions){
+		printf("UpdateLocalFilesystem: deletions is NULL\n");
+	} else if (-1 == CheckFileSystem(deletions)){
+		printf("UpdateLocalFilesystem: deletions is empty\n");
 	} else {
 		/* iterate over additions to see if we need to request files */
 		/* delete any files that we need to update, or remove flat out */
 		RemoveFileDeletions(deletions);
 	}
 
-	if (!additions && (-1 == CheckFileSystem(additions))){
+	if (!additions){
 		printf("UpdateLocalFilesystem: additions is NULL\n");
+	} else if (-1 == CheckFileSystem(additions)){
+		printf("UpdateLocalFilesystem: additions is empty\n");
 	} else {
 		/* iterate over additions to see if we need to request files */
 		printf("UpdateLocalFilesystem: ready to iterate over additions!\n");
@@ -244,7 +248,21 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 
 			/* for each chunk, find a peer who has it, and request it */
 			for (int i = 0; i < num_chunks; i++){ //???
-				printf("UpdateLocalFilesystem: need to request a chunk\n");
+				/* get the peers who have the chunk that we want */
+				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
+				if (!peers){
+					printf("UpdateLocalFilesystem: filetable_get_peers_who_have_file_chunk() failed\n");
+					continue;
+				}
+
+				/* randomly select one peer to get the chunk from */
+				int list_id = (rand()*100) % queue_length(peers);
+				int peer_id = (int)queue_get(peers, list_id);
+
+				/* make the request to get that chunk */
+				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
+						i, path, peer_id);
+				send_chunk_request(cnt, peer_id, path, i);
 			}
 
 			/* get ready for next iteration */
@@ -394,7 +412,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", path);
 
-		 
 		// ADD CHUNKYFILE TO HASH TABLE!!!!!
 		filetable_set_chunkyfile(ft, path, file);
 		
@@ -538,6 +555,9 @@ int main(int argv, char* argc[]){
 		exit(-1);
 	}
 
+	/* initialize the psuedorandom number generator */
+	srand(346234);
+
 	/* start the client connection to the tracker and network */
 	/* may eventually update to add password sending */
 	if (NULL == (cnt = StartClientNetwork(ip_addr, sizeof(struct in_addr)) ) ) {
@@ -583,7 +603,7 @@ int main(int argv, char* argc[]){
 	/* start the loop process that will run while we are connected to the tracker 
 	 * this will handle peer adds and dels and receive updates from the master 
 	 * filesystem and monitor the local filesystem */
-	int new_client = -1, del_client = -1, peer_id = -1, chunk_id = -1, len = -1;
+	int peer_id = -1, chunk_id = -1, len = -1;
 	FileSystem *master;
 	int recv_len;
 	while (1){
@@ -591,20 +611,22 @@ int main(int argv, char* argc[]){
 
 		/* get any new clients first */
 		// printf("CLIENT MAIN: checking for new clients\n");
-		while (-1 != (new_client = recv_peer_added(cnt))){
-			if (-1 == InsertPeer(new_client, CONN_ACTIVE)){
+		while (-1 != (peer_id = recv_peer_added(cnt))){
+			if (-1 == InsertPeer(peer_id, CONN_ACTIVE)){
 				printf("CLIENT MAIN: InsertPeer() failed\n");
 			}
-			new_client = -1;
+			peer_id = -1;
 		}
 
 		/* figure out if any clients have dropped from the network */
 		// printf("CLIENT MAIN: checking for deleted clients\n");
-		while (-1 != (del_client = recv_peer_deleted(cnt))){
-			if (-1 == RemovePeer(del_client)){
+		while (-1 != (peer_id = recv_peer_deleted(cnt))){
+			if (-1 == RemovePeer(peer_id)){
 				printf("CLIENT MAIN: RemovePeer() failed\n");
 			}
-			del_client = -1;
+			/* delete from file table */
+			filetable_remove_peer(ft, peer_id);
+			peer_id = -1;
 		}
 
 		/* check to see if any requests for files have been made to you */
@@ -616,22 +638,22 @@ int main(int argv, char* argc[]){
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(filepath);
 
-			if (!file){	// need to send a rejection message somehow
-				printf("chunkyfile_new_from_path() failed on %s\n", filepath);
+			if (!file){	
+				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", filepath);
 
 				/* send an error response */
 				send_chunk_rejection(cnt, peer_id, filepath, chunk_id);
+				peer_id = -1;
 				continue;
 			}
 
-			// should chunk be already malloc'd?  what about chunk size?
 			char *chunk_text;
 			int chunk_len;
 			if (GET_ALL_CHUNKS == chunk_id){	// send the entire file
 				int num_chunks = chunkyfile_num_chunks(file);
 
 				for (int i = 0; i < num_chunks; i++){
-					printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d\n", filepath, i, peer_id);
+					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", filepath, i, peer_id);
 
 					chunkyfile_get_chunk(file, i, &chunk_text, &chunk_len);
 
@@ -640,6 +662,8 @@ int main(int argv, char* argc[]){
 			} else {
 
 				printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", filepath, chunk_id, peer_id);
+				printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", filepath, chunk_id, peer_id);
+
 				chunkyfile_get_chunk(file, chunk_id, &chunk_text, &chunk_len);
 
 				/* send that chunk to the peer */
@@ -649,6 +673,7 @@ int main(int argv, char* argc[]){
 			/* destroy that chunky file */
 			chunkyfile_destroy(file);
 
+			peer_id = -1;
 			filepath = NULL;
 		}
 
@@ -667,7 +692,7 @@ int main(int argv, char* argc[]){
 			}
 
 			// TODO -- SEND THE FILE ACQ TO THE TRACKER
-			// send_chunk_got(CNT * thread, char * path, int chunkNum);
+			send_chunk_got(cnt, filepath, chunk_id);
 
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
@@ -684,21 +709,26 @@ int main(int argv, char* argc[]){
 			}
 
 			free(chunk_data);
+			peer_id = -1;
 			filepath = NULL;
 			chunk_data = NULL;
 		}
 
-		// TODO -- CHECK IF ANY CLIENTS HAVE GOTTEN MORE CHUNKS 
-		// ADD TO FILETABLE
-		// receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int * chunk_num);
+		/* check for chunk aquisition updates and add them to our file table */
+		while (-1 != receive_chunk_got(cnt, &peer_id, &filepath, &chunk_id)){
+			printf("CLIENT MAIN: received chunk aqu update from %d on file %s chunk %d", 
+					peer_id, filepath, chunk_id);
+
+			filetable_set_that_peer_has_file_chunk(ft, filepath, peer_id, chunk_id);
+			peer_id = -1;
+		}
 
 		/* poll for any diffs, if they exist then we need to make updates to 
 		 * our filesystem */
 		// printf("CLIENT MAIN: checking for diffs\n");
 		FileSystem *additions, *deletions;
-		int author_id;
-		while (-1 != recv_diff(cnt, &additions, &deletions, &author_id)){
-			printf("CLIENT MAIN: received a diff from author %d\n", author_id);
+		while (-1 != recv_diff(cnt, &additions, &deletions, &peer_id)){
+			printf("CLIENT MAIN: received a diff from author %d\n", peer_id);
 			/* set the root paths of the additions and deletions filesystems */
 			filesystem_set_root_path(additions, dartsync_dir);
 			filesystem_set_root_path(deletions, dartsync_dir);
@@ -710,16 +740,17 @@ int main(int argv, char* argc[]){
 			filetable_remove_filesystem(ft, deletions);
 
 			/* the originator of this diff has the master, so tell the filetable */
-			filetable_add_filesystem(ft, additions, author_id);
+			filetable_add_filesystem(ft, additions, peer_id);
 
 			/* get the file additions from peers, and update the filesystem */
-			GetFileAdditions(additions, author_id);
+			GetFileAdditions(additions, peer_id);
 
 			/* get ready for next recv diff or iteration of loop */
 			filesystem_destroy(deletions);
 			filesystem_destroy(additions);
 			additions = NULL;
 			deletions = NULL;
+			peer_id = -1;
 		}
 
 		/* poll to see if there are any changes to the master file system 
