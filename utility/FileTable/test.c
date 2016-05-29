@@ -4,6 +4,7 @@
 
 int main()
 {
+	/*
 	char* path = "/Users/jacob/dart_sync/";
 	printf("Loading filesystem at %s\n", path);
 	FileSystem* fs = filesystem_new(path);
@@ -22,6 +23,21 @@ int main()
 	FileTable* deser = filetable_deserialize(data, &length);
 	printf("Deserialized %d bytes\n", length);
 	filetable_print(ft);
+	*/
+	
+	FileTable* ft = filetable_new();
+	
+	char* data;
+	int length;
+		
+	filetable_serialize(ft, &data, &length);
+	
+	printf("%d\n", length);
+	
+	FileTable* ftds = filetable_deserialize(data, &length);
+	
+	printf("%d\n", length);
+	
 	
 	return 0;
 }
