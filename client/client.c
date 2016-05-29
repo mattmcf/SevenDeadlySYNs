@@ -125,10 +125,10 @@ char * tilde_compress(char * original_path){
 			)
 		{
 			char buffer[strlen(original_path)-i+1];
-			memcpy(buffer, original_path[i+1], strlen(original_path)-i);
+			memcpy(buffer, &original_path[i+1], strlen(original_path)-i);
 			buffer[strlen(original_path)-i+1] = '\0';
 			printf("set new original address\n");
-			original_path += (i+1)*sizeof(char);
+			// original_path += (i+1)*sizeof(char);
 			printf("New original path: %s\n", buffer);
 			char compressed_string[200];
 			sprintf(compressed_string, "~%s", buffer);
