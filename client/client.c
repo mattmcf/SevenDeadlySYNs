@@ -228,6 +228,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			/* for each chunk, find a peer who has it, and request it */
 			for (int i = 0; i < num_chunks; i++){ //???
 				/* get the peers who have the chunk that we want */
+				printf("UpdateLocalFilesystem: looking for peers with %s's chunk %d\n", path, i);
 				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
 				if (!peers){
 					printf("UpdateLocalFilesystem: filetable_get_peers_who_have_file_chunk() failed\n");
