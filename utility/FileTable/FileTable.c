@@ -215,7 +215,7 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 	
 	int i = 0;
 	
-	assert(data[0] == START_TABLE);
+	assert((unsigned char)data[0] == START_TABLE);
 	
 	switch ((unsigned char)data[i])
 	{
