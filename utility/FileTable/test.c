@@ -26,6 +26,9 @@ int main()
 	*/
 	
 	FileTable* ft = filetable_new();
+	FileSystem* fs = filesystem_new("/Users/jacob/Dropbox");
+	
+	filetable_add_filesystem(ft, fs, 10);
 	
 	char* data;
 	int length;
@@ -38,6 +41,7 @@ int main()
 	
 	printf("%d\n", length);
 	
+	filetable_print(ftds);
 	
 	return 0;
 }

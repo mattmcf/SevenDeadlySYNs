@@ -217,61 +217,64 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 	
 	assert((unsigned char)data[0] == START_TABLE);
 	
-	switch ((unsigned char)data[i])
+	while (1)
 	{
-		case START_TABLE:
+		switch ((unsigned char)data[i])
 		{
-			deser = (_FileTable*)filetable_new();
-			i += 1;
-			break;
-		}
-		case START_ENTRY:
-		{
-			entry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
-			entry->chunks = queue_new();
-			entry->file = NULL;
-			i += 1;
-			entry->path = copy_string(data + i);
-			i += strlen(entry->path) + 1;
-			break;
-		}
-		case START_CHUNK:
-		{
-			chunk = queue_new();
-			i += 1;
-			break;
-		}
-		case START_ID:
-		{
-			i += 1;
-			int numRead;
-			int peer;
-			sscanf(data + i, "%d%n", &peer, &numRead);
-			queue_push(chunk, (void*)(long)peer);
-			i += numRead + 1;
-			break;
-		}
-		case END_CHUNK:
-		{
-			queue_push(entry->chunks, chunk);
-			i += 1;
-			break;
-		}
-		case END_ENTRY:
-		{
-			hashtable_add(deser->table, entry);
-			i += 1;
-			break;
-		}
-		case END_TABLE:
-		{
-			*bytesRead = i;
-			return (FileTable*)deser;
-		}
-		default:
-		{
-			format_printf(ERR_FMT, "Filetable deserialization error.\n");
-			assert(0);
+			case START_TABLE:
+			{
+				deser = (_FileTable*)filetable_new();
+				i += 1;
+				break;
+			}
+			case START_ENTRY:
+			{
+				entry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
+				entry->chunks = queue_new();
+				entry->file = NULL;
+				i += 1;
+				entry->path = copy_string(data + i);
+				i += strlen(entry->path) + 1;
+				break;
+			}
+			case START_CHUNK:
+			{
+				chunk = queue_new();
+				i += 1;
+				break;
+			}
+			case START_ID:
+			{
+				i += 1;
+				int numRead;
+				int peer;
+				sscanf(data + i, "%d%n", &peer, &numRead);
+				queue_push(chunk, (void*)(long)peer);
+				i += numRead + 1;
+				break;
+			}
+			case END_CHUNK:
+			{
+				queue_push(entry->chunks, chunk);
+				i += 1;
+				break;
+			}
+			case END_ENTRY:
+			{
+				hashtable_add(deser->table, entry);
+				i += 1;
+				break;
+			}
+			case END_TABLE:
+			{
+				*bytesRead = i;
+				return (FileTable*)deser;
+			}
+			default:
+			{
+				format_printf(ERR_FMT, "Filetable deserialization error.\n");
+				assert(0);
+			}
 		}
 	}
 	return NULL;
