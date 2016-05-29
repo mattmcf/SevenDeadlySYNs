@@ -1117,6 +1117,9 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			format_printf(network_format,"NETWORK -- received master file table from tracker\n");
 			client_data_t * master_ft = malloc(sizeof(client_data_t));
 			master_ft->data = (void *)filetable_deserialize(buf, &master_ft->data_len);
+			if (!master_ft->data){
+				format_printf(network_format, "NETWORK -- ft deserialize returned NULL\n");
+			}
 
 			notify_master_ft_received(cnt, master_ft);
 			break;

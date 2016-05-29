@@ -548,13 +548,6 @@ int main(int argv, char* argc[]){
 		exit(-1);
 	}
 
-	/* create a filetable that we use to request files from peers */
-	if (NULL == (ft = filetable_new())){
-		printf("CLIENT MAIN: filetable_new() failed\n");
-		DestroyPeerTable();
-		exit(-1);
-	}
-
 	/* initialize the psuedorandom number generator */
 	srand(346234);
 
