@@ -376,13 +376,11 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	FileTable * ft = NULL;
 	if (queue_item != NULL) {
 
-		ft = filetable_deserialize(queue_item->data, length_deserialized);
-		if (*length_deserialized < 1) {
-			format_printf(err_format, "recv_master_ft error: didn't deserialize any bytes\n");
-			return NULL;
-		}
+		// already deserialized
+		ft = (FileTable *)queue_item->data;
+		*length_deserialized = queue_item->data_len;
 
-		free(queue_item->data);
+		//free(queue_item->data);
 		free(queue_item);
 	}
 
