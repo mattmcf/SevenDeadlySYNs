@@ -849,6 +849,12 @@ void clt_network_handle_peer_messages(_CNT_t* cnt)
 		if (cnt->peer_table->peer_list[i] != NULL){
 			peer_t* peer = cnt->peer_table->peer_list[i];	
 			int fd = peer->socketfd;
+			
+			if (fd < 0)
+			{
+				continue;
+			}
+			
 			if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
 			{
 				format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
