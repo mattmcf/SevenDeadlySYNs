@@ -110,7 +110,7 @@ char * tilde_compress(char * original_path){
 	}
 	printf("Tilde compressing string %s\n", original_path);
 
-	char * compressed_string = NULL;
+	
 	for (int i = strlen(original_path)-1; i >= 9; i--){
 		printf("i = %d\n", i);
 		if (original_path[i] == 'c' &&
@@ -126,6 +126,7 @@ char * tilde_compress(char * original_path){
 		{
 			printf("set new original address\n");
 			original_path += (sizeof(original_path)-i*sizeof(char));
+			char compressed_string[200];
 			sprintf(compressed_string, "~%s", original_path);
 			printf("compressed_string: %s\n", compressed_string);
 			return compressed_string;
