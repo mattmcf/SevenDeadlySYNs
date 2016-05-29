@@ -160,17 +160,13 @@ int main() {
 		char * file_got = NULL;
 		int chunk_got, peer_got_id;
 		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
-			printf("Distributing chunk acquisition update (owner %d, file: %s, chunk: %d)\n",peer_got_id,file_got,chunk_got);
-			for (int i = 0; i < peerTableSize; i++) {
-				// send to all peers (except author of acq)
-				if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id){
-					if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
-						printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
-					}
-				}				
-			}
-		}
+			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
+			// let everyone know that a peer got a chunk
+			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
+			// update file table
+			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
 
+		}
 
 		// if there is a file update
 			// take the diff
@@ -186,11 +182,6 @@ int main() {
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
-
-		// if(fileRetrieveSuccess()>0){
-		// 	// broadcast out to all peers
-		// }
-
 		sleep(5);
 		printf("Restarting loop.\n");
 	}
@@ -351,6 +342,21 @@ int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TN
 			}
 		}
 	}
+	return 1;
+}
+
+// broadcast to all peers that a client GOT
+int clientGotBroadcast(char * file_got, int chunk_got, TNT *network, int peer_got_id){
+	printf("Distributing chunk acquisition update (owner %d, file: %s, chunk: %d)\n",peer_got_id,file_got,chunk_got);
+	for (int i = 0; i < peerTableSize; i++) {
+		// send to all peers (except author of acq)
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id){
+			if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
+				printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
+			}
+		}				
+	}
+
 	return 1;
 }
 

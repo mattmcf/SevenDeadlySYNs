@@ -779,18 +779,20 @@ int clt_network_listen(_CNT_t* cnt, double seconds)
 	FD_SET(cnt->peer_listening_fd, &(cnt->descriptors_with_data));
 	
 	//Iterate through connections and for each one that exists add it to the file descriptor set 
-	for (int i = 0; i < cnt->peer_table->count; i++)
+	for (int i = 0; i < cnt->peer_table->size; i++)
 	{
-		peer_t* peer = cnt->peer_table->peer_list[i];
-		
-		int fd = peer->socketfd;
-		
-		if (fd > max_descriptor)
-		{
-			max_descriptor = fd;
+		if (cnt->peer_table->peer_list[i] != NULL){
+			peer_t* peer = cnt->peer_table->peer_list[i];
+			
+			int fd = peer->socketfd;
+			
+			if (fd > max_descriptor)
+			{
+				max_descriptor = fd;
+			}
+			
+			FD_SET(fd, &(cnt->descriptors_with_data));
 		}
-		
-		FD_SET(fd, &(cnt->descriptors_with_data));
 	}
 			
 	//printf( "Creating file descriptor set.\n");
@@ -841,32 +843,34 @@ int clt_network_handle_tracker_messages(_CNT_t* cnt)
 
 void clt_network_handle_peer_messages(_CNT_t* cnt)
 {
-	for (int i = 0; i < cnt->peer_table->count; i++)
+	for (int i = 0; i < cnt->peer_table->size; i++)
 	{
-		peer_t* peer = cnt->peer_table->peer_list[i];	
-		int fd = peer->socketfd;
-		if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
-		{
-			format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
-			if (handle_peer_msg(i, cnt) != 1) 
+		if (cnt->peer_table->peer_list[i] != NULL){
+			peer_t* peer = cnt->peer_table->peer_list[i];	
+			int fd = peer->socketfd;
+			if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
 			{
-				format_printf(err_format, "Error receiving from socket %d -- Ending session\n", i);
-
-				// clean up existing peer connection data
-				peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
-				if (dead_peer != NULL) 
+				format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
+				if (handle_peer_msg(i, cnt) != 1) 
 				{
-					dead_peer->socketfd = -1;
+					format_printf(err_format, "Error receiving from socket %d -- Ending session\n", i);
 
-					conn_rec_t dead_record;
-					dead_record.client_id = dead_peer->id;
-					conn_rec_t * request_record = (conn_rec_t *)hashtable_get_element(cnt->request_table, &dead_record);
-					if (request_record) 
+					// clean up existing peer connection data
+					peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
+					if (dead_peer != NULL) 
 					{
-						request_record->outstanding_requests = 0;
+						dead_peer->socketfd = -1;
+
+						conn_rec_t dead_record;
+						dead_record.client_id = dead_peer->id;
+						conn_rec_t * request_record = (conn_rec_t *)hashtable_get_element(cnt->request_table, &dead_record);
+						if (request_record) 
+						{
+							request_record->outstanding_requests = 0;
+						}
 					}
+					close(i);
 				}
-				close(i);
 			}
 		}
 	}

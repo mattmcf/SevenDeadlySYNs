@@ -141,6 +141,7 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		printf("SendMasterFSRequest: recv_master returned NULL, sleeping\n");
 		sleep(1);
 	}
+	printf("Received master file system\n");
 
 	/* set root of returned file system */
 	filesystem_set_root_path(master, dartsync_dir);
@@ -148,9 +149,10 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 	/* todo -- should also receive master file table */
 	int master_ft_len = 0;
 	while (NULL == (ft = recv_master_ft(cnt, &master_ft_len))){
-		printf("SendMasterFSRequest: recv_master_ft return NULL, sleeping\n");
+		printf("SendMasterFTRequest: recv_master_ft return NULL, sleeping\n");
 		sleep(1);
 	}
+	printf("Received master file table\n");
 
 	UpdateLocalFilesystem(master);
 	return 1;
