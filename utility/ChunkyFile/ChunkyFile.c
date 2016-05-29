@@ -161,13 +161,13 @@ void chunkyfile_destroy(ChunkyFile* chunkyfile)
 {
 	_ChunkyFile* cf = (_ChunkyFile*)chunkyfile;
 	
-	// if (cf->path)
-	// {
-	// 	free(cf->path);
-	// }
-	// free(cf->chunks_written);
-	// free(cf->data);
-	// free(cf);
+	if (cf->path)
+	{
+		free(cf->path);
+	}
+	free(cf->chunks_written);
+	free(cf->data);
+	free(cf);
 }
 
 /*

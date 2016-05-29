@@ -266,7 +266,6 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* get ready for next iteration */
-			chunkyfile_destroy(file);
 			path = NULL;
 		}
 
@@ -420,10 +419,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		printf("New path is: %s\n", path);
 		printf("Send chunk request\n");
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
-
-		/* destroy the chunky file */
-		printf("destroy chunky file\n");
-		chunkyfile_destroy(file);
 
 		path = NULL;
 	}
