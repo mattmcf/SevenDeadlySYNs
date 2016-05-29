@@ -631,13 +631,15 @@ int main(int argv, char* argc[]){
 				int num_chunks = chunkyfile_num_chunks(file);
 
 				for (int i = 0; i < num_chunks; i++){
-					printf("CLIENT MAIN: sending chunk %d to peer %d\n", i, peer_id);
+					printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d\n", filepath, i, peer_id);
 
 					chunkyfile_get_chunk(file, i, &chunk_text, &chunk_len);
 
 					send_chunk(cnt, peer_id, filepath, i, chunk_text, chunk_len);
 				}
 			} else {
+
+				printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", filepath, chunk_id, peer_id);
 				chunkyfile_get_chunk(file, chunk_id, &chunk_text, &chunk_len);
 
 				/* send that chunk to the peer */

@@ -1245,6 +1245,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			queue_item->data = data_buf;
 			data_buf = NULL; // don't free here -- pass to notify queue
 
+			// disconnect from peer if all requests have been fulfilled
 			if (decrement_conn_record(cnt, peer->id == 0)) {
 				disconnect_from_peer(peer, peer->id);
 			}
@@ -1265,6 +1266,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			queue_item->data_len = pkt.data_len;
 			queue_item->data = NULL;
 
+			// disconnect from peer if all requests have been fulfilled
 			if (decrement_conn_record(cnt, peer->id == 0)) {
 				disconnect_from_peer(peer, peer->id);
 			}
@@ -1412,6 +1414,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 	chunk_data_t * queue_item = asyncqueue_pop(q);
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
+		// open connection to peer if not already open
 		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
 		if (connect_to_peer(peer, queue_item->client_id) < 0) {
 			format_printf(err_format,"network client failed to send connect to client %d\n",queue_item->client_id);
@@ -1448,6 +1451,9 @@ void check_send_chunk_q(_CNT_t * cnt) {
 		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
 		if (!peer) {
 			format_printf(err_format,"check_send_chunk_q error: cannot find peer %d\n", queue_item->client_id);
+			return;
+		} else if (peer->socketfd < 0) {
+			format_printf(err_format,"check_send_chunk_q error: connection is not open with peer %d\n", queue_item->client_id);
 			return;
 		}
 

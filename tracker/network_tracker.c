@@ -577,6 +577,7 @@ void check_fs_update_q(_TNT_t * tnt);
 void check_add_peer_q(_TNT_t * tnt);
 void check_remove_peer_q(_TNT_t * tnt);
 void check_send_master_q(_TNT_t * tnt);
+void check_send_master_ft_q(_TNT_t * tnt);
 
 
 /* ------------------------ TRACKER NETWORK THREAD ------------------------ */
@@ -915,6 +916,7 @@ void poll_queues(_TNT_t * tnt) {
 	check_add_peer_q(tnt);
 	check_remove_peer_q(tnt);
 	check_send_master_q(tnt);
+	check_send_master_ft_q(tnt);
 }
 
 void check_txn_update_q(_TNT_t * tnt) {
