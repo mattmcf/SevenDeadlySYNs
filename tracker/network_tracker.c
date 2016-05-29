@@ -607,6 +607,10 @@ int tkr_network_listen(_TNT_t* tnt, double seconds)
 		}
 		
 		int fd = peer->socketfd;
+		if (fd < 0)
+		{
+			continue;
+		}
 		
 		if (fd > max_descriptor)
 		{
@@ -711,7 +715,7 @@ void * tkr_network_start(void * arg) {
 	int connected = 1;
 	while (connected) 
 	{
-		if (tkr_network_listen(tnt, 0.01))
+		if (tkr_network_listen(tnt, 0.01) < 0)
 		{
 			format_printf(network_format,"network tracker failed to select amongst inputs\n");
 			connected = 0;
