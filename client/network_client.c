@@ -508,8 +508,10 @@ int send_chunk_got(CNT * thread, char * path, int chunkNum) {
 //	source_originator_id : (not claimed) will hold diff's author id
 //	ret : 1 on success, -1 on failure
 int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deletions) {
-	if (!thread || !additions || !deletions)
+	if (!thread || !additions || !deletions) {
+		format_printf(err_format,"send_updated_files error: null arguments\n");
 		return -1;
+	}
 
 	_CNT_t * cnt = (_CNT_t *)thread;
 	client_data_t * queue_item = malloc(sizeof(client_data_t));
@@ -1320,8 +1322,7 @@ void poll_queues(_CNT_t * cnt) {
 
 void check_cur_status_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_CUR_STATUS];
-
-	client_data_t * queue_item = asyncqueue_pop(q);
+	client_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format,"NETWORK -- sending current status JFS to tracker\n");
@@ -1340,7 +1341,7 @@ void check_cur_status_q(_CNT_t * cnt) {
 
 void check_file_acq_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_ACQ_UPDATE];
-	client_data_t * queue_item = asyncqueue_pop(q);
+	client_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format, "NETWORK -- sending file acquisition update to tracker\n");
@@ -1361,8 +1362,7 @@ void check_file_acq_q(_CNT_t * cnt) {
 
 void check_updated_fs_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->tkr_queues_from_client[ME_2_TKR_UPDATED_FILE_DIFF];
-	
-	client_data_t * queue_item = asyncqueue_pop(q);
+	client_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 		format_printf(network_format,"NETWORK -- sending updated file difference\n");
 		client_pkt_t pkt;
@@ -1394,7 +1394,7 @@ void check_master_req_q(_CNT_t * cnt) {
 
 void check_req_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
-	chunk_data_t * queue_item = asyncqueue_pop(q);
+	chunk_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		// open connection to peer if not already open
@@ -1424,8 +1424,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 
 void check_send_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_CHUNK];
-	chunk_data_t * queue_item = asyncqueue_pop(q);
-
+	chunk_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d\n", 
@@ -1460,7 +1459,7 @@ void check_send_chunk_q(_CNT_t * cnt) {
 
 void check_req_error_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_SEND_ERROR];
-	chunk_data_t * queue_item = asyncqueue_pop(q);
+	chunk_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format,"NETWORK -- sending error response for chunk (%s, %d) to client %d\n", 

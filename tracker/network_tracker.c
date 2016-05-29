@@ -921,7 +921,7 @@ void poll_queues(_TNT_t * tnt) {
 
 void check_txn_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_TXN_UPDATE];
-	tracker_data_t * queue_item ;
+	tracker_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(err_format,"NETWORK -- sending transaction update -- UNFILLED FUNCTION!\n");
@@ -933,7 +933,7 @@ void check_txn_update_q(_TNT_t * tnt) {
 
 void check_file_acq_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ];
-	tracker_data_t * queue_item ;
+	tracker_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format,"NETWORK -- sending chunk acquisition update to client %d\n", queue_item->client_id);
@@ -950,7 +950,7 @@ void check_file_acq_q(_TNT_t * tnt) {
 
 void check_fs_update_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_FS_UPDATE];
-	tracker_data_t * queue_item ;
+	tracker_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(file_format,"NETWORK -- sending file system update!\n");
@@ -973,7 +973,7 @@ void check_fs_update_q(_TNT_t * tnt) {
 
 void check_add_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_ADD_PEER];
-	tracker_data_t * queue_item ;
+	tracker_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(client_format,"NETWORK -- sending add peer (new peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
@@ -990,7 +990,7 @@ void check_add_peer_q(_TNT_t * tnt) {
 }
 void check_remove_peer_q(_TNT_t * tnt) {
 	AsyncQueue * q = tnt->queues_from_tracker[TKR_2_CLT_REMOVE_PEER];
-	tracker_data_t * queue_item ;
+	tracker_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(client_format,"NETWORK -- sending remove peer (delete peer %d) to client %d\n", queue_item->client_id, (int)(long)queue_item->data);
@@ -1030,7 +1030,6 @@ void check_send_master_ft_q(_TNT_t * tnt) {
 	while ((queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(file_format,"NETWORK -- sending master file table to client %d\n", queue_item->client_id);
-		format_printf(file_format, "sending %d bytes\n", queue_item->data_len);
 		if (send_client_message(tnt, queue_item, MASTER_FT) != 1) {
 			format_printf(err_format,"failed to send master file table to client %d\n", queue_item->client_id);
 		}
