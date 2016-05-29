@@ -120,9 +120,10 @@ char * tilde_compress(char * original_path){
 			original_path[i-5] == 't' &&
 			original_path[i-6] == 'r' &&
 			original_path[i-7] == 'a' &&
-			original_path[i-8] == 'd' &&
-			){
-			&original_path = (sizeof(original_path)-i) + &original_path;
+			original_path[i-8] == 'd'
+			)
+		{
+			original_path += (sizeof(original_path)-i);
 			sprintf(compressed_string, "~%s", original_path);
 			printf("compressed_string: %s\n", compressed_string);
 			return compressed_string;
