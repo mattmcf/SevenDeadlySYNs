@@ -786,6 +786,10 @@ int clt_network_listen(_CNT_t* cnt, double seconds)
 			peer_t* peer = cnt->peer_table->peer_list[i];
 			
 			int fd = peer->socketfd;
+			if (fd < 0)
+			{
+				continue;
+			}
 			
 			if (fd > max_descriptor)
 			{
