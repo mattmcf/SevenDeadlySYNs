@@ -79,7 +79,6 @@ int main() {
 		perror("reason");
 		/* it doesn't exist, so make it */
 		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-		//if (system("mkdir ~/dart_sync") != 0) {
 			printf("TRACKER MAIN: failed to create DARTSYNC_DIR\n");
 			exit(-1);
 		}
@@ -136,7 +135,7 @@ int main() {
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
-			printf("\tSent master FileSystem and FileTable to peer %d\n", peerID);
+
 			peerID = -1;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);
@@ -157,11 +156,21 @@ int main() {
 			peerID = -1;
 		}
 
-		// TODO -- CHECK IF CLIENT HAS GOTTEN A FILE CHUNK
-		// IF SO -> ADD TO FILE TABLE, AND THEN BOUNCE TO ALL CLIENTS
-		// receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int * chunk_num); {
-		//	-> update to all clients with send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num);
-		//		}
+		// See if any clients have a chunk acquisition update to deseminate
+		char * file_got = NULL;
+		int chunk_got, peer_got_id;
+		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
+			printf("Distributing chunk acquisition update (owner %d, file: %s, chunk: %d)\n",peer_got_id,file_got,chunk_got);
+			for (int i = 0; i < peerTableSize; i++) {
+				// send to all peers (except author of acq)
+				if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id){
+					if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
+						printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
+					}
+				}				
+			}
+		}
+
 
 		// if there is a file update
 			// take the diff

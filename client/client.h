@@ -19,27 +19,6 @@
 
 /* ----------------------- Structure Definitions ----------------------- */
 
-typedef struct retworkrequestheader{
-	int type;
-
-} net_req_hdr_t;
-
-typedef struct networkrequest{
-	struct retworkrequestheader header;
-	//char data[MAX_SIZE];
-} req_t;
-
-typedef struct peer{
-	int peer_id;
-	int status;
-	struct peer *next;
-} peer_t;
-
-typedef struct peer_table{
-	peer_t *head;
-	peer_t *tail;
-} peer_table_t;
-
 /* -------------------------- Function Headers ------------------------- */
 
 /* after joining or rejoining a network, we need to compare our copy of the 

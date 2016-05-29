@@ -39,7 +39,7 @@ int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, in
 
 // receive acq status update 
 // 	thread_block : (not cliamed) thread_block
-// 	client_id : (not claimed) filled in with client id
+// 	client_id : (not claimed) filled in with client id of new chunk owner
 // 	filename : (not claimed) filled in with pointer to file string
 // 	chunk_num : (not claimed) filled in with chunk id
 // 	ret : (static) 1 on chunk received notication, -1 in no update
