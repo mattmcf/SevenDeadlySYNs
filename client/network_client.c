@@ -861,13 +861,13 @@ void clt_network_handle_peer_messages(_CNT_t* cnt)
 			
 			if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
 			{
-				format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
-				if (handle_peer_msg(i, cnt) != 1) 
+				format_printf(network_format,"\nclient network received message from peer on socket %d\n", fd);
+				if (handle_peer_msg(fd, cnt) != 1) 
 				{
-					format_printf(err_format, "Error receiving from socket %d -- Ending session\n", i);
+					format_printf(err_format, "Error receiving from socket %d -- Ending session\n", fd);
 
 					// clean up existing peer connection data
-					peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
+					peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, fd);
 					if (dead_peer != NULL) 
 					{
 						dead_peer->socketfd = -1;
@@ -880,7 +880,7 @@ void clt_network_handle_peer_messages(_CNT_t* cnt)
 							request_record->outstanding_requests = 0;
 						}
 					}
-					close(i);
+					close(fd);
 				}
 			}
 		}
