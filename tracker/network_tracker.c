@@ -92,6 +92,7 @@ typedef struct _TNT {
  	int listening_sockfd;
  	peer_table_t * peer_table;
 
+	fd_set descriptors_with_data;
 } _TNT_t;
 
 // launches network thread
@@ -582,24 +583,118 @@ void check_send_master_ft_q(_TNT_t * tnt);
 
 /* ------------------------ TRACKER NETWORK THREAD ------------------------ */
 
+int tkr_network_listen(_TNT_t* tnt, double seconds)
+{	
+	struct timeval timeout;
+	timeout.tv_sec = (int)seconds;
+	timeout.tv_usec = 1000000 * (seconds - (int)seconds);
+	
+	// This is initially the largest file descriptor in the set
+	int max_descriptor = tnt->listening_sockfd;
+	
+	//Zero out the set and add the listeners to it.
+	FD_ZERO(&(tnt->descriptors_with_data));
+	FD_SET(tnt->listening_sockfd, &(tnt->descriptors_with_data));
+	
+	//Iterate through connections and for each one that exists add it to the file descriptor set 
+	for (int i = 0; i < tnt->peer_table->size; i++)
+	{
+		peer_t* peer = tnt->peer_table->peer_list[i];
+	
+		if (!peer)
+		{
+			continue;
+		}
+		
+		int fd = peer->socketfd;
+		
+		if (fd > max_descriptor)
+		{
+			max_descriptor = fd;
+		}
+		
+		FD_SET(fd, &(tnt->descriptors_with_data));
+	}
+			
+	//printf( "Creating file descriptor set.\n");
+	return select(max_descriptor + 1, &(tnt->descriptors_with_data), NULL, NULL, &timeout);
+}
+
+int tkr_network_process_new_connections(_TNT_t* tnt)
+{	
+	struct sockaddr_in clientaddr;
+	unsigned int addrlen = sizeof(struct sockaddr_in);
+	
+	if (FD_ISSET(tnt->listening_sockfd, &(tnt->descriptors_with_data)))
+	{
+		format_printf(client_format,"\nnetwork tracker received new client connection\n");
+		int new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
+		if (new_sockfd < 0) 
+		{
+			return -1;
+		}
+
+		// add new peer to table
+		peer_t * new_client;
+		if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin_addr, new_sockfd)) == NULL) {
+			format_printf(network_format,"network tracker received peer connection but couldn't add it to the table\n");
+			return 1;
+		}
+
+		// notify tracker
+		notify_new_client(tnt, new_client);
+		send_peer_table_to_client(tnt, new_client->socketfd);
+
+		// DEBUG -- 
+		format_printf(client_format,"Updated Peer Table\n");
+		print_table(tnt->peer_table);
+
+		format_printf(client_format,"NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
+		return 1;
+	}
+	return -1;
+}
+
+void tkr_network_handle_peer_messages(_TNT_t* tnt)
+{
+	for (int i = 0; i < tnt->peer_table->size; i++)
+	{
+		peer_t* peer = tnt->peer_table->peer_list[i];	
+		
+		if (!peer)
+		{
+			continue;
+		}
+		
+		int fd = peer->socketfd;
+		if (FD_ISSET(fd, &(tnt->descriptors_with_data)))
+		{
+			format_printf(network_format,"network tracker received message from client on socket %d\n", i);
+			if (handle_client_msg(i, tnt) != 1) 
+			{
+				format_printf(err_format,"failed to handle client message on socket %d\n", i);
+
+				peer_t * lost_client = get_peer_by_socket(tnt->peer_table, i);
+				if (lost_client != NULL) {
+
+					// tracker should send out the updated file system to clients
+					notify_client_lost_by_id(tnt, lost_client->id);
+					delete_peer(tnt->peer_table, lost_client->id);
+				}
+				
+				// DEBUG -- 
+				format_printf(client_format,"Updated Peer table\n");
+				print_table(tnt->peer_table);
+
+				close(i);
+			}
+		}
+	}
+}
+
 void * tkr_network_start(void * arg) {
 
 	_TNT_t * tnt = (_TNT_t*)arg;
-
-	// for receiving new connections
-	struct sockaddr_in clientaddr;
-	unsigned int addrlen = sizeof(clientaddr);
-	peer_t * new_client;
-	int new_sockfd;
-
-	// select fd sets
-	fd_set read_fd_set, active_fd_set;
-	FD_ZERO(&active_fd_set);
-
-	// set up timer
-	struct timeval timeout;
-	timeout.tv_sec = 3;
-	timeout.tv_usec = 0;
 
 	// open connection on listening port
 	tnt->listening_sockfd = open_listening_port();
@@ -614,78 +709,24 @@ void * tkr_network_start(void * arg) {
 		return (void *)1;
 	}
 
-	// add listening socket to fd set
-	FD_SET(tnt->listening_sockfd, &active_fd_set);
-
 	int connected = 1;
-	while (connected) {
-
-		read_fd_set = active_fd_set;
-		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout) < 0) {
+	while (connected) 
+	{
+		if (tkr_network_listen(tnt, 0.5))
+		{
 			format_printf(network_format,"network tracker failed to select amongst inputs\n");
 			connected = 0;
 			continue;
 		}
 
-		//printf("network polling connections...\n");
-		for (int i = 0; i < FD_SETSIZE; i++) {
-			if (FD_ISSET(i, &read_fd_set)) {
+		if (tkr_network_process_new_connections(tnt) < 0)
+		{
+			perror("network tracker failed to accept new connection");
+			connected = 0;
+			continue;
+		}
 
-				/* client opening new connection */
-				if (i == tnt->listening_sockfd) {
-					format_printf(client_format,"\nnetwork tracker received new client connection\n");
-					new_sockfd = accept(tnt->listening_sockfd, (struct sockaddr *)&clientaddr, &addrlen);
-					if (new_sockfd < 0) {
-						perror("network tracker failed to accept new connection");
-						connected = 0;
-						continue;
-					}
-
-					// add new peer to table
-					if ((new_client = add_peer(tnt->peer_table, (char *)&clientaddr.sin_addr, new_sockfd)) == NULL) {
-						format_printf(network_format,"network tracker received peer connection but couldn't add it to the table\n");
-						continue;
-					}
-
-					FD_SET(new_sockfd, &active_fd_set);
-
-					// notify tracker
-					notify_new_client(tnt, new_client);
-					send_peer_table_to_client(tnt, new_client->socketfd);
-
-					// DEBUG -- 
-					format_printf(client_format,"Updated Peer Table\n");
-					print_table(tnt->peer_table);
-
-					format_printf(client_format,"NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
-
-				/* data on existing connection */
-				} else {
-
-					format_printf(network_format,"network tracker received message from client on socket %d\n", i);
-					if (handle_client_msg(i, tnt) != 1) {
-						format_printf(err_format,"failed to handle client message on socket %d\n", i);
-
-						peer_t * lost_client = get_peer_by_socket(tnt->peer_table, i);
-						if (lost_client != NULL) {
-
-							// tracker should send out the updated file system to clients
-							notify_client_lost_by_id(tnt, lost_client->id);
-							delete_peer(tnt->peer_table, lost_client->id);
-						}
-						
-						// DEBUG -- 
-						format_printf(client_format,"Updated Peer table\n");
-						print_table(tnt->peer_table);
-
-						// don't listen to broken connection
-						FD_CLR(i, &active_fd_set);
-						close(i);
-					}
-
-				}
-			}
-		} 	// end of socket checks
+		tkr_network_handle_peer_messages(tnt);
         
 		/* check time last alive */
 		check_liveliness(tnt);
