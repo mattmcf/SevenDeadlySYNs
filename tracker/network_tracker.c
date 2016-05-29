@@ -650,9 +650,8 @@ int tkr_network_process_new_connections(_TNT_t* tnt)
 		print_table(tnt->peer_table);
 
 		format_printf(client_format,"NETWORK -- added new client %d on socket %d\n", new_client->id, new_client->socketfd);
-		return 1;
 	}
-	return -1;
+	return 1;
 }
 
 void tkr_network_handle_peer_messages(_TNT_t* tnt)
