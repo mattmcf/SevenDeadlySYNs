@@ -670,6 +670,11 @@ void tkr_network_handle_peer_messages(_TNT_t* tnt)
 		}
 		
 		int fd = peer->socketfd;
+		if (fd < 0)
+		{
+			continue;
+		}
+		
 		if (FD_ISSET(fd, &(tnt->descriptors_with_data)))
 		{
 			format_printf(network_format,"network tracker received message from client on socket %d\n", i);
