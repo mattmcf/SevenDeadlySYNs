@@ -677,12 +677,12 @@ void tkr_network_handle_peer_messages(_TNT_t* tnt)
 		
 		if (FD_ISSET(fd, &(tnt->descriptors_with_data)))
 		{
-			format_printf(network_format,"network tracker received message from client on socket %d\n", i);
-			if (handle_client_msg(i, tnt) != 1) 
+			format_printf(network_format,"network tracker received message from client on socket %d\n", fd);
+			if (handle_client_msg(fd, tnt) != 1) 
 			{
-				format_printf(err_format,"failed to handle client message on socket %d\n", i);
+				format_printf(err_format,"failed to handle client message on socket %d\n", fd);
 
-				peer_t * lost_client = get_peer_by_socket(tnt->peer_table, i);
+				peer_t * lost_client = get_peer_by_socket(tnt->peer_table, fd);
 				if (lost_client != NULL) {
 
 					// tracker should send out the updated file system to clients
