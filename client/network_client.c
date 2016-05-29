@@ -105,7 +105,7 @@ typedef struct _CNT {
 	int tracker_fd;
 	int peer_listening_fd;
 
-	fd_set active_fd_set;
+	fd_set descriptors_with_data;
 
 	peer_table_t * peer_table;
 
@@ -764,6 +764,114 @@ void check_req_error_q(_CNT_t * cnt);
 
 /* ------------------------ NETWORK THREAD ------------------------ */
 
+int clt_network_listen(_CNT_t* cnt, double seconds)
+{	
+	struct timeval timeout;
+	timeout.tv_sec = (int)seconds;
+	timeout.tv_usec = 1000000 * (seconds - (int)seconds);
+	
+	// This is initially the largest file descriptor in the set
+	int max_descriptor = cnt->tracker_fd > cnt->peer_listening_fd ? cnt->tracker_fd : cnt->peer_listening_fd;
+	
+	//Zero out the set and add the listeners to it.
+	FD_ZERO(&(cnt->descriptors_with_data));
+	FD_SET(cnt->tracker_fd, &(cnt->descriptors_with_data));
+	FD_SET(cnt->peer_listening_fd, &(cnt->descriptors_with_data));
+	
+	//Iterate through connections and for each one that exists add it to the file descriptor set 
+	for (int i = 0; i < cnt->peer_table->count; i++)
+	{
+		peer_t* peer = cnt->peer_table->peer_list[i];
+		
+		int fd = peer->socketfd;
+		
+		if (fd > max_descriptor)
+		{
+			max_descriptor = fd;
+		}
+		
+		FD_SET(fd, &(cnt->descriptors_with_data));
+	}
+			
+	//printf( "Creating file descriptor set.\n");
+	return select(max_descriptor + 1, &(cnt->descriptors_with_data), NULL, NULL, &timeout);
+}
+
+int clt_network_process_new_connections(_CNT_t* cnt)
+{	
+	struct sockaddr_in clientaddr;
+	unsigned int addrlen = sizeof(struct sockaddr_in);
+	
+	if (FD_ISSET(cnt->peer_listening_fd, &(cnt->descriptors_with_data)))
+	{
+		int new_peer_fd = accept(cnt->peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
+		if (new_peer_fd < 0) 
+		{
+			format_printf(err_format,"network client failed to accept new client connection\n");
+			return -1;
+		}
+
+		format_printf(network_format,"\nclient network received new connection from peer at %s (socket %d)\n",inet_ntoa(clientaddr.sin_addr), new_peer_fd);
+		
+		peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char *)&clientaddr.sin_addr);
+		
+		if (!new_peer) 
+		{
+			format_printf(err_format, "client network doesn't has a peer record for new peer\n");
+			close(new_peer_fd);
+			return -1;
+		}
+		
+		// record peer connection socket
+		new_peer->socketfd = new_peer_fd;
+		return 1;
+	}
+	return -1;
+}
+
+int clt_network_handle_tracker_messages(_CNT_t* cnt)
+{
+	if (FD_ISSET(cnt->tracker_fd, &(cnt->descriptors_with_data)))
+	{
+		format_printf(network_format,"\nclient network received message from tracker (socket %d)\n", cnt->tracker_fd);
+		return handle_tracker_msg(cnt);
+	}
+	return -1;
+}
+
+void clt_network_handle_peer_messages(_CNT_t* cnt)
+{
+	for (int i = 0; i < cnt->peer_table->count; i++)
+	{
+		peer_t* peer = cnt->peer_table->peer_list[i];	
+		int fd = peer->socketfd;
+		if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
+		{
+			format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
+			if (handle_peer_msg(i, cnt) != 1) 
+			{
+				format_printf(err_format, "Error receiving from socket %d -- Ending session\n", i);
+
+				// clean up existing peer connection data
+				peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
+				if (dead_peer != NULL) 
+				{
+					dead_peer->socketfd = -1;
+
+					conn_rec_t dead_record;
+					dead_record.client_id = dead_peer->id;
+					conn_rec_t * request_record = (conn_rec_t *)hashtable_get_element(cnt->request_table, &dead_record);
+					if (request_record) 
+					{
+						request_record->outstanding_requests = 0;
+					}
+				}
+				close(i);
+			}
+		}
+	}
+}
+
 void * clt_network_start(void * arg) {
 
 	_CNT_t * cnt = (_CNT_t *)arg;
@@ -786,106 +894,40 @@ void * clt_network_start(void * arg) {
 
 	listen(cnt->peer_listening_fd, MAX_CLIENT_QUEUE);
 
-	// for connecting with new clients
-	struct sockaddr_in clientaddr;
-	unsigned int addrlen = sizeof(struct sockaddr_in);
-
-	// set up timer
-	struct timeval timeout;
-	timeout.tv_sec = NETWORK_WAIT;
-	timeout.tv_usec = 0;
-
 	// select fd sets
-	fd_set read_fd_set;
-	FD_ZERO(&cnt->active_fd_set);
-
-	// add listening socket to fd set
-	FD_SET(cnt->tracker_fd, &cnt->active_fd_set);
-	FD_SET(cnt->peer_listening_fd, &cnt->active_fd_set);
 
 	time_t last_heartbeat = 0, current_time;
 	int connected = 1;
-	while (connected) {
-
-		read_fd_set = cnt->active_fd_set;
-		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout) < 0) {
+	while (connected) 
+	{
+		if (clt_network_listen(cnt, 0.5) < 0) 
+		{
 			format_printf(err_format, "network client failed to select amongst inputs\n");
 			connected = 0;
 			continue;
 		}
+		
+		clt_network_process_new_connections(cnt);
 
-		//printf("\nclient network polling connections...\n");
-		for (int i = 0; i < FD_SETSIZE; i++) {
-			if (FD_ISSET(i, &read_fd_set)) {
+		if (clt_network_handle_tracker_messages(cnt) != 1)
+		{
+			fprintf(stderr, "failed to handle tracker message. Ending.\n");
+			connected = 0;
+			continue;
+		}
 
-				/* -- from tracker -- */
-				if (i == cnt->tracker_fd) {
-
-					format_printf(network_format,"\nclient network received message from tracker (socket %d)\n", i);
-					if (handle_tracker_msg(cnt) != 1) {
-						fprintf(stderr, "failed to handle tracker message. Ending.\n");
-						connected = 0;
-						continue;
-					}
-
-				/* -- new peer connection -- */
-				} else if (i == cnt->peer_listening_fd) {
-
-					int new_peer_fd = accept(cnt->peer_listening_fd, (struct sockaddr *)&clientaddr, &addrlen);
-					if (new_peer_fd < 0) {
-						format_printf(err_format,"network client failed to accept new client connection\n");
-						continue;
-					}
-
-					format_printf(network_format,"\nclient network received new connection from peer at %s (socket %d)\n",inet_ntoa(clientaddr.sin_addr),i);
-					peer_t * new_peer = get_peer_by_ip(cnt->peer_table, (char *)&clientaddr.sin_addr);
-					if (!new_peer) {
-						format_printf(err_format, "client network doesn't has a peer record for new peer\n");
-						close(new_peer_fd);
-						continue;
-					}
-
-					// record peer connection socket and add to active set of sockets
-					new_peer->socketfd = new_peer_fd;
-					FD_SET(new_peer->socketfd, &cnt->active_fd_set);
-
-				/* -- else peer message -- */
-				} else {
-
-					format_printf(network_format,"\nclient network received message from peer on socket %d\n", i);
-					if (handle_peer_msg(i, cnt) != 1) {
-						format_printf(err_format, "Error receiving from socket %d -- Ending session\n", i);
-
-						// clean up existing peer connection data
-						peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, i);
-						if (dead_peer != NULL) {
-							dead_peer->socketfd = -1;
-
-							conn_rec_t dead_record;
-							dead_record.client_id = dead_peer->id;
-							conn_rec_t * request_record = (conn_rec_t *)hashtable_get_element(cnt->request_table, &dead_record);
-							if (request_record) {
-								request_record->outstanding_requests = 0;
-							}
-						}
-						
-						FD_CLR(i, &cnt->active_fd_set);
-						close(i);
-					}
-				}
-			}
-		} 	// end of socket scan
+		clt_network_handle_peer_messages(cnt);
 
 		/* send heart beat if necessary */
 		current_time = time(NULL);
-		if (current_time - last_heartbeat > (DIASTOLE)) {
+		if (current_time - last_heartbeat > (DIASTOLE)) 
+		{
 			send_tracker_message(cnt, NULL, HEARTBEAT);
 			last_heartbeat = current_time;
 		}
 
 		/* poll queues for messages from client logic */
 		poll_queues(cnt);
-
 	}
 
 	return (void *)1;
