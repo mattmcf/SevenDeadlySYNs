@@ -779,18 +779,20 @@ int clt_network_listen(_CNT_t* cnt, double seconds)
 	FD_SET(cnt->peer_listening_fd, &(cnt->descriptors_with_data));
 	
 	//Iterate through connections and for each one that exists add it to the file descriptor set 
-	for (int i = 0; i < cnt->peer_table->count; i++)
+	for (int i = 0; i < cnt->peer_table->size; i++)
 	{
-		peer_t* peer = cnt->peer_table->peer_list[i];
-		
-		int fd = peer->socketfd;
-		
-		if (fd > max_descriptor)
-		{
-			max_descriptor = fd;
+		if (cnt->peer_table->peer_list[i] != NULL){
+			peer_t* peer = cnt->peer_table->peer_list[i];
+			
+			int fd = peer->socketfd;
+			
+			if (fd > max_descriptor)
+			{
+				max_descriptor = fd;
+			}
+			
+			FD_SET(fd, &(cnt->descriptors_with_data));
 		}
-		
-		FD_SET(fd, &(cnt->descriptors_with_data));
 	}
 			
 	//printf( "Creating file descriptor set.\n");
@@ -844,7 +846,7 @@ void clt_network_handle_peer_messages(_CNT_t* cnt)
 	for (int i = 0; i < cnt->peer_table->size; i++)
 	{
 		if (cnt->peer_table->peer_list[i] != NULL){
-		peer_t* peer = cnt->peer_table->peer_list[i];	
+			peer_t* peer = cnt->peer_table->peer_list[i];	
 			int fd = peer->socketfd;
 			if (FD_ISSET(fd, &(cnt->descriptors_with_data)))
 			{
