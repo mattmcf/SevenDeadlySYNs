@@ -833,7 +833,7 @@ int clt_network_process_new_connections(_CNT_t* cnt)
 		new_peer->socketfd = new_peer_fd;
 		return 1;
 	}
-	return -1;
+	return 1;
 }
 
 int clt_network_handle_tracker_messages(_CNT_t* cnt)
