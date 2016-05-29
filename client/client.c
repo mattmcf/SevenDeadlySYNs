@@ -653,6 +653,9 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
+			// TODO -- SEND THE FILE ACQ TO THE TRACKER
+			// send_chunk_got(CNT * thread, char * path, int chunkNum);
+
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
 
@@ -671,6 +674,10 @@ int main(int argv, char* argc[]){
 			filepath = NULL;
 			chunk_data = NULL;
 		}
+
+		// TODO -- CHECK IF ANY CLIENTS HAVE GOTTEN MORE CHUNKS 
+		// ADD TO FILETABLE
+		// receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int * chunk_num);
 
 		/* poll for any diffs, if they exist then we need to make updates to 
 		 * our filesystem */

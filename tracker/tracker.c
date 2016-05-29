@@ -157,6 +157,12 @@ int main() {
 			peerID = -1;
 		}
 
+		// TODO -- CHECK IF CLIENT HAS GOTTEN A FILE CHUNK
+		// IF SO -> ADD TO FILE TABLE, AND THEN BOUNCE TO ALL CLIENTS
+		// receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int * chunk_num); {
+		//	-> update to all clients with send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num);
+		//		}
+
 		// if there is a file update
 			// take the diff
 			// apply diff to local fs
