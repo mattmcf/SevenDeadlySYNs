@@ -104,14 +104,17 @@ char * tilde_expand(char * original_path) {
   	return expanded_string;
 }
 
+// takes an absolute file path and replaces the path to dart_sync with a tilda
+//	original_path: (not claimed) the file path to compress
+// 	ret: (not claimed) the compressed filepath
 char * tilde_compress(char * original_path){
 	if (!original_path){
 		return NULL;
 	}
-	printf("Tilde compressing string %s\n", original_path);
-
-	char * compressed_string = NULL;
-	for (int i = sizeof(original_path)-1; i <= 9; i--){
+	// printf("Tilde compressing string %s\n", original_path);
+	
+	for (int i = strlen(original_path)-1; i >= 9; i--){
+		printf("i = %d\n", i);
 		if (original_path[i] == 'c' &&
 			original_path[i-1] == 'n' &&
 			original_path[i-2] == 'y' &&
@@ -123,9 +126,17 @@ char * tilde_compress(char * original_path){
 			original_path[i-8] == 'd'
 			)
 		{
-			original_path += (sizeof(original_path)-i);
-			sprintf(compressed_string, "~%s", original_path);
-			printf("compressed_string: %s\n", compressed_string);
+			char buffer[strlen(original_path)-i+10]; // + /dart_sync\0
+			memset(buffer, 0 , sizeof(buffer));
+			// printf("moving: %s\n", &original_path[i+1]);
+			memcpy(buffer, &original_path[i-9], strlen(original_path)-(i-9)*sizeof(char));
+			buffer[strlen(original_path)-i+9+1] = '\0';
+			// printf("set new original address\n");
+			// original_path += (i+1)*sizeof(char);
+			// printf("New original path: %s\n", buffer);
+			char * compressed_string = (char*)malloc(sizeof(buffer)+sizeof(char));
+			sprintf(compressed_string, "~%s", buffer);
+			// printf("compressed_string: %s\n", compressed_string);
 			return compressed_string;
 		}
 	}
