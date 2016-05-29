@@ -573,7 +573,12 @@ int main(int argv, char* argc[]){
 			send_chunk_got(cnt, filepath, chunk_id);
 
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
+			filetable_print(ft);
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
+			if (!file){
+				printf("CLIENT MAIN: failed to get chunkfile from ft on receive_chunk\n");
+				continue;
+			}
 
 			/* set the correct chunk */
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
