@@ -129,7 +129,7 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 	// 	printf("SendMasterFSRequest: send_status failed\n");
 	// 	return -1;
 	// }
-
+	printf("Send master FS request\n");
 	if (-1 == send_request_for_master(cnt)){
 		printf("SendMasterFSRequest: send_request_for_master() failed\n");
 		return -1;

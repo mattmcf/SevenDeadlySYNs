@@ -542,6 +542,7 @@ int send_updated_files(CNT * thread, FileSystem * additions, FileSystem * deleti
 // send request for master JFS to tracker : ME_2_TKR_GET_MASTER
 // returns 1 on success, -1 on failure
 int send_request_for_master(CNT * cnt) {
+	printf("Send request for master\n");
 	_CNT_t * thread_block = (_CNT_t *) cnt;
 	asyncqueue_push(thread_block->tkr_queues_from_client[ME_2_TKR_GET_MASTER], (void*)(long)1);
 	return 1;
@@ -931,6 +932,7 @@ void * clt_network_start(void * arg) {
 		}
 
 		/* poll queues for messages from client logic */
+		printf("Poll queues\n");
 		poll_queues(cnt);
 	}
 
