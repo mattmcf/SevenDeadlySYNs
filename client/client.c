@@ -33,7 +33,6 @@
 /* ------------------------- Global Variables -------------------------- */
 CNT* cnt;
 FileSystem *cur_fs;
-peer_table_t *pt;
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
 
@@ -50,28 +49,6 @@ char * dartsync_dir; 	// global of absolute dartsync_dir path
 
 /* check if file system is empty, used to check diffs for anything */
 int CheckFileSystem(FileSystem *fs);
-
-/* calloc the peer table and check the return function 
- *		(not claimed) - pt: the peer table
- */
-int CreatePeerTable();
-
-/* calloc a new peer for the table and append it to the list.
- * 		(not claimed) - peer: the new peer to be appended
- */
-int InsertPeer(int peer_id, int status);
-
-/* 
- * find and remove the specified peer id
- * 		(claimed) - peer: the peer specified by peer_id
- */
-int RemovePeer(int peer_id);
-
-/*
- * iterate through the table and destroy each entry, then destroy the table
- * 		(claimed) - pt: the peer table and all its entries
- */
-int DestroyPeerTable();
 
 /* 
  * iterate over a filesystem that is assumed to be the deletions filesystem
@@ -266,7 +243,6 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* get ready for next iteration */
-			chunkyfile_destroy(file);
 			path = NULL;
 		}
 
@@ -345,7 +321,6 @@ void DropFromNetwork(){
 
 	/* close our files and free our memory */
 	filesystem_destroy(cur_fs);
-	DestroyPeerTable();
 	filetable_destroy(ft);
 
 	free(dartsync_dir);
@@ -420,10 +395,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		printf("Send chunk request for file %s\n", path);
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
-		/* destroy the chunky file */
-		printf("destroy chunky file\n");
-		chunkyfile_destroy(file);
-
 		path = NULL;
 	}
 
@@ -432,82 +403,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 }
 
 /* ----------------------- Private Function Bodies --------------------- */
-
-int CreatePeerTable(){
-	if (!(pt = calloc(1, sizeof(peer_table_t)))){
-		printf("CreatePeerTable: calloc() failed\n");
-		return -1;
-	}
-
-	return 1;
-}
-
-int InsertPeer(int peer_id, int status){
-	printf("InsertPeer: inserting peer %d\n", peer_id);
-	peer_t *peer = calloc(1, sizeof(peer_t));
-	if (!peer){
-		printf("InsertPeer: calloc failed\n");
-		return -1;
-	}
-
-	peer->peer_id = peer_id;
-	peer->status = status;
-
-	/* this is the first peer so we need to make it the head and tail */
-	if (NULL == pt->head){
-		printf("InsertPeer: inserting %d to the head of pt\n", peer_id);
-		pt->head = peer;
-		pt->tail = peer;
-	} else {
-		printf("InsertPeer: inserting %d to the tail of pt\n", peer_id);
-		pt->tail->next = peer;
-		pt->tail = peer;
-	}
-
-	return 1;
-}
-
-int RemovePeer(int peer_id){
-	printf("RemovePeer: removing peer: %d\n", peer_id);
-	peer_t *peer = pt->head;
-	if (!peer){
-		printf("RemovePeer: pt is empty\n");
-		return 1;
-	}
-
-	if (peer_id == peer->peer_id){	// if it's the head
-		peer_t *temp = peer;
-		pt->head = peer->next;
-		free(temp);
-		printf("RemovePeer: found the peer at the head of the list\n");
-		return 1;
-	} else {
-		while (NULL != peer->next){
-			if (peer_id == peer->next->peer_id){
-				peer_t *temp = peer->next;
-				peer->next = peer->next->next;
-				printf("RemovePeer: found the peer inside the list\n");
-				free(temp);
-				return 1;
-			}
-		}
-	}
-
-	printf("RemovePeer: didn't find that peer\n");
-	return -1;
-}
-
-int DestroyPeerTable(){
-	printf("DestroyPeerTable: destroying the peer table\n");
-	while (pt->head){
-		peer_t *temp = pt->head;
-		pt->head = pt->head->next;
-		free(temp);
-	}
-
-	free(pt);
-	return 1;
-}
 
 int CheckFileSystem(FileSystem *fs){
 	char *path;
@@ -537,13 +432,6 @@ int main(int argv, char* argc[]){
 	char ip_addr[sizeof(struct in_addr)]; 	// IPv4 address length
 	if (inet_pton(AF_INET, argc[1], ip_addr) != 1) {
 		fprintf(stderr,"Could not parse host %s\n", argc[1]);
-		exit(-1);
-	}
-
-	/* create a peer table that we will use to keep track of who to request what
-	 * file from */
-	if (-1 == CreatePeerTable()){
-		printf("CLIENT MAIN: CreatePeerTable() failed\n");
 		exit(-1);
 	}
 
@@ -586,7 +474,6 @@ int main(int argv, char* argc[]){
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(dartsync_dir))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
-		DestroyPeerTable();
 		filetable_destroy(ft);
 		exit(-1);
 	}
@@ -604,18 +491,14 @@ int main(int argv, char* argc[]){
 		/* get any new clients first */
 		// printf("CLIENT MAIN: checking for new clients\n");
 		while (-1 != (peer_id = recv_peer_added(cnt))){
-			if (-1 == InsertPeer(peer_id, CONN_ACTIVE)){
-				printf("CLIENT MAIN: InsertPeer() failed\n");
-			}
+			printf("CLIENT MAIN: new peer %d\n", peer_id);
 			peer_id = -1;
 		}
 
 		/* figure out if any clients have dropped from the network */
 		// printf("CLIENT MAIN: checking for deleted clients\n");
 		while (-1 != (peer_id = recv_peer_deleted(cnt))){
-			if (-1 == RemovePeer(peer_id)){
-				printf("CLIENT MAIN: RemovePeer() failed\n");
-			}
+			printf("CLIENT MAIN: deleting peer %d\n", peer_id);
 			/* delete from file table */
 			filetable_remove_peer(ft, peer_id);
 			peer_id = -1;
@@ -654,7 +537,6 @@ int main(int argv, char* argc[]){
 			} else {
 
 				printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", filepath, chunk_id, peer_id);
-				printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", filepath, chunk_id, peer_id);
 
 				chunkyfile_get_chunk(file, chunk_id, &chunk_text, &chunk_len);
 
