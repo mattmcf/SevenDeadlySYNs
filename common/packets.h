@@ -64,6 +64,7 @@ typedef enum {
 	CLIENT_STATE,
 	CLIENT_UPDATE,
 	REQUEST_MASTER,
+	CHUNK_GOT,
 } client_to_tracker_t;
 
 typedef struct client_pkt {

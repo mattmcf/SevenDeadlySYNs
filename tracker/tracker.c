@@ -133,7 +133,10 @@ int main() {
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
-			printf("\tSent master to peer %d\n", peerID);
+			if(send_master_filetable(network, peerID, filetable)<0) {
+				printf("\tFailed to send master file table to peer %d\n", peerID);
+			}
+			printf("\tSent master FileSystem and FileTable to peer %d\n", peerID);
 			peerID = -1;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);

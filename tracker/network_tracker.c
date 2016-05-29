@@ -222,13 +222,14 @@ int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid) {
 
 	return -1;
 }
+
 // sending file acquisition: first 4 bytes (int) is chunk number, rest is filepath
 // Receives a "got file chunk" message from client : CLT_2_TKR_CLIENT_GOT
 //	path : (not claimed) the filepath of the acquired file
 // chunkNum: (not claimed) the chunk number of the file that was acquired
 // 	clientid : (not claimed) pointer to int that will be filled with client id if update is present
 // 	ret : (static) 1 is success, -1 is failure (communications broke) 
-int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid){
+int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid) {
 	_TNT_t * thread_block = (_TNT_t *)tnt;
 	client_data_t * data_pkt = (client_data_t*)asyncqueue_pop(thread_block->queues_to_tracker[CLT_2_TKR_CLIENT_GOT]);
 	if (data_pkt != NULL) {
@@ -315,6 +316,34 @@ int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * dele
 }
 
 // Send file acquisition update (client got # chunk of @ file) : TKR_2_CLT_FILE_ACQ
+// 	thread_block : (not claimed) thread_block
+//	client_id : (static) id to send to
+// 	filename : (not claimed) name of file
+//	chunk_num : (static) chunk id that client has acquired
+//	ret : 1 on success, -1 on failure
+int send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num) {
+	if (!thread_block || !filename) {
+		format_printf(err_format, "send_got_chunk_update: null arguments\n");
+		return -1;
+	}
+
+	_TNT_t * tnt = (_TNT_t *)thread_block;
+	if (!get_peer_by_id(tnt->peer_table, client_id)) {
+		format_printf(err_format, "send_got_chunk_update: cannot find client with id %d\n", client_id);
+		return -1;
+	}
+
+	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
+	queue_item->client_id = client_id;
+	queue_item->data_len = strlen(filename) + 1 + sizeof(int);
+	queue_item->data = malloc(queue_item->data_len);
+	memcpy(queue_item->data, &client_id, sizeof(int));
+	memcpy( (char *)((long)queue_item->data + (long)sizeof(int)), filename, queue_item->data_len);
+
+	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ], (void*)queue_item);
+	return 1;
+}
+
 
 // Sends file system update (client updated @ file) : TKR_2_CLT_FS_UPDATE
 // 	tnt : (not claimed) thread block
@@ -632,7 +661,7 @@ void * tkr_network_start(void * arg) {
 				/* data on existing connection */
 				} else {
 
-					format_printf(event_format,"\nnetwork tracker received message from client on socket %d\n", i);
+					format_printf(network_format,"network tracker received message from client on socket %d\n", i);
 					if (handle_client_msg(i, tnt) != 1) {
 						format_printf(err_format,"failed to handle client message on socket %d\n", i);
 
@@ -772,7 +801,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	int rc = -1;
 	switch(pkt.type) {
 		case HEARTBEAT:
-			//printf("NETWORK -- received heartbeat from client %d\n", client->id);
+			format_printf(file_format,"NETWORK -- received heartbeat from client %d\n", client->id);
 			// update time last heard from client
 			client->time_last_alive = time(NULL);
 			free(client_data);
@@ -780,8 +809,20 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			rc = 1;
 			break;
 
+		case CHUNK_GOT:
+			format_printf(file_format,"NETWORK -- received Got Chunk from client %d\n", client->id);
+
+			client_data->client_id = client->id;
+			client_data->data_len = pkt.data_len;
+			client_data->data = buf;
+			notify_client_got(tnt, client_data);
+			buf = NULL; // don't free here
+
+			rc = 1;
+			break;
+
 		case CLIENT_STATE:
-			format_printf(event_format,"NETWORK -- received state update from client %d\n", client->id);
+			format_printf(file_format,"NETWORK -- received state update from client %d\n", client->id);
 			FileSystem * fs = filesystem_deserialize(buf, &client_data->data_len);
 			if (!fs) {
 				format_printf(err_format,"error deserializing client state update\n");
@@ -794,7 +835,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		case CLIENT_UPDATE:
-			format_printf(event_format,"NETWORK -- received client update from client %d\n", client->id);
+			format_printf(file_format,"NETWORK -- received client update from client %d\n", client->id);
 			client_data->client_id = client->id;
 			client_data->data_len = pkt.data_len;
 			client_data->data = buf;
@@ -806,7 +847,7 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 			break;
 
 		case REQUEST_MASTER:
-			format_printf(event_format,"NETWORK -- received request for master JFS from client %d\n", client->id);
+			format_printf(file_format,"NETWORK -- received request for master JFS from client %d\n", client->id);
 			notify_master_req(tnt, client->id);
 			free(client_data);
 
@@ -893,8 +934,13 @@ void check_file_acq_q(_TNT_t * tnt) {
 	tracker_data_t * queue_item ;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		format_printf(err_format,"NETWORK -- sending file acquisition update -- UNFILLED FUNCTION!\n");
-		//free(queue_item->data);
+		format_printf(network_format,"NETWORK -- sending chunk acquisition update to client %d\n", queue_item->client_id);
+
+		if (send_client_message(tnt, queue_item, FILE_ACQ_UPDATE) != 1) {
+			format_printf(err_format,"failed to send hunk acquisition update to client %d\n", queue_item->client_id);
+		}
+
+		free(queue_item->data);
 		free(queue_item);
 	}
 	return;

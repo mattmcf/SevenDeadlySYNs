@@ -34,6 +34,14 @@ void EndTrackerNetwork(TNT * tnt);
 // 	ret : (static) 1 is success, -1 is failure (communications broke) 
 int receive_client_state(TNT * tnt, FileSystem ** fs, int * clientid);
 
+// sending file acquisition: first 4 bytes (int) is chunk number, rest is filepath
+// Receives a "got file chunk" message from client : CLT_2_TKR_CLIENT_GOT
+//	path : (not claimed) the filepath of the acquired file
+// chunkNum: (not claimed) the chunk number of the file that was acquired
+// 	clientid : (not claimed) pointer to int that will be filled with client id if update is present
+// 	ret : (static) 1 is success, -1 is failure (communications broke) 
+int receive_client_got(TNT * tnt, char * path, int * chunkNum, int * clientid);
+
 // Receive client file system update (modified file) : CLT_2_TKR_FILE_UPDATE
 // 	tnt : (not claimed) thread block 
 //	clientid : (not claimed) space for client id that will be filled if update is there
@@ -62,6 +70,14 @@ int receive_master_request(TNT * tnt);
 // 	clientid : (static) which client to send to
 // 	ret : (static) 1 is success, -1 is failure ()
 int send_transaction_update(TNT * tnt, FileSystem * additions, FileSystem * deletions, int clientid);
+
+// Send file acquisition update (client got # chunk of @ file)
+// 	thread_block : (not claimed) thread_block
+//	client_id : (static) id to send to
+// 	filename : (not claimed) name of file
+//	chunk_num : (static) chunk id that client has acquired
+//	ret : 1 on success, -1 on failure
+int send_got_chunk_update(TNT * thread_block, int client_id, char * filename, int chunk_num);
 
 // Sends file system update (client updated @ file)
 // 	tnt : (not claimed) thread block

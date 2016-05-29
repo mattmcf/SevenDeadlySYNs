@@ -126,10 +126,15 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		sleep(1);
 	}
 
-	printf("SendMasterFSRequest: dartsync dir - %s\n", dartsync_dir);
-
 	/* set root of returned file system */
 	filesystem_set_root_path(master, dartsync_dir);
+
+	/* todo -- should also receive master file table */
+	int master_ft_len = 0;
+	while (NULL == (ft = recv_master_ft(cnt, &master_ft_len))){
+		printf("SendMasterFSRequest: recv_master_ft return NULL, sleeping\n");
+		sleep(1);
+	}
 
 	UpdateLocalFilesystem(master);
 	return 1;
@@ -242,7 +247,7 @@ void CheckLocalFilesystem(){
 		filesystem_print(adds);
 	}
 
-	if (1 == CheckLocalFilesystem(dels)) {
+	if (1 == CheckFileSystem(dels)) {
 		printf("CheckLocalFilesystem: Deletions Seen -----\n");
 		filesystem_print(dels);
 	}
@@ -667,10 +672,9 @@ int main(int argv, char* argc[]){
 		 * copy master to our local pointer of the filesystem */
 		// printf("CLIENT MAIN: checking for updates from master\n");
 		while (NULL != (master = recv_master(cnt, &recv_len))){
+
 			printf("CLIENT MAIN: received master from tracker\n");
 			/* set the root path of the master filesystem */
-			printf("dartsync_dir: %s\n", dartsync_dir);
-			fflush(stdout);
 			filesystem_set_root_path(master, dartsync_dir);
 
 			filesystem_print(master);

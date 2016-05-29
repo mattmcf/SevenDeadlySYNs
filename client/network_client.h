@@ -38,6 +38,12 @@ void EndClientNetwork(CNT * thread_block);
 int recv_diff(CNT * thread, FileSystem ** additions, FileSystem ** deletions, int * author_id);
 
 // receive acq status update 
+// 	thread_block : (not cliamed) thread_block
+// 	client_id : (not claimed) filled in with client id
+// 	filename : (not claimed) filled in with pointer to file string
+// 	chunk_num : (not claimed) filled in with chunk id
+// 	ret : (static) 1 on chunk received notication, -1 in no update
+int receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int * chunk_num);
 
 // receive peer added message
 //	thread_block : (not claimed) thread block
@@ -92,7 +98,13 @@ int receive_chunk(CNT *cnt, int *peer_id, char **file_name, int *chunk_id, int *
 // send current status
 int send_status(CNT * thread, FileSystem * fs); 
 
-// send file acquistion update
+// send chunk acquistion update
+// send current status : ME_2_TKR_CUR_STATUS
+// 	thread : (not claimed) thread block
+// 	path : (not claimed) filepath for file updated
+// 	chunkNum : (not claimed) the chunk number that client receives
+// 	ret : (static) 1 on success, -1 on failure
+int send_chunk_got(CNT * thread, char * path, int chunkNum);
 
 // send quit message to tracker 
 // 	thread : (not claimed) thread block
