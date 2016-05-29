@@ -843,7 +843,7 @@ int clt_network_handle_tracker_messages(_CNT_t* cnt)
 		format_printf(network_format,"\nclient network received message from tracker (socket %d)\n", cnt->tracker_fd);
 		return handle_tracker_msg(cnt);
 	}
-	return -1;
+	return 1;
 }
 
 void clt_network_handle_peer_messages(_CNT_t* cnt)
