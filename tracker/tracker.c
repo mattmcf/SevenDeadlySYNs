@@ -79,7 +79,6 @@ int main() {
 		perror("reason");
 		/* it doesn't exist, so make it */
 		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-		//if (system("mkdir ~/dart_sync") != 0) {
 			printf("TRACKER MAIN: failed to create DARTSYNC_DIR\n");
 			exit(-1);
 		}
@@ -136,7 +135,22 @@ int main() {
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
+
+			// debugging stuff
 			printf("\tSent master FileSystem and FileTable to peer %d\n", peerID);
+			printf("\n\nsent filetable:");
+			filetable_print(filetable);
+			char * buf = NULL;
+			int len, readlen;
+			filetable_serialize(filetable, &buf, &len);
+			FileTable * dft = filetable_deserialize(buf, &readlen);
+			if (dft == NULL) {
+				printf("dft is null\n");
+			}
+			printf("\n\nserialized and deserialized table (%d and %d bytes)\n", len, readlen);
+			filetable_print(filetable);
+			// end debugging stuff
+
 			peerID = -1;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);

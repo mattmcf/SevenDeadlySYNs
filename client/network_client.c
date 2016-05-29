@@ -372,15 +372,17 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
 	}
 
 	_CNT_t * cnt = (_CNT_t *)thread_block;
-	client_data_t * queue_item = asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT]);
 	FileTable * ft = NULL;
+
+	client_data_t * queue_item = asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT]);
 	if (queue_item != NULL) {
 
-		// already deserialized
+		printf("CLIENT LOGIC -- receiving master file table\n");
+		// already deserialized on receive side of things
 		ft = (FileTable *)queue_item->data;
 		*length_deserialized = queue_item->data_len;
 
-		//free(queue_item->data);
+		//free(queue_item->data); // don't free return data b/c client has it
 		free(queue_item);
 	}
 
@@ -663,6 +665,15 @@ int notify_master_received(_CNT_t * cnt, client_data_t * queue_item) {
 	return 1;
 }
 
+int notify_master_ft_received(_CNT_t * cnt, client_data_t * queue_item) {
+	if (!cnt || !queue_item) {
+		return -1;
+	}
+
+	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT], (void*)queue_item);
+	return 1;
+}
+
 int notify_file_acq_update(_CNT_t * cnt, client_data_t * queue_item) {
 	if (!cnt || !queue_item) {
 		return -1;
@@ -709,15 +720,6 @@ int notify_error_received(_CNT_t * cnt, chunk_data_t * queue_item) {
 		return -1;
 
 	asyncqueue_push(cnt->clt_queues_to_client[CLT_2_ME_RECEIVE_CHUNK], (void*)queue_item);
-	return 1;
-}
-
-int notify_master_ft_received(_CNT_t * cnt, client_data_t * queue_item) {
-	if (!cnt || !queue_item) {
-		return -1;
-	}
-
-	asyncqueue_push(cnt->tkr_queues_to_client[TKR_2_ME_RECEIVE_MASTER_FT], (void*)queue_item);
 	return 1;
 }
 
@@ -896,11 +898,6 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 		return -1;
 	}
 
-	// int sockfd;
-	// if ((sockfd = socket(AF_INET6, SOCK_STREAM, 6)) < 0) {
-	// 	perror("client_network thread failed to create tracker socket");
-	// 	return -1;
-	// }
 	int sockfd;
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 6)) < 0) {
 		perror("client_network thread failed to create tracker socket");
@@ -913,14 +910,7 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	memcpy(&servaddr.sin_addr, ip_addr, ip_len);
-	//inet_pton(AF_INET, ip_addr, &servaddr.sin_addr);
-	// servaddr.sin_addr = inet_addr(ip_addr);
 	servaddr.sin_port = htons(TRACKER_LISTENING_PORT);
-
-	// memcpy(&servaddr.sin6_addr, ip_addr, ip_len);
-	// memcpy(&servaddr.sin_addr, ip_addr, ip_len);
-	// servaddr.sin6_family = AF_INET6;
-	// servaddr.sin6_port = htons(TRACKER_LISTENING_PORT); 
 
 	// connect
 	if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
@@ -928,15 +918,8 @@ int connect_to_tracker(char * ip_addr, int ip_len) {
 		return -1;
 	}
 
-	// char ip_str[INET6_ADDRSTRLEN] = "";
 	char* ip_str = inet_ntoa(servaddr.sin_addr);
-	// if (strcmp(ip_str, "")!= 0){
-	// 	perror("inet_ntoa failed");
-	// 	return -1;
-	// }
-
 	format_printf(network_format,"NETWORK connected to tracker at %s on port %d (socket %d)\n",ip_str,TRACKER_LISTENING_PORT,sockfd);
-	//printf("NETWORK connected to tracker at %s on port %d (socket %d)\n", ip_str,TRACKER_LISTENING_PORT,sockfd);
 	return sockfd;
 }
 
@@ -1022,7 +1005,7 @@ int disconnect_from_peer(peer_t * peer, int id) {
 	return 1;
 }
 
-// both paranoidly return the incremented length 
+// paranoidly return the incremented length 
 int increment_conn_record(_CNT_t * cnt, int client_id) {
 	if (!cnt) {
 		return -1;
@@ -1032,7 +1015,7 @@ int increment_conn_record(_CNT_t * cnt, int client_id) {
 	record.client_id = client_id;
 	conn_rec_t * entry = hashtable_get_element(cnt->request_table, &record);
 	if (!entry) {
-		// make a crecord 
+		// make a conn record 
 		conn_rec_t * new_record = (conn_rec_t *)malloc(sizeof(conn_rec_t));
 		new_record->client_id = client_id;
 		new_record->outstanding_requests = 0;
@@ -1071,6 +1054,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			format_printf(err_format, "client network failed to get data from tracker\n");
 			return -1;
 		}
+		printf("received %d bytes\n", pkt.data_len);
 	}
 
 	switch (pkt.type) {
@@ -1096,7 +1080,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			client_data_t * file_acq_update = malloc(sizeof(client_data_t));
 			file_acq_update->data_len = pkt.data_len;
 			file_acq_update->data = buf;
-			buf = NULL;
+			buf = NULL; // don't free here
 
 			notify_file_acq_update(cnt, file_acq_update);
 			break;
@@ -1107,7 +1091,6 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			master_update->data = (void*)filesystem_deserialize(buf, &master_update->data_len);
 			if (!master_update->data || master_update->data_len < 0) {
 				fprintf(stderr, "failed to unpack master JFS\n");
-				break;
 			}
 
 			notify_master_received(cnt, master_update);
@@ -1117,6 +1100,9 @@ int handle_tracker_msg(_CNT_t * cnt) {
 			format_printf(network_format,"NETWORK -- received master file table from tracker\n");
 			client_data_t * master_ft = malloc(sizeof(client_data_t));
 			master_ft->data = (void *)filetable_deserialize(buf, &master_ft->data_len);
+			if (!master_ft || master_ft->data_len < 1) {
+				format_printf(err_format,"failed to unpack master FileTable\n");
+			}
 
 			notify_master_ft_received(cnt, master_ft);
 			break;
@@ -1126,7 +1112,7 @@ int handle_tracker_msg(_CNT_t * cnt) {
 
 			peer_table_t * additions, * deletions, * new_table;
 			new_table = deserialize_peer_table(buf, pkt.data_len); 	// buf is claimed
-			buf = NULL; 
+			buf = NULL;  	// don't free here
 
 			if (!new_table) {
 				format_printf(err_format,"client network failed to deserialize tracker's peer table\n");

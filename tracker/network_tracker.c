@@ -458,9 +458,10 @@ int send_master_filetable(TNT * thread_block, int client_id, FileTable * ft) {
 
 	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
 	queue_item->client_id = client_id;
+	queue_item->data_len = -1;
 	filetable_serialize(ft, (char **)&queue_item->data, &queue_item->data_len);
-	if (queue_item->data_len < 1) {
-		format_printf(network_format,"send_master_filetable error: did not serialize any bytes\n");
+	if (!queue_item->data || queue_item->data_len < 1) {
+		format_printf(err_format,"send_master_filetable error: did not serialize any bytes\n");
 		return -1;
 	}	
 
@@ -534,8 +535,6 @@ int notify_client_got(_TNT_t * tnt, client_data_t * queue_item){
     asyncqueue_push(tnt->queues_to_tracker[CLT_2_TKR_CLIENT_GOT], (void *)queue_item);
     return 1;
 }
-
-// notify about file acquiring update (success and failure)
 
 // notify that client has requested master : CLT_2_TKR_CLIENT_REQ_MASTER
 int notify_master_req(_TNT_t * tnt, int client_id) {
@@ -1030,6 +1029,7 @@ void check_send_master_ft_q(_TNT_t * tnt) {
 	while ((queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(file_format,"NETWORK -- sending master file table to client %d\n", queue_item->client_id);
+		format_printf(file_format, "sending %d bytes\n", queue_item->data_len);
 		if (send_client_message(tnt, queue_item, MASTER_FT) != 1) {
 			format_printf(err_format,"failed to send master file table to client %d\n", queue_item->client_id);
 		}
