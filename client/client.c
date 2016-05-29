@@ -257,7 +257,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 
 				/* randomly select one peer to get the chunk from */
 				int list_id = (rand()*100) % queue_length(peers);
-				int peer_id = (int)queue_get(peers, list_id);
+				int peer_id = *((int *)queue_get(peers, list_id));
 
 				/* make the request to get that chunk */
 				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
@@ -545,13 +545,6 @@ int main(int argv, char* argc[]){
 	 * file from */
 	if (-1 == CreatePeerTable()){
 		printf("CLIENT MAIN: CreatePeerTable() failed\n");
-		exit(-1);
-	}
-
-	/* create a filetable that we use to request files from peers */
-	if (NULL == (ft = filetable_new())){
-		printf("CLIENT MAIN: filetable_new() failed\n");
-		DestroyPeerTable();
 		exit(-1);
 	}
 
