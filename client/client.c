@@ -316,13 +316,13 @@ void CheckLocalFilesystem(){
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
 	if (!adds && !dels){
-		printf("CLIENT MAIN: diff failed\n");
+		printf("CheckLocalFilesystem: diff failed\n");
 		filesystem_destroy(new_fs);
 	} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
-		printf("CLIENT MAIN: about to send diffs to the tracker\n");
+		printf("CheckLocalFilesystem: about to send diffs to the tracker\n");
 		/* send the difs to the tracker */
 		if (-1 == send_updated_files(cnt, adds, dels)){
-			printf("CLIENT MAIN: send_updated_files() failed\n");
+			printf("CheckLocalFilesystem: send_updated_files() failed\n");
 		}
 
 		/* update the pointer to our *current* filesystem */
