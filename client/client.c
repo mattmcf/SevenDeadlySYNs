@@ -128,12 +128,13 @@ char * tilde_compress(char * original_path){
 			)
 		{
 			char buffer[strlen(original_path)-i+10]; // + /dart_sync\0
-			// printf("moving: %s", &original_path[i+1]);
-			memcpy(buffer, &original_path[i-9], strlen(original_path)-i);
+			memset(buffer, 0 , sizeof(buffer));
+			printf("moving: %s", &original_path[i+1]);
+			memcpy(buffer, &original_path[i-9], strlen(original_path)-(i+9)*sizeof(char));
 			buffer[strlen(original_path)-i-9+1] = '\0';
 			// printf("set new original address\n");
 			// original_path += (i+1)*sizeof(char);
-			// printf("New original path: %s\n", buffer);
+			printf("New original path: %s\n", buffer);
 			char * compressed_string = (char*)malloc(sizeof(buffer)+sizeof(char));
 			sprintf(compressed_string, "~%s", buffer);
 			// printf("compressed_string: %s\n", compressed_string);
