@@ -712,7 +712,7 @@ void * tkr_network_start(void * arg) {
 	int connected = 1;
 	while (connected) 
 	{
-		if (tkr_network_listen(tnt, 0.5))
+		if (tkr_network_listen(tnt, 0.01))
 		{
 			format_printf(network_format,"network tracker failed to select amongst inputs\n");
 			connected = 0;
