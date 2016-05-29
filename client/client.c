@@ -237,15 +237,15 @@ void CheckLocalFilesystem(){
 	filesystem_diff(cur_fs, new_fs, &adds, &dels);
 	//printf("CheckLocalFilesystem: got diff\n");
 
-	if (1 == CheckFileSystem(adds)) {
-		printf("CheckLocalFilesystem: Additions Seen ----\n");
-		filesystem_print(adds);
-	}
+	// if (1 == CheckFileSystem(adds)) {
+	// 	printf("CheckLocalFilesystem: Additions Seen ----\n");
+	// 	filesystem_print(adds);
+	// }
 
-	if (1 == CheckLocalFilesystem(dels)) {
-		printf("CheckLocalFilesystem: Deletions Seen -----\n");
-		filesystem_print(dels);
-	}
+	// if (1 == CheckLocalFilesystem(dels)) {
+	// 	printf("CheckLocalFilesystem: Deletions Seen -----\n");
+	// 	filesystem_print(dels);
+	// }
 
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
