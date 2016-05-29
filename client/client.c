@@ -111,7 +111,7 @@ char * tilde_compress(char * original_path){
 	printf("Tilde compressing string %s\n", original_path);
 
 	char * compressed_string = NULL;
-	for (int i = strlen(original_path)-1; i <= 9; i--){
+	for (int i = strlen(original_path)-1; i >= 9; i--){
 		printf("i = %d\n", i);
 		if (original_path[i] == 'c' &&
 			original_path[i-1] == 'n' &&
