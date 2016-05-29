@@ -105,6 +105,8 @@ typedef struct _CNT {
 	int tracker_fd;
 	int peer_listening_fd;
 
+	fd_set active_fd_set;
+
 	peer_table_t * peer_table;
 
 	HashTable * request_table;
@@ -794,18 +796,18 @@ void * clt_network_start(void * arg) {
 	timeout.tv_usec = 0;
 
 	// select fd sets
-	fd_set read_fd_set, active_fd_set;
-	FD_ZERO(&active_fd_set);
+	fd_set read_fd_set;
+	FD_ZERO(&cnt->active_fd_set);
 
 	// add listening socket to fd set
-	FD_SET(cnt->tracker_fd, &active_fd_set);
-	FD_SET(cnt->peer_listening_fd, &active_fd_set);
+	FD_SET(cnt->tracker_fd, &cnt->active_fd_set);
+	FD_SET(cnt->peer_listening_fd, &cnt->active_fd_set);
 
 	time_t last_heartbeat = 0, current_time;
 	int connected = 1;
 	while (connected) {
 
-		read_fd_set = active_fd_set;
+		read_fd_set = cnt->active_fd_set;
 		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout) < 0) {
 			format_printf(err_format, "network client failed to select amongst inputs\n");
 			connected = 0;
@@ -845,7 +847,7 @@ void * clt_network_start(void * arg) {
 
 					// record peer connection socket and add to active set of sockets
 					new_peer->socketfd = new_peer_fd;
-					FD_SET(new_peer->socketfd, &active_fd_set);
+					FD_SET(new_peer->socketfd, &cnt->active_fd_set);
 
 				/* -- else peer message -- */
 				} else {
@@ -867,7 +869,7 @@ void * clt_network_start(void * arg) {
 							}
 						}
 						
-						FD_CLR(i, &active_fd_set);
+						FD_CLR(i, &cnt->active_fd_set);
 						close(i);
 					}
 				}
@@ -990,6 +992,9 @@ int connect_to_peer(peer_t * peer, int id) {
 
 	peer->socketfd = sockfd;
 
+	// TODO -- add to active file descriptor set
+	//FD_SET(sockfd, &cnt->active_fd_set);
+
 	format_printf(network_format,"NETWORK -- connected to peer %d at %s on socket %d\n", id, inet_ntoa(*(struct in_addr*)&peer->ip_addr), sockfd);
 	return sockfd;
 }
@@ -1002,6 +1007,9 @@ int disconnect_from_peer(peer_t * peer, int id) {
 		format_printf(network_format,"NETWORK -- closing connection to peer %d at %s\n", id, inet_ntoa(*(struct in_addr *)&peer->ip_addr));
 		close(peer->socketfd);
 		peer->socketfd = -1;
+
+		// TODO -- must clear from active set
+		//FD_CLR(peer->socketfd,)
 	}
 
 	return 1;
