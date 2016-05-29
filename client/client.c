@@ -353,6 +353,7 @@ int RemoveFileDeletions(FileSystem *deletions){
 		path = NULL;
 	}
 
+	printf("RemoveFileDeletions: done deleting\n");
 	filesystemiterator_destroy(del_iterator);
 	return 1;
 }
