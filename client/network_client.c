@@ -942,8 +942,9 @@ void * clt_network_start(void * arg) {
 		}
 
 		/* poll queues for messages from client logic */
-		printf("Poll queues\n");
+		//printf("Poll queues\n");
 		poll_queues(cnt);
+		//sleep(1);
 	}
 
 	return (void *)1;
