@@ -417,8 +417,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		
 		/* request all chunks */
 		path = tilde_compress(path);
-		printf("New path is: %s\n", path);
-		printf("Send chunk request\n");
+		printf("Send chunk request for file %s\n", path);
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
 		/* destroy the chunky file */
@@ -580,6 +579,10 @@ int main(int argv, char* argc[]){
 		}
 	} 
 
+	/* send a request to the tracker for the master filesystem. 
+	 * this will check against our current filesystem and make requests for updates */
+	SendMasterFSRequest(cur_fs);
+
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(dartsync_dir))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
@@ -588,10 +591,6 @@ int main(int argv, char* argc[]){
 		exit(-1);
 	}
 	filesystem_print(cur_fs);
-
-	/* send a request to the tracker for the master filesystem. 
-	 * this will check against our current filesystem and make requests for updates */
-	SendMasterFSRequest(cur_fs);
 
 	/* start the loop process that will run while we are connected to the tracker 
 	 * this will handle peer adds and dels and receive updates from the master 
@@ -729,8 +728,14 @@ int main(int argv, char* argc[]){
 			/* get rid of the deletions */
 			RemoveFileDeletions(deletions);
 
+			/* update current fs to reflect the deletions */
+			filesystem_minus_equals(cur_fs, deletions);
+
 			/* remove them from the file table */
 			filetable_remove_filesystem(ft, deletions);
+
+			/* update current file with additions (time stamped) */
+			filesystem_plus_equals(cur_fs, additions);
 
 			/* the originator of this diff has the master, so tell the filetable */
 			filetable_add_filesystem(ft, additions, peer_id);
