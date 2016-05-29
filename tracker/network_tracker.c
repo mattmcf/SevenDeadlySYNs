@@ -694,7 +694,7 @@ void tkr_network_handle_peer_messages(_TNT_t* tnt)
 				format_printf(client_format,"Updated Peer table\n");
 				print_table(tnt->peer_table);
 
-				close(i);
+				close(fd);
 			}
 		}
 	}
