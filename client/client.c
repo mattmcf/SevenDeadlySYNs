@@ -436,7 +436,7 @@ int main(int argv, char* argc[]){
 	}
 
 	/* initialize the psuedorandom number generator */
-	srand(346234);
+	srand(time(NULL));
 
 	/* start the client connection to the tracker and network */
 	/* may eventually update to add password sending */
@@ -467,10 +467,6 @@ int main(int argv, char* argc[]){
 		}
 	} 
 
-	/* send a request to the tracker for the master filesystem. 
-	 * this will check against our current filesystem and make requests for updates */
-	SendMasterFSRequest(cur_fs);
-
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(dartsync_dir))){
 		printf("CLIENT MAIN: filesystem_new() failed\n");
@@ -478,6 +474,10 @@ int main(int argv, char* argc[]){
 		exit(-1);
 	}
 	filesystem_print(cur_fs);
+
+	/* send a request to the tracker for the master filesystem. 
+	 * this will check against our current filesystem and make requests for updates */
+	SendMasterFSRequest(cur_fs);
 
 	/* start the loop process that will run while we are connected to the tracker 
 	 * this will handle peer adds and dels and receive updates from the master 
