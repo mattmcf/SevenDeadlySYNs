@@ -67,6 +67,8 @@ int newPeerBroadcast(int newPeerID, TNT *network);
 
 int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions);
 
+int clientGotBroadcast(char * file_got, int chunk_got, TNT *network, int peer_got_id);
+
 int isNetworkUpdated();
 // ****************************************************************
 //						Web Browser
