@@ -1516,10 +1516,10 @@ void check_req_chunk_q(_CNT_t * cnt) {
 			char * path = tilde_expand(queue_item->file_name);
 			struct stat st;
     		stat(path, &st); 
-    		if (st->st_size % 1024 == 0){
-    			numberOfChunks = st->st_size/1024;
+    		if (st.st_size % 1024 == 0){
+    			numberOfChunks = st.st_size/1024;
     		}else{
-    			numberOfChunks = st->st_size/1024 + 1;
+    			numberOfChunks = st.st_size/1024 + 1;
     		}
     		for (int i = 0; i < numberOfChunks; i++){
     			increment_conn_record(cnt, peer->id);
