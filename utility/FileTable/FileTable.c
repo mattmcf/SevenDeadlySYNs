@@ -290,12 +290,10 @@ Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path,
 	
 	if (fte && queue_length(fte->chunks) >= chunk)
 	{
-		printf("return chunk\n");
 		return queue_get(fte->chunks, chunk);
 	}
 	else
 	{
-		printf("return null. %d = q length \n", queue_length(fte->chunks));
 		return NULL;
 	}
 }

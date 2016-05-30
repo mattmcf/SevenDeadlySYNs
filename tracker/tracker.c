@@ -89,6 +89,7 @@ int main() {
 	filesystem_print(fs);
 
 	filetable = filetable_new();
+	
 	filetable_print(filetable);
 
 	pthread_t browser_thread;
