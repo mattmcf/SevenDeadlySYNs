@@ -1117,7 +1117,8 @@ int handle_tracker_msg(_CNT_t * cnt) {
 		return -1;
 
 	tracker_pkt_t pkt;
-	if (recv(cnt->tracker_fd, &pkt, sizeof(tracker_pkt_t), 0) != sizeof(tracker_pkt_t)){
+	//if (recv(cnt->tracker_fd, &pkt, sizeof(tracker_pkt_t), 0) != sizeof(tracker_pkt_t)){
+	if (safe_recv(cnt->tracker_fd, &pkt, sizeof(tracker_pkt_t), 0) != sizeof(tracker_pkt_t)){
 		format_printf(err_format, "client network failed to get message from tracker\n");
 		return -1;
 	}

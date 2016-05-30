@@ -819,7 +819,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 	}
 
 	// get type and data length
-	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
+	//if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)) {
+	if (safe_recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(pkt)){
 		format_printf(err_format,"error receiving header data from client %d\n", client->id);
 		return -1;
 	}
@@ -837,7 +838,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		//fflush(stdout);
 
 		// receive data
-		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
+		//if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
+		if (safe_recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len){
 			format_printf(err_format,"error receiving data from client %d\n", client->id);
 			return -1;
 		}
