@@ -604,7 +604,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen){
         } else {
             off_t size = stat->st_size;
             if(size < 1024){
-                sprintf(buf, "%lu", size);
+                sprintf(buf, "%lu", (unsigned long)size);
             } else if (size < 1024 * 1024){
                 sprintf(buf, "%.1fK", (double)size / 1024);
             } else if (size < 1024 * 1024 * 1024){
@@ -799,12 +799,12 @@ void serve_static(int out_fd, int in_fd, http_request *req, size_t total_size){
     if (req->offset > 0){
         // send response headers to client e.g., "HTTP/1.1 200 OK\r\n"
         sprintf(buf, "HTTP/1.1 206 Partial\r\n");
-        sprintf(buf + strlen(buf), "Content-Range: bytes %lu-%lu/%lu\r\n", req->offset, req->end, total_size);
+        sprintf(buf + strlen(buf), "Content-Range: bytes %lu-%lu/%lu\r\n", (unsigned long)req->offset, (unsigned long)req->end, total_size);
     } else {
         sprintf(buf, "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\n");
     }
     sprintf(buf + strlen(buf), "Cache-Control: no-cache\r\n");
-    sprintf(buf + strlen(buf), "Content-length: %lu\r\n",req->end - req->offset);
+    sprintf(buf + strlen(buf), "Content-length: %lu\r\n",(unsigned long)(req->end - req->offset));
     sprintf(buf + strlen(buf), "Content-type: %s\r\n\r\n",get_mime_type(req->filename));
     written(out_fd, buf, strlen(buf));
 
