@@ -20,6 +20,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <wordexp.h> // for shell expansion of ~
+
 
 #include "network_client.h"
 #include "../common/constant.h"
