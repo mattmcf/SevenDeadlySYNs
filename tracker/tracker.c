@@ -179,7 +179,7 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		while(receive_client_update(network, clientID, &additions, &deletions)>0){
 			printf("File Update Received\n");
-			filesystemUpdateBroadcast(additions, deletions, network, *clientID);
+			updateNetwork(network, clientID, additions, deletions);
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
