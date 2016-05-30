@@ -27,6 +27,9 @@
  * request those chunks from peers and update our fs */
 int SendMasterFSRequest();
 
+char * tilde_expand(char * original_path);
+
+
 void UpdateLocalFilesystem(FileSystem *new_fs);
 
 /* monitor filesystem */
