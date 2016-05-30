@@ -386,6 +386,10 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* open chunk file and get the number of chunks */
 		printf("Opening new chunky file\n");
 		ChunkyFile* file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
+		if (!file){
+			printf("GetFileAdditions: failed to open new chunkyfile\n");
+			continue;
+		}
 		//chunkyfile_write(file);
 		
 		/* write that file to the path */
