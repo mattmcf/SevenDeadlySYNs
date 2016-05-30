@@ -311,7 +311,7 @@ int receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int
 
 		memcpy(chunk_num, queue_item->data, sizeof(int));
 		memcpy(client_id, (char *)((long)queue_item->data + (long)sizeof(int)), sizeof(int));
-		*client_id = queue_item->client_id;
+		// *client_id = queue_item->client_id;
 		memcpy(chunk_num, queue_item->data, sizeof(int));
 		*filename = strdup((char *)((long)queue_item->data + (long)sizeof(int) + (long)sizeof(int)));
 
