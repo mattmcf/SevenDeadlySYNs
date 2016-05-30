@@ -517,12 +517,12 @@ int main(int argv, char* argc[]){
 		char *filepath;
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
-			filepath = tilde_expand(filepath);
+			char *expanded_path = tilde_expand(filepath);
 			/* get the chunk that they are requesting */
-			ChunkyFile *file = chunkyfile_new_for_reading_from_path(filepath);
+			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
 
 			if (!file){	
-				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", filepath);
+				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
 
 				/* send an error response */
 				send_chunk_rejection(cnt, peer_id, filepath, chunk_id);
@@ -536,7 +536,7 @@ int main(int argv, char* argc[]){
 				int num_chunks = chunkyfile_num_chunks(file);
 
 				for (int i = 0; i < num_chunks; i++){
-					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", filepath, i, peer_id);
+					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", expanded_path, i, peer_id);
 
 					chunkyfile_get_chunk(file, i, &chunk_text, &chunk_len);
 
@@ -544,7 +544,7 @@ int main(int argv, char* argc[]){
 				}
 			} else {
 
-				printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", filepath, chunk_id, peer_id);
+				printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", expanded_path, chunk_id, peer_id);
 
 				chunkyfile_get_chunk(file, chunk_id, &chunk_text, &chunk_len);
 
