@@ -10,6 +10,10 @@
 
 #include "peer_table.h"
 
+// Fills the buffer with length bytes.
+// Returns 0 if the client disconnects, -1 if there is an error, and length otherwise
+int safe_recv(int socket, void *buffer, size_t length, int flags);
+
 /*
  * How to send a packet with an arbitrary amount of data attached:
  * 	1) send type + data len
