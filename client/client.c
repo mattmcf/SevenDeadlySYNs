@@ -266,45 +266,44 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	filesystem_destroy(deletions);
 }
 
-void CheckLocalFilesystem(){
+void CheckLocalFilesystem()
+{
 	FileSystem *new_fs = filesystem_new(dartsync_dir);
 	FileSystem *adds = NULL, *dels = NULL;
 
-	if (!new_fs){
+	if (!new_fs)
+	{
 		printf("CheckLocalFilesystem: filesystem_new() failed\n");
 		return;
 	}
 
-	//printf("CheckLocalFilesystem: cur_fs ------------\n");
-	//filesystem_print(cur_fs);
-	//printf("CheckLocalFilesystem: new_fs ------------\n");
-	//filesystem_print(new_fs);
 	filesystem_diff(cur_fs, new_fs, &adds, &dels);
-	//printf("CheckLocalFilesystem: got diff\n");
 
-	if (1 == CheckFileSystem(adds)) {
+	if (1 == CheckFileSystem(adds)) 
+	{
 		printf("CheckLocalFilesystem: Additions Seen ----\n");
 		filesystem_print(adds);
 	}
 
-	if (1 == CheckFileSystem(dels)) {
+	if (1 == CheckFileSystem(dels)) 
+	{
 		printf("CheckLocalFilesystem: Deletions Seen -----\n");
 		filesystem_print(dels);
 	}
-	// if (1 == CheckLocalFilesystem(dels)) {
-	// 	printf("CheckLocalFilesystem: Deletions Seen -----\n");
-	// 	filesystem_print(dels);
-	// }
 
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
-	if (!adds && !dels){
+	if (!adds && !dels)
+	{
 		printf("CheckLocalFilesystem: diff failed\n");
 		filesystem_destroy(new_fs);
-	} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
+	} 
+	else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels)))
+	{
 		printf("CheckLocalFilesystem: about to send diffs to the tracker\n");
 		/* send the difs to the tracker */
-		if (-1 == send_updated_files(cnt, adds, dels)){
+		if (-1 == send_updated_files(cnt, adds, dels))
+		{
 			printf("CheckLocalFilesystem: send_updated_files() failed\n");
 		}
 
@@ -318,7 +317,9 @@ void CheckLocalFilesystem(){
 		filesystem_destroy(dels);
 		cur_fs = NULL;
 		cur_fs = new_fs; 
-	} else {
+	} 
+	else 
+	{
 		/* else we have no diffs so just destroy the new fs we created */
 		filesystem_destroy(new_fs);
 		filesystem_destroy(adds);
