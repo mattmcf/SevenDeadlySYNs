@@ -386,7 +386,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);
-	so(filetable, additions, updatePusher);
+	filetable_add_filesystem(filetable, additions, updatePusher);
 	printf("File table updated\n");
 	filetable_print(filetable);
 	// broadcast out update to all peers
