@@ -642,6 +642,10 @@ int main(int argv, char* argc[]){
 			/* get the file additions from peers, and update the filesystem */
 			GetFileAdditions(additions, peer_id);
 
+			/* update the current filesystem pointer */
+			filesystem_destroy(cur_fs);
+			cur_fs = filesystem_new(dartsync_dir);
+
 			/* get ready for next recv diff or iteration of loop */
 			filesystem_destroy(deletions);
 			filesystem_destroy(additions);
