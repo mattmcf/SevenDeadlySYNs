@@ -35,6 +35,7 @@ CNT* cnt;
 FileSystem *cur_fs;
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
+int myID = 0;
 
 /* ------------------------------- TODO -------------------------------- */
 
@@ -238,6 +239,9 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				/* randomly select one peer to get the chunk from */
 				int list_id = (rand()*100) % queue_length(peers);
 				int peer_id = (int)(long)queue_get(peers, list_id);
+				if (peer_id == myID){
+					peer_id = (int)(long)queue_get(peers, list_id);
+				}
 
 				/* make the request to get that chunk */
 				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
@@ -303,6 +307,10 @@ void CheckLocalFilesystem(){
 		if (-1 == send_updated_files(cnt, adds, dels)){
 			printf("CheckLocalFilesystem: send_updated_files() failed\n");
 		}
+
+		// update the file table
+		filetable_remove_filesystem(ft, dels);
+		filetable_add_filesystem(ft, adds, myID);
 
 		/* update the pointer to our *current* filesystem */
 		filesystem_destroy(cur_fs);

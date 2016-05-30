@@ -295,7 +295,7 @@ Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path,
 	}
 	else
 	{
-		printf("return null\n");
+		printf("return null. %d = q length \n", queue_length(fte->chunks));
 		return NULL;
 	}
 }
