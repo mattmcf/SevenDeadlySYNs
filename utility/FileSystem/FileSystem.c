@@ -724,6 +724,7 @@ typedef struct
 
 void filesystem_get_path_list_file_first(char* path, Queue* file_list, _Folder* f)
 {
+	Queue* folders = queue_new();
 	for (int i = 0; i < queue_length(f->files); i++)
 	{
 		_File* file = queue_get(f->files, i);
@@ -736,37 +737,31 @@ void filesystem_get_path_list_file_first(char* path, Queue* file_list, _Folder* 
 			new_file->last_modified = file->last_modified;
 			queue_push(file_list, new_file);
 		}
+		else
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 1;
+			new_file->size = 0;
+			new_file->last_modified = 0;
+			queue_push(folders, new_file);
+		}
 	}
 	for (int i = 0; i < queue_length(f->folders); i++)
 	{
 		_Folder* folder = queue_get(f->folders, i);
 		
-		_File* new_file = create_new(_File);
-		new_file->name = add_strings(3, path, "/", folder->name);
-		new_file->is_folder = 1;
-		new_file->size = 0;
-		new_file->last_modified = 0;
-		
-		filesystem_get_path_list_file_first(new_file->name, file_list, folder);
-		queue_push(file_list, new_file);
+		char* next_path = add_strings(3, path, "/", folder->name);		
+		filesystem_get_path_list_file_first(next_path, file_list, folder);
+		free(next_path);
 	}
+	queue_concat(file_list, folders);
+	queue_destroy(folders);
 }
 
 void filesystem_get_path_list_folder_first(char* path, Queue* file_list, _Folder* f)
 {
-	for (int i = 0; i < queue_length(f->folders); i++)
-	{
-		_Folder* folder = queue_get(f->folders, i);
-		
-		_File* new_file = create_new(_File);
-		new_file->name = add_strings(3, path, "/", folder->name);
-		new_file->is_folder = 1;
-		new_file->size = 0;
-		new_file->last_modified = 0;
-		
-		queue_push(file_list, new_file);
-		filesystem_get_path_list_file_first(new_file->name, file_list, folder);
-	}
+	Queue* files = queue_new();
 	for (int i = 0; i < queue_length(f->files); i++)
 	{
 		_File* file = queue_get(f->files, i);
@@ -777,9 +772,28 @@ void filesystem_get_path_list_folder_first(char* path, Queue* file_list, _Folder
 			new_file->is_folder = 0;
 			new_file->size = file->size;
 			new_file->last_modified = file->last_modified;
+			queue_push(files, new_file);
+		}
+		else
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 1;
+			new_file->size = 0;
+			new_file->last_modified = 0;
 			queue_push(file_list, new_file);
 		}
 	}
+	for (int i = 0; i < queue_length(f->folders); i++)
+	{
+		_Folder* folder = queue_get(f->folders, i);
+		
+		char* next_path = add_strings(3, path, "/", folder->name);		
+		filesystem_get_path_list_folder_first(next_path, file_list, folder);
+		free(next_path);
+	}
+	queue_concat(file_list, files);
+	queue_destroy(files);
 }
 
 FileSystemIterator* filesystemiterator_new(FileSystem* filesystem, int file_first)
