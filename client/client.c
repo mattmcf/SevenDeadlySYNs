@@ -202,7 +202,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				// char new_dir[1024];
 				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
 				// if (system(new_dir) != 0) {
-					printf("GetFileAdditions: failed to create directory \'%s\'\n", path);
+					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", path);
 					perror("Failed because");
 				}
 				continue;
@@ -386,7 +386,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		/* open chunk file and get the number of chunks */
 		printf("Opening new chunky file\n");
 		ChunkyFile* file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
-		chunkyfile_write(file);
+		//chunkyfile_write(file);
 		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", path);
