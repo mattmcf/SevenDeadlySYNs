@@ -575,7 +575,6 @@ int main(int argv, char* argc[]){
 			}
 
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
-			filetable_print(ft);
 			ChunkyFile* file = filetable_get_chunkyfile(ft, expanded_path);
 			if (!file){
 				printf("CLIENT MAIN: failed to get chunkfile from ft on receive_chunk\n");
