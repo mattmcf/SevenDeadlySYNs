@@ -33,6 +33,7 @@
 #include "../utility/HashTable/HashTable.h"
 #include "../utility/FileTable/FileTable.h"
 #include "../utility/ColoredPrint/ColoredPrint.h"
+#include "client.h"
 
 #define INIT_PEER_SIZE 10
 
@@ -1468,24 +1469,24 @@ void check_master_req_q(_CNT_t * cnt) {
 	return;
 }
 
-// expands the ~/dart_sync dir
-//	original_path : (not claimed) DARTSYNC_DIR
-//	ret : (not claimed) expanded path (allocated string on heap)
-char * tilde_expand(char * original_path) {
-	if (!original_path)
-		return NULL;
+// // expands the ~/dart_sync dir
+// //	original_path : (not claimed) DARTSYNC_DIR
+// //	ret : (not claimed) expanded path (allocated string on heap)
+// char * tilde_expand(char * original_path) {
+// 	if (!original_path)
+// 		return NULL;
 
-	printf("expanding string %s\n", original_path);
+// 	printf("expanding string %s\n", original_path);
 
-	char * expanded_string = NULL;
-	wordexp_t exp_result;
-	wordexp(original_path, &exp_result, 0);
-	expanded_string = strdup(exp_result.we_wordv[0]);
-	wordfree(&exp_result);
+// 	char * expanded_string = NULL;
+// 	wordexp_t exp_result;
+// 	wordexp(original_path, &exp_result, 0);
+// 	expanded_string = strdup(exp_result.we_wordv[0]);
+// 	wordfree(&exp_result);
 
-	printf("expanded_string: %s\n", expanded_string);
-  	return expanded_string;
-}
+// 	printf("expanded_string: %s\n", expanded_string);
+//   	return expanded_string;
+// }
 
 void check_req_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
