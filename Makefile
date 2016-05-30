@@ -11,7 +11,7 @@ HEADER_FILES = common/constant.h
 
 OBJ_FILES = utility/HashTable/HashTable.o utility/LinkedList/LinkedList.o utility/AsyncQueue/asyncqueue.o \
 	utility/Queue/queue.o utility/ChunkyFile/ChunkyFile.o utility/FileSystem/FileSystem.o utility/FileTable/FileTable.o utility/SDSet/SDSet.o \
-	common/peer_table.o utility/ColoredPrint/ColoredPrint.o
+	common/peer_table.o utility/ColoredPrint/ColoredPrint.o common/packets.o
 
 CFLAGS = -Wall -pedantic -std=gnu99 -g -pthread -lm
 
@@ -40,6 +40,9 @@ tracker/network_tracker.o: tracker/network_tracker.c tracker/network_tracker.h $
 
 client/network_client.o: client/network_client.c client/network_client.h $(OBJ_FILES) $(HEADER_FILES)
 	gcc $(CFLAGS) -c client/network_client.c -o client/network_client.o
+
+common/packets.o: common/packets.h common/packets.c 
+	gcc $(CFLAGS) -c common/packets.c -o common/packets.o
 
 common/peer_table.o: common/peer_table.h common/peer_table.c $(HEADER_FILES)
 	gcc $(CFLAGS) -c common/peer_table.c -o common/peer_table.o
@@ -81,4 +84,5 @@ clean:
 	rm -rf tracker/test_tracker_network
 	rm -rf client/*.dSYM
 	rm -rf client/test_client_network
+	rm -rf ~/dart_sync/
 

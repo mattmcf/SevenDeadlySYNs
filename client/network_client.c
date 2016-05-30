@@ -1246,7 +1246,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 	peer_t * peer = get_peer_by_socket(cnt->peer_table, sockfd);
 
 	c2c_pkt_t pkt;
-	int returnValue = recv(sockfd, &pkt, sizeof(pkt), 0);
+	int returnValue = safe_recv(sockfd, &pkt, sizeof(pkt), 0);
 	if (returnValue == -1){
 		format_printf(err_format,"recv failed on socket %d\n", sockfd);
 		return -1;
@@ -1258,7 +1258,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		if (pkt.file_str_len > 0) {
 			file_name_buf = (char *)malloc(pkt.file_str_len);
 			int recv_file_str_len;
-			if ((recv_file_str_len = recv(sockfd, file_name_buf, pkt.file_str_len, 0)) != pkt.file_str_len) {
+			if ((recv_file_str_len = safe_recv(sockfd, file_name_buf, pkt.file_str_len, 0)) != pkt.file_str_len) {
 				format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
 				return -1;
 			}
@@ -1267,7 +1267,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		if (pkt.data_len > 0) {
 			data_buf = (char *)malloc(pkt.data_len);
 			int recv_data_len;
-			if ( (recv_data_len = recv(sockfd, data_buf, pkt.data_len, 0)) != pkt.data_len) {
+			if ( (recv_data_len = safe_recv(sockfd, data_buf, pkt.data_len, 0)) != pkt.data_len) {
 				format_printf(err_format,"didn't recv full data length on socket %d (got %d bytes)\n", sockfd, recv_data_len);
 				return -1;
 			}
@@ -1544,7 +1544,7 @@ void check_send_chunk_q(_CNT_t * cnt) {
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
 		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d (file str len: %d, data len: %d)\n", 
-			queue_item->file_name, queue_item->chunk_num, queue_item->client_id, queue_item->data_len, queue_item->file_str_len, queue_item->data_len);
+			queue_item->file_name, queue_item->chunk_num, queue_item->client_id, queue_item->file_str_len, queue_item->data_len);
 
 		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
 		if (!peer) {
