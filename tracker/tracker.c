@@ -180,11 +180,7 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		while(receive_client_update(network, clientID, &additions, &deletions)>0){
 			printf("File Update Received\n");
-			filesystem_set_root_path(deletions, dartsync_dir);
-			filesystem_set_root_path(additions, dartsync_dir);
-			filetable_remove_filesystem(filetable, deletions);
-			filetable_add_filesystem(filetable, additions, *clientID);
-			filesystemUpdateBroadcast(additions, deletions, network, *clientID);
+			updateNetwork(network, clientID, additions, deletions);
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
