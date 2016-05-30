@@ -179,6 +179,8 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		while(receive_client_update(network, clientID, &additions, &deletions)>0){
 			printf("File Update Received\n");
+			filetable_remove_filesystem(filetable, deletions);
+			filetable_add_filesystem(filetable, additions, *clientID);
 			filesystemUpdateBroadcast(additions, deletions, network, *clientID);
 			printf("\tFinished updating file system\n");
 		}
