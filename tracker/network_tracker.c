@@ -837,7 +837,8 @@ int handle_client_msg(int sockfd, _TNT_t * tnt) {
 		//fflush(stdout);
 
 		// receive data
-		if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
+		//if (recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len) {
+		if (safe_recv(sockfd, buf, pkt.data_len, 0) < pkt.data_len){
 			format_printf(err_format,"error receiving data from client %d\n", client->id);
 			return -1;
 		}
