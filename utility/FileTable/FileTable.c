@@ -287,7 +287,7 @@ Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path,
 	FileTableEntry search;
 	search.path = path;
 	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
-	printf("filetable_get_peers_who_have_file_chunk: path: %s, chunk: %d\n", path, chunk);
+	printf("filetable_get_peers_who_have_file_chunk: path: %s, chunk: %d, fte = %p\n", path, chunk, (void*)fte);
 	
 	if (fte && queue_length(fte->chunks) < chunk)
 	{
