@@ -1465,6 +1465,25 @@ void check_master_req_q(_CNT_t * cnt) {
 	return;
 }
 
+// expands the ~/dart_sync dir
+//	original_path : (not claimed) DARTSYNC_DIR
+//	ret : (not claimed) expanded path (allocated string on heap)
+char * tilde_expand(char * original_path) {
+	if (!original_path)
+		return NULL;
+
+	printf("expanding string %s\n", original_path);
+
+	char * expanded_string = NULL;
+	wordexp_t exp_result;
+	wordexp(original_path, &exp_result, 0);
+	expanded_string = strdup(exp_result.we_wordv[0]);
+	wordfree(&exp_result);
+
+	printf("expanded_string: %s\n", expanded_string);
+  	return expanded_string;
+}
+
 void check_req_chunk_q(_CNT_t * cnt) {
 	AsyncQueue * q = cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK];
 	chunk_data_t * queue_item;
@@ -1487,7 +1506,25 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
 
 		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
-		increment_conn_record(cnt, peer->id);
+
+		if(pkt.chunk_num == 99999){
+			// get number of chunks necessary and then request that many chunks
+			int numberOfChunks = 0;
+			char * path = tilde_expand(queue_item->file_name);
+			struct stat st;
+    		stat(path, &st); 
+    		if (st->st_size % 1024 == 0){
+    			numberOfChunks = st->st_size/1024;
+    		}else{
+    			numberOfChunks = st->st_size/1024 + 1;
+    		}
+    		for (int i = 0; i < numberOfChunks; i++){
+    			increment_conn_record(cnt, peer->id);
+    		}
+
+		}else{
+			increment_conn_record(cnt, peer->id);
+		}
 
 		free(queue_item->file_name);
 		free(queue_item);
