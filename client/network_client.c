@@ -1305,7 +1305,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				data_buf = NULL; // don't free here -- pass to notify queue
 
 				// disconnect from peer if all requests have been fulfilled
-				if (decrement_conn_record(cnt, peer->id == 0)) {
+				if (decrement_conn_record(cnt, peer->id) == 0) { //CHANGEDHERE
 					disconnect_from_peer(peer, peer->id);
 				}
 
@@ -1326,7 +1326,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				queue_item->data = NULL;
 
 				// disconnect from peer if all requests have been fulfilled
-				if (decrement_conn_record(cnt, peer->id == 0)) {
+				if (decrement_conn_record(cnt, peer->id) == 0) { //CHANGEDHERE
 					disconnect_from_peer(peer, peer->id);
 				}
 
