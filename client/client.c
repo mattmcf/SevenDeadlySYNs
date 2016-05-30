@@ -565,7 +565,8 @@ int main(int argv, char* argc[]){
 		int chunk_id;
 		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
 				&len, &chunk_data)){
-			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, filepath);
+			char *expanded_path = tilde_expand(filepath);
+			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, expanded_path);
 
 			/* if len is -1, then we received a rejection response */
 			if (-1 == len){	// how should I handle this???
@@ -575,7 +576,7 @@ int main(int argv, char* argc[]){
 
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			filetable_print(ft);
-			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
+			ChunkyFile* file = filetable_get_chunkyfile(ft, expanded_path);
 			if (!file){
 				printf("CLIENT MAIN: failed to get chunkfile from ft on receive_chunk\n");
 				continue;
@@ -592,7 +593,7 @@ int main(int argv, char* argc[]){
 				chunkyfile_write(file);
 				/* destroy the chunky file */
 				chunkyfile_destroy(file);
-				filetable_set_chunkyfile(ft, filepath, NULL);
+				filetable_set_chunkyfile(ft, expanded_path, NULL);
 			}
 
 			free(chunk_data);
