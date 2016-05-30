@@ -388,6 +388,7 @@ ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path)
 	
 	if (fte)
 	{
+		printf("filetable_get_chunkyfile: fte is nonNull\n");
 		return fte->file;
 	}
 	return NULL;

@@ -569,9 +569,6 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
-			// TODO -- SEND THE FILE ACQ TO THE TRACKER
-			send_chunk_got(cnt, filepath, chunk_id);
-
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			filetable_print(ft);
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
@@ -582,6 +579,9 @@ int main(int argv, char* argc[]){
 
 			/* set the correct chunk */
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
+
+			// TODO -- SEND THE FILE ACQ TO THE TRACKER
+			send_chunk_got(cnt, filepath, chunk_id);
 
 			if (chunkyfile_all_chunks_written(file))
 			{
