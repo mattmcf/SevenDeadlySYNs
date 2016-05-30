@@ -309,6 +309,7 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	
 	if (!chunk)
 	{
+		filetable_print(filetable);
 		format_printf(ERR_FMT, "Trying to access chunk of file that does not exist\n");
 		assert(0);
 	}

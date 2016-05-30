@@ -337,10 +337,11 @@ int send_got_chunk_update(TNT * thread_block, int dest_id, int got_id, char * fi
 
 	tracker_data_t * queue_item = (tracker_data_t *)malloc(sizeof(tracker_data_t));
 	queue_item->client_id = dest_id;
-	queue_item->data_len = strlen(filename) + 1 + sizeof(int);
+	queue_item->data_len = strlen(filename) + 1 + sizeof(int) + sizeof(int);
 	queue_item->data = malloc(queue_item->data_len);
-	memcpy(queue_item->data, &got_id, sizeof(int));
-	memcpy( (char *)((long)queue_item->data + (long)sizeof(int)), filename, strlen(filename));
+	memcpy(queue_item->data, &chunk_num, sizeof(int));
+	memcpy((char *)((long)queue_item->data + (long)sizeof(int)), &got_id, sizeof(int));
+	memcpy( (char *)((long)queue_item->data + (long)sizeof(int) + (long)sizeof(int)), filename, queue_item->data_len - sizeof(int));
 
 	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ], (void*)queue_item);
 	return 1;
