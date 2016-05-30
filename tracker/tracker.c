@@ -180,7 +180,7 @@ int main() {
 		int *clientID = (int*)malloc(sizeof(int));
 		while(receive_client_update(network, clientID, &additions, &deletions)>0){
 			printf("File Update Received\n");
-			updateNetwork(network, clientID, additions, deletions);
+			updateNetwork(network, *clientID, additions, deletions);
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
@@ -386,7 +386,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);
-	filetable_add_filesystem(filetable, additions, updatePusher);
+	so(filetable, additions, updatePusher);
 	printf("File table updated\n");
 	filetable_print(filetable);
 	// broadcast out update to all peers
