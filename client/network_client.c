@@ -1541,8 +1541,8 @@ void check_send_chunk_q(_CNT_t * cnt) {
 	chunk_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d\n", 
-			queue_item->file_name, queue_item->chunk_num, queue_item->client_id);
+		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d (file str len: %d, data len: %d)\n", 
+			queue_item->file_name, queue_item->chunk_num, queue_item->client_id, queue_item->data_len, queue_item->file_str_len, queue_item->data_len);
 
 		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
 		if (!peer) {
