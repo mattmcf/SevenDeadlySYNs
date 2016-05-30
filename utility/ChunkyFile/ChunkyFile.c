@@ -53,6 +53,7 @@ ChunkyFile* chunkyfile_new_for_writing_to_path(char* path, int size, time_t modi
 	
 	cf->path = strdup(exp_result.we_wordv[0]);
 	cf->data = (char*)malloc(size * sizeof(char));
+	cf->chunks_written = (char*)calloc(num_chunks_for_size(size), sizeof(char));
 	cf->size = size;
 	cf->modify_time = modify_time;
 	
