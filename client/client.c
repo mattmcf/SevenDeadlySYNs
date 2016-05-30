@@ -587,13 +587,17 @@ int main(int argv, char* argc[]){
 			// TODO -- SEND THE FILE ACQ TO THE TRACKER
 			send_chunk_got(cnt, filepath, chunk_id);
 
-			if (chunkyfile_all_chunks_written(file))
-			{
+			if (chunkyfile_all_chunks_written(file)){
+	
 				chunkyfile_write(file);
 				/* destroy the chunky file */
 				chunkyfile_destroy(file);
 				filetable_set_chunkyfile(ft, expanded_path, NULL);
 			}
+
+			/* destroy the old filesystem struct and recreate it to reflect changes */
+			filesystem_destroy(cur_fs);
+			cur_fs = filesystem_new(dartsync_dir);
 
 			free(chunk_data);
 			peer_id = -1;
@@ -603,7 +607,7 @@ int main(int argv, char* argc[]){
 
 		/* check for chunk aquisition updates and add them to our file table */
 		while (-1 != receive_chunk_got(cnt, &peer_id, &filepath, &chunk_id)){
-			printf("CLIENT MAIN: received chunk aqu update from %d on file %s chunk %d", 
+			printf("CLIENT MAIN: received chunk acq update from %d on file %s chunk %d", 
 					peer_id, filepath, chunk_id);
 
 			filetable_set_that_peer_has_file_chunk(ft, filepath, peer_id, chunk_id);
