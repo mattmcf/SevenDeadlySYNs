@@ -166,7 +166,7 @@ int main() {
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
 			// update file table
-			filetable_print(filetable);
+			//filetable_print(filetable);
 			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
 		}
 		free(file_got);
