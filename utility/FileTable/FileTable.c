@@ -291,6 +291,7 @@ Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path,
 	
 	if (fte && queue_length(fte->chunks) < chunk)
 	{
+		printf("got here you idiot\n");
 		return queue_get(fte->chunks, chunk);
 	}
 	else
