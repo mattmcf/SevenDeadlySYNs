@@ -185,7 +185,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	} else {
 		/* iterate over additions to see if we need to request files */
 		printf("UpdateLocalFilesystem: ready to iterate over additions!\n");
-		FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+		FileSystemIterator* add_iterator = filesystemiterator_new(additions,0);
 
 		if (!add_iterator){
 			printf("UpdateLocalFilesystem: failed to make add iterator\n");
@@ -280,7 +280,7 @@ void CheckLocalFilesystem()
 
 	if (prev_fs == NULL || !filesystem_equals(prev_fs, new_fs))
 	{
-		printf("CheckLocalFilesystem: Local filesystem is changing. Waiting to settle before reporting diffs.\n")
+		printf("CheckLocalFilesystem: Local filesystem is changing. Waiting to settle before reporting diffs.\n");
 		if (prev_fs)
 		{
 			filesystem_destroy(prev_fs);
@@ -354,7 +354,7 @@ void DropFromNetwork(){
 
 int RemoveFileDeletions(FileSystem *deletions){
 	printf("RemoveFileDeletions: ready to iterate over deletions!\n");
-	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
+	FileSystemIterator* del_iterator = filesystemiterator_new(deletions, 1);
 	char *path;
 	int len;
 	time_t mod_time;
@@ -381,7 +381,7 @@ int RemoveFileDeletions(FileSystem *deletions){
 
 int GetFileAdditions(FileSystem *additions, int author_id){
 	printf("GetFileAdditions: ready to iterate over additions!\n");
-	FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+	FileSystemIterator* add_iterator = filesystemiterator_new(additions,0);
 	char *path;
 
 	if (!add_iterator){
@@ -437,7 +437,7 @@ int CheckFileSystem(FileSystem *fs){
 	char *path;
 	int len;
 	time_t mod_time;
-	FileSystemIterator *iterator = filesystemiterator_new(fs);
+	FileSystemIterator *iterator = filesystemiterator_new(fs,0);
 
 	if (NULL != (path = filesystemiterator_next(iterator, &len, &mod_time))){
 		printf("CheckFileSystem: FileSystem is nonempty\n");
