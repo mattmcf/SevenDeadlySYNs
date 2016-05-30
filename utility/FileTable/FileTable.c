@@ -93,7 +93,7 @@ void filetable_destroy(FileTable* filetable)
 void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer)
 {
 	_FileTable* ft = (_FileTable*)filetable;
-	FileSystemIterator* fsi = filesystemiterator_new(filesystem);
+	FileSystemIterator* fsi = filesystemiterator_new(filesystem, 1);
 	
 	FileTableEntry fte;
 	int length;
@@ -132,7 +132,7 @@ void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int 
 void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem)
 {
 	_FileTable* ft = (_FileTable*)filetable;
-	FileSystemIterator* fsi = filesystemiterator_new(filesystem);
+	FileSystemIterator* fsi = filesystemiterator_new(filesystem, 1);
 	
 	FileTableEntry fte;
 	int length;
