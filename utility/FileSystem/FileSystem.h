@@ -97,7 +97,7 @@ void filesystem_destroy(FileSystem* fs);
 // each of the files and folders contained in it after each call to filesystemiterator_next
 //	fs  : (not claimed) The filesystem to be iterated over
 //	ret : (not claimed) The iterator
-FileSystemIterator* filesystemiterator_new(FileSystem* fs);
+FileSystemIterator* filesystemiterator_new(FileSystem* filesystem, int file_first);
 
 // Gets the next path of the filesystem
 //	iterator : (not claimed) The iterator being iterated over

@@ -3,15 +3,40 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "FileSystem.h"
+#include "../ColoredPrint/ColoredPrint.h"
 
 int main()
 {
+	FORMAT_ARG args[] = {COLOR_L_BLUE, COLOR_UNDERLINE, 0};
+	int blueid = register_format(args);
+	
 	printf("Testing serialization and deserialization...\n");
 	
-	char* path = "/Users/jacob/dart_sync/";
+	char* path = "/Users/jacob/Dropbox/";
 	printf("Loading filesystem at %s\n", path);
 	FileSystem* fs = filesystem_new(path);
-	filesystem_print(fs);
+	
+	printf("\n\n*****************************\n\nTesting Iterator\n");
+	
+	FileSystemIterator* fsi = filesystemiterator_new(fs, 0);
+	char* ipath = NULL;
+	int ilength;
+	time_t imod_time;
+	while ((ipath = filesystemiterator_next(fsi, &ilength, &imod_time)))
+	{
+		if (ilength < 0)
+		{
+			format_printf(blueid, "%s\n", ipath);
+		}
+		else
+		{
+			printf("%s\n", ipath);
+		}
+	}
+	filesystemiterator_destroy(fsi);
+	
+	printf("\n\n*****************************\n\nTesting Serialization\n");
+	
 	
 	char* serializedFs;
 	int length;
@@ -21,18 +46,27 @@ int main()
 	printf("Deserializing!\n");
 	FileSystem* deserialized = filesystem_deserialize(serializedFs, &length);
 	printf("Deserialized %d bytes!\n", length);
-	filesystem_print(deserialized);
 	
 	FileSystem* additions;
 	FileSystem* deletions;
-	filesystem_diff(fs, deserialized, &additions, &deletions);
-	printf("Printing differences. (There should be no differences)\n");
-	filesystem_print(additions);
-	filesystem_print(deletions);
 	
-	filesystem_destroy(additions);
-	filesystem_destroy(deletions);
-	filesystem_destroy(deserialized);
+	if (filesystem_equals(fs, deserialized))
+	{
+		printf("Serialization test passed!\n");
+	}
+	else
+	{
+		printf("Serialization test failed!\n");
+	
+		filesystem_diff(fs, deserialized, &additions, &deletions);
+		printf("Printing differences. (There should be no differences)\n");
+		filesystem_print(additions);
+		filesystem_print(deletions);
+	
+		filesystem_destroy(additions);
+		filesystem_destroy(deletions);
+		filesystem_destroy(deserialized);
+	}
 	
 		
 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
