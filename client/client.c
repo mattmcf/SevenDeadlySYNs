@@ -155,6 +155,7 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		sleep(1);
 	}
 	printf("Received master file table\n");
+	filetable_print(ft);
 
 	UpdateLocalFilesystem(master);
 	return 1;
