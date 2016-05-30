@@ -309,9 +309,11 @@ int receive_chunk_got(CNT * thread_block, int * client_id, char ** filename, int
 	client_data_t * queue_item = (client_data_t *)asyncqueue_pop(cnt->tkr_queues_to_client[TKR_2_ME_FILE_ACQ]);
 	if (queue_item != NULL) {
 
+		memcpy(chunk_num, queue_item->data, sizeof(int));
+		memcpy(client_id, (char *)((long)queue_item->data + (long)sizeof(int)), sizeof(int));
 		*client_id = queue_item->client_id;
 		memcpy(chunk_num, queue_item->data, sizeof(int));
-		*filename = strdup((char *)((long)queue_item->data + (long)sizeof(int)));
+		*filename = strdup((char *)((long)queue_item->data + (long)sizeof(int) + (long)sizeof(int)));
 
 		free(queue_item->data);
 		free(queue_item);
