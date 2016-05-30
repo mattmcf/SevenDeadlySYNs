@@ -156,6 +156,20 @@ int main() {
 			peerID = -1;
 		}
 
+		// See if any clients have a chunk acquisition update to deseminate
+		char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
+		int chunk_got, peer_got_id;
+		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
+			char *expanded_path = tilde_expand(file_got);
+			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, expanded_path);
+			// let everyone know that a peer got a chunk
+			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
+			// update file table
+			filetable_print(filetable);
+			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
+		}
+		free(file_got);
+
 		// if there is a file update
 			// take the diff
 			// apply diff to local fs
@@ -172,20 +186,6 @@ int main() {
 		free(clientID);
 		sleep(5);
 		printf("Restarting loop.\n");
-
-		// See if any clients have a chunk acquisition update to deseminate
-		char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
-		int chunk_got, peer_got_id;
-		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
-			char *expanded_path = tilde_expand(file_got);
-			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, expanded_path);
-			// let everyone know that a peer got a chunk
-			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
-			// update file table
-			filetable_print(filetable);
-			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
-		}
-		free(file_got);
 	}
 
 	if (closeTracker()<0) {
