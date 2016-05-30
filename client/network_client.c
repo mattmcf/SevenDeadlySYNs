@@ -1250,14 +1250,15 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 	if (returnValue == -1){
 		format_printf(err_format,"recv failed on socket %d\n", sockfd);
 		return -1;
-	}else if(returnValue > 0){
+	} else if(returnValue > 0){
 
 		char * file_name_buf = NULL;
 		char * data_buf = NULL;
 
 		if (pkt.file_str_len > 0) {
 			file_name_buf = (char *)malloc(pkt.file_str_len);
-			if (recv(sockfd, file_name_buf, pkt.file_str_len, 0) != pkt.file_str_len) {
+			int recv_file_str_len;
+			if ((recv_file_str_len = recv(sockfd, file_name_buf, pkt.file_str_len, 0)) != pkt.file_str_len) {
 				format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
 				return -1;
 			}
@@ -1265,8 +1266,9 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 
 		if (pkt.data_len > 0) {
 			data_buf = (char *)malloc(pkt.data_len);
-			if (recv(sockfd, data_buf, pkt.data_len, 0) != pkt.data_len) {
-				format_printf(err_format,"didn't recv full data length on socket %d\n", sockfd);
+			int recv_data_len;
+			if ( (recv_data_len = recv(sockfd, data_buf, pkt.data_len, 0)) != pkt.data_len) {
+				format_printf(err_format,"didn't recv full data length on socket %d (got %d bytes)\n", sockfd, recv_data_len);
 				return -1;
 			}
 		}
