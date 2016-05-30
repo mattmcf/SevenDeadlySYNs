@@ -1242,105 +1242,109 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 	peer_t * peer = get_peer_by_socket(cnt->peer_table, sockfd);
 
 	c2c_pkt_t pkt;
-	if (recv(sockfd, &pkt, sizeof(pkt), 0) != sizeof(c2c_pkt_t)) {
-		format_printf(err_format,"didn't recv full pkt on socket %d\n", sockfd);
+	int returnValue = recv(sockfd, &pkt, sizeof(pkt), 0);
+	if (returnValue == -1){
+		format_printf(err_format,"recv failed on socket %d\n", sockfd);
 		return -1;
-	}
+	}else if(returnValue > 0){
 
-	char * file_name_buf = NULL;
-	char * data_buf = NULL;
+		char * file_name_buf = NULL;
+		char * data_buf = NULL;
 
-	if (pkt.file_str_len > 0) {
-		file_name_buf = (char *)malloc(pkt.file_str_len);
-		if (recv(sockfd, file_name_buf, pkt.file_str_len, 0) != pkt.file_str_len) {
-			format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
-			return -1;
-		}
-	}
-
-	if (pkt.data_len > 0) {
-		data_buf = (char *)malloc(pkt.data_len);
-		if (recv(sockfd, data_buf, pkt.data_len, 0) != pkt.data_len) {
-			format_printf(err_format,"didn't recv full data length on socket %d\n", sockfd);
-			return -1;
-		}
-	}
-
-	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
-
-	switch (pkt.type) {
-		case REQUEST_CHUNK:
-
-			format_printf(network_format,"NETWORK -- received chunk request (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
-			queue_item->client_id = peer->id;
-			queue_item->chunk_num = pkt.chunk_num;
-			queue_item->file_str_len = pkt.file_str_len;
-
-			queue_item->file_name = file_name_buf;
-			file_name_buf = NULL; 	// don't free at the end of this function
-
-			queue_item->data_len = 0;
-			queue_item->data = NULL;
-
-			notify_chunk_request(cnt, queue_item);
-			break;
-
-		case CHUNK:
-
-			format_printf(network_format,"NETWORK -- received chunk (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
-			queue_item->client_id = peer->id;
-			queue_item->chunk_num = pkt.chunk_num;
-			queue_item->file_str_len = pkt.file_str_len;
-
-			queue_item->file_name = file_name_buf;
-			file_name_buf = NULL; 	// don't free at the end of this function
-
-			queue_item->data_len = pkt.data_len;
-			queue_item->data = data_buf;
-			data_buf = NULL; // don't free here -- pass to notify queue
-
-			// disconnect from peer if all requests have been fulfilled
-			if (decrement_conn_record(cnt, peer->id == 0)) {
-				disconnect_from_peer(peer, peer->id);
+		if (pkt.file_str_len > 0) {
+			file_name_buf = (char *)malloc(pkt.file_str_len);
+			if (recv(sockfd, file_name_buf, pkt.file_str_len, 0) != pkt.file_str_len) {
+				format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
+				return -1;
 			}
+		}
 
-			notify_chunk_received(cnt, queue_item);
-			break;
-
-		case REQ_REJECT:
-
-			format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
-			queue_item->client_id = peer->id;
-			queue_item->file_str_len = pkt.file_str_len;
-
-			queue_item->file_name = file_name_buf;
-			file_name_buf = NULL; // pass onto queue -- don't free here
-
-			queue_item->chunk_num = pkt.chunk_num;
-			queue_item->data_len = pkt.data_len;
-			queue_item->data = NULL;
-
-			// disconnect from peer if all requests have been fulfilled
-			if (decrement_conn_record(cnt, peer->id == 0)) {
-				disconnect_from_peer(peer, peer->id);
+		if (pkt.data_len > 0) {
+			data_buf = (char *)malloc(pkt.data_len);
+			if (recv(sockfd, data_buf, pkt.data_len, 0) != pkt.data_len) {
+				format_printf(err_format,"didn't recv full data length on socket %d\n", sockfd);
+				return -1;
 			}
+		}
 
-			notify_error_received(cnt, queue_item);
-			break;
+		chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
 
-		default:
-			format_printf(network_format,"NETWORK -- handled client message received (%d)\n", pkt.type);
-			break;
+		switch (pkt.type) {
+			case REQUEST_CHUNK:
+
+				format_printf(network_format,"NETWORK -- received chunk request (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				queue_item->client_id = peer->id;
+				queue_item->chunk_num = pkt.chunk_num;
+				queue_item->file_str_len = pkt.file_str_len;
+
+				queue_item->file_name = file_name_buf;
+				file_name_buf = NULL; 	// don't free at the end of this function
+
+				queue_item->data_len = 0;
+				queue_item->data = NULL;
+
+				notify_chunk_request(cnt, queue_item);
+				break;
+
+			case CHUNK:
+
+				format_printf(network_format,"NETWORK -- received chunk (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				queue_item->client_id = peer->id;
+				queue_item->chunk_num = pkt.chunk_num;
+				queue_item->file_str_len = pkt.file_str_len;
+
+				queue_item->file_name = file_name_buf;
+				file_name_buf = NULL; 	// don't free at the end of this function
+
+				queue_item->data_len = pkt.data_len;
+				queue_item->data = data_buf;
+				data_buf = NULL; // don't free here -- pass to notify queue
+
+				// disconnect from peer if all requests have been fulfilled
+				if (decrement_conn_record(cnt, peer->id == 0)) {
+					disconnect_from_peer(peer, peer->id);
+				}
+
+				notify_chunk_received(cnt, queue_item);
+				break;
+
+			case REQ_REJECT:
+
+				format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				queue_item->client_id = peer->id;
+				queue_item->file_str_len = pkt.file_str_len;
+
+				queue_item->file_name = file_name_buf;
+				file_name_buf = NULL; // pass onto queue -- don't free here
+
+				queue_item->chunk_num = pkt.chunk_num;
+				queue_item->data_len = pkt.data_len;
+				queue_item->data = NULL;
+
+				// disconnect from peer if all requests have been fulfilled
+				if (decrement_conn_record(cnt, peer->id == 0)) {
+					disconnect_from_peer(peer, peer->id);
+				}
+
+				notify_error_received(cnt, queue_item);
+				break;
+
+			default:
+				format_printf(network_format,"NETWORK -- handled client message received (%d)\n", pkt.type);
+				break;
+		}
+
+		if (file_name_buf) {
+			free(file_name_buf);
+		}
+
+		if (data_buf) {
+			free(data_buf);
+		}
+
+		return 1;
 	}
-
-	if (file_name_buf) {
-		free(file_name_buf);
-	}
-
-	if (data_buf) {
-		free(data_buf);
-	}
-
+	format_printf(err_format,"nothing to receive on socket %d\n", sockfd);
 	return 1;
 }
 
