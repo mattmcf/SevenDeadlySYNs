@@ -471,6 +471,35 @@ void filesystem_destroy(FileSystem* filesystem)
 	free(fs);
 	return;
 }
+int filesystem_is_empty(FileSystem* filesystem)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	assert(fs->root);
+	
+	_Folder* folder = (_Folder*)(fs->root);
+	if (queue_length(folder->files) == 0 && queue_length(folder->folders) == 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+int filesystem_equals(FileSystem* filesystem0, FileSystem* filesystem1)
+{
+	assert(filesystem0 && filesystem1);
+	
+	FileSystem* additions = NULL;
+	FileSystem* deletions = NULL;
+		
+	filesystem_diff(filesystem0, filesystem1, &additions, &deletions);
+	
+	int empty = filesystem_is_empty(additions) && filesystem_is_empty(deletions);
+	
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
+	
+	return empty;
+}
 Folder* filesystem_get_root(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;

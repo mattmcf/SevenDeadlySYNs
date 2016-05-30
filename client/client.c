@@ -33,6 +33,7 @@
 /* ------------------------- Global Variables -------------------------- */
 CNT* cnt;
 FileSystem *cur_fs;
+FileSystem *prev_fs = NULL;
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
 int myID = 0;
@@ -274,6 +275,17 @@ void CheckLocalFilesystem()
 	if (!new_fs)
 	{
 		printf("CheckLocalFilesystem: filesystem_new() failed\n");
+		return;
+	}
+
+	if (prev_fs == NULL || !filesystem_equals(prev_fs, new_fs))
+	{
+		printf("CheckLocalFilesystem: Local filesystem is changing. Waiting to settle before reporting diffs.\n")
+		if (prev_fs)
+		{
+			filesystem_destroy(prev_fs);
+		}
+		prev_fs = new_fs;
 		return;
 	}
 

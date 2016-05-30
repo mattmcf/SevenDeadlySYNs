@@ -36,35 +36,38 @@ int main()
 	
 		
 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
-	sleep(10);
+	sleep(2);
 		
 	FileSystem* changes = filesystem_new(path);
-	filesystem_diff(fs, changes, &additions, &deletions);
-	printf("Additions\n");
-	filesystem_print(additions);
-	printf("Deletions\n");
-	filesystem_print(deletions);
-	filesystem_get_updates(additions, deletions);
-	printf("Additions\n");
-	filesystem_print(additions);
-	printf("Deletions\n");
-	filesystem_print(deletions);
 	
-	FileSystem* withChanges = filesystem_copy(fs);
-	filesystem_minus_equals(withChanges, deletions);	
-	filesystem_plus_equals(withChanges, additions);
+	if (filesystem_equals(changes, fs))
+	{
+		printf("Filesystem has not changed!\n");
+	}
+	else
+	{
+		filesystem_diff(fs, changes, &additions, &deletions);
+		printf("Additions\n");
+		filesystem_print(additions);
+		printf("Deletions\n");
+		filesystem_print(deletions);
 	
-	printf("Old + additions - deletions\n");
-	filesystem_print(withChanges);
+		FileSystem* withChanges = filesystem_copy(fs);
+		filesystem_minus_equals(withChanges, deletions);	
+		filesystem_plus_equals(withChanges, additions);
 	
-	filesystem_destroy(additions);
-	filesystem_destroy(deletions);
+		printf("Old + additions - deletions\n");
+		filesystem_print(withChanges);
 	
-	filesystem_diff(changes, withChanges, &additions, &deletions);
+		filesystem_destroy(additions);
+		filesystem_destroy(deletions);
 	
-	printf("Printing differences. (There should be no differences)\n");
-	filesystem_print(additions);
-	filesystem_print(deletions);
+		filesystem_diff(changes, withChanges, &additions, &deletions);
+	
+		printf("Printing differences. (There should be no differences)\n");
+		filesystem_print(additions);
+		filesystem_print(deletions);
+	}
 	
 	return 0;
 }

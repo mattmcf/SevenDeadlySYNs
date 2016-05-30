@@ -30,6 +30,17 @@ FileSystem* filesystem_new(char* path);
 //	fs : (not claimed) The filesystem to print
 void filesystem_print(FileSystem* fs);
 
+// Returns true if the filesystem is empty (contains no files or folders)
+//	filesystem : (not claimed) the filesystem to check
+//	ret		   : (static) 1 if thhe filesystem is empty, 0 otherwise
+int filesystem_is_empty(FileSystem* filesystem);
+
+// Returns true if the two filesystme are equal (they have a null diff)
+//	filesystem0 : (not claimed)
+//	filesystem1 : (not claimed)
+//	ret			: (static) filesystem0 == filesystem1
+int filesystem_equals(FileSystem* filesystem0, FileSystem* filesystem1);
+
 // Performs a diff between the provided filesystem and the current state of said filesystem.
 //	old        : (not claimed) The previous state of the filesystem.
 //	new        : (not claimed) The current state of a filesystem.
