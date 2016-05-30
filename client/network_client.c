@@ -1345,7 +1345,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		return 1;
 	}
 	format_printf(err_format,"nothing to receive on socket %d\n", sockfd);
-	return 1;
+	return -1;
 }
 
 int send_tracker_message(_CNT_t * cnt, client_data_t * data_item, client_to_tracker_t type) {
