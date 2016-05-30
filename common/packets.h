@@ -98,7 +98,7 @@ typedef struct chunk {
 
 // client to client packets
 typedef enum {
-	REQUEST_CHUNK,
+	CHUNK_REQUEST,
 	CHUNK,
 	REQ_REJECT,
 } client_to_client_t;

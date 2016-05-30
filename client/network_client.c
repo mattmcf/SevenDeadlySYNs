@@ -1274,7 +1274,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
 
 		switch (pkt.type) {
-			case REQUEST_CHUNK:
+			case CHUNK_REQUEST:
 
 				format_printf(network_format,"NETWORK -- received chunk request (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
 				queue_item->client_id = peer->id;
@@ -1501,7 +1501,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		}
 
 		c2c_pkt_t pkt;
-		pkt.type = REQUEST_CHUNK;
+		pkt.type = CHUNK_REQUEST;
 		pkt.chunk_num = queue_item->chunk_num;
 		pkt.file_str_len = queue_item->file_str_len;
 		pkt.data_len = queue_item->data_len;
