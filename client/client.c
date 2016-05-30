@@ -607,10 +607,11 @@ int main(int argv, char* argc[]){
 
 		/* check for chunk aquisition updates and add them to our file table */
 		while (-1 != receive_chunk_got(cnt, &peer_id, &filepath, &chunk_id)){
+			char *expanded_path = tilde_expand(filepath);
 			printf("CLIENT MAIN: received chunk acq update from %d on file %s chunk %d", 
-					peer_id, filepath, chunk_id);
+					peer_id, expanded_path, chunk_id);
 
-			filetable_set_that_peer_has_file_chunk(ft, filepath, peer_id, chunk_id);
+			filetable_set_that_peer_has_file_chunk(ft, expanded_path, peer_id, chunk_id);
 			peer_id = -1;
 		}
 
