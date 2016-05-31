@@ -448,14 +448,25 @@ typedef struct
 
 FileSystem* filesystem_new(char* path)
 {
-	assert(path);
-	
-    wordexp_t exp_result;
-    wordexp(path, &exp_result, 0);
 	_FileSystem* fs = create_new(_FileSystem);
-	fs->root_path = copy_string(exp_result.we_wordv[0]);
-	fs->root = folder_new(exp_result.we_wordv[0], "");
-	assert(fs->root);
+	
+	if (path == NULL)
+	{
+		fs->root_path = NULL;		
+		_Folder* root_folder = create_new(_Folder);
+		root_folder->name = "";
+		root_folder->files = queue_new();
+		root_folder->folders = queue_new();
+		fs->root = (Folder*)root_folder;
+	}
+	else
+	{
+	    wordexp_t exp_result;
+	    wordexp(path, &exp_result, 0);
+		fs->root_path = copy_string(exp_result.we_wordv[0]);
+		fs->root = folder_new(exp_result.we_wordv[0], "");
+		assert(fs->root);
+	}
 		
 	return (FileSystem*)fs;
 }
