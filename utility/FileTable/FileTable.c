@@ -346,8 +346,16 @@ void  filetable_remove_peer(FileTable* filetable, int id)
 		for (int i = 0; i < queue_length(fte->chunks); i++)
 		{
 			Queue* old = queue_get(fte->chunks, i);
-			queue_set(fte->chunks, queue_filter(old, (QueueFilterFunction)remove_peer, (void*)(long)id), id);
+			// Queue* new = queue_new();
+			// int checkID = (long)queue_pop(old);
+			// if (checkID != id){
+			// 	queue_push(new, (void*)(long)checkID)
+			// }
+			queue_set(fte->chunks, queue_filter(old, (QueueFilterFunction)remove_peer, (void*)(long)id), i);
 			queue_destroy(old);
+			// queue_set(fte->chunks, new, id);
+			// fte->chunks = NULL;
+			// fte->chunks = new;
 		}
 	}
 	hashtableiterator_destroy(hti);
