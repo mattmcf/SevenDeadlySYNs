@@ -120,11 +120,9 @@ int main() {
 			fflush(stdout);
 			filesystem_print(fs);
 			filetable_print(filetable);
-			//filesystem_print(fs);
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
-			//filetable_print(filetable);
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
