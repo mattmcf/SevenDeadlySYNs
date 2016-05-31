@@ -4,11 +4,13 @@
 #include <unistd.h>
 #include "FileSystem.h"
 #include "../ColoredPrint/ColoredPrint.h"
+#include <stdlib.h>
 
 int main()
 {
 	FORMAT_ARG args[] = {COLOR_L_BLUE, COLOR_UNDERLINE, 0};
 	int blueid = register_format(args);
+		
 	
 	printf("Testing serialization and deserialization...\n");
 	
@@ -18,23 +20,32 @@ int main()
 	
 	printf("\n\n*****************************\n\nTesting Iterator\n");
 	
-	FileSystemIterator* fsi = filesystemiterator_new(fs, 0);
-	char* ipath = NULL;
-	int ilength;
-	time_t imod_time;
-	while ((ipath = filesystemiterator_next(fsi, &ilength, &imod_time)))
+	for (int i = 0; i < 2; i++)
 	{
-		if (ilength < 0)
+		FileSystemIterator* fsi = filesystemiterator_new(fs, 0);
+		char* ipath = NULL;
+		int ilength;
+		time_t imod_time;
+		while ((ipath = filesystemiterator_next(fsi, &ilength, &imod_time)))
 		{
-			format_printf(blueid, "%s\n", ipath);
+			if (ilength < 0)
+			{
+				format_printf(blueid, "%s\n", ipath);
+			}
+			else
+			{
+				printf("%s\n", ipath);
+			}
 		}
-		else
+		filesystemiterator_destroy(fsi);
+		
+		if (i == 0)
 		{
-			printf("%s\n", ipath);
+			printf("Removing /sdp/license.txt\n");
+			filesystem_remove_file_at_path(fs, "/sdp/license.txt");
+			printf("\n");
 		}
 	}
-	filesystemiterator_destroy(fsi);
-	
 	printf("\n\n*****************************\n\nTesting Serialization\n");
 	
 	

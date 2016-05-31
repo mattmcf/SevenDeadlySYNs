@@ -18,6 +18,7 @@
 #define max(a,b)	(a > b ? a : b)
 #define numDigits(a) (a == 0 ? 1 : (int)(log10(a) + 1))
 
+
 int blueid = -1;
 
 char* add_strings(int count, ...)
@@ -72,6 +73,42 @@ int unicode_strlen(char* str)
 		}
 	}
 	return length;
+}
+
+Queue* get_path_components(char* path)
+{
+	char* path_copy = copy_string(path);
+	int length = strlen(path_copy);
+	
+	for (int i = 0; i < length; i++)
+	{
+		if (path_copy[i] == '/')
+		{
+			path_copy[i] = 0;
+		}
+	}
+	
+	Queue* components = queue_new();
+	
+	int prev_was_null = 0;
+	for (int i = 0; i < length; )
+	{
+		if (path_copy[i] == 0)
+		{
+			prev_was_null = 1;
+			i++;
+			continue;
+		}
+		else if (prev_was_null)
+		{
+			char* component = copy_string(path_copy + i);
+			queue_push(components, component);
+			i += strlen(component);
+		}
+	}
+	
+	free(path_copy);
+	return components;
 }
 
 // ******************************** File ********************************
@@ -136,6 +173,13 @@ File* file_copy(File* file)
 	copy->last_modified = f->last_modified;
 	copy->is_folder = f->is_folder;
 	return (File*)copy;
+}
+int file_equals_name_only(void* elementp, void* keyp)
+{
+	_File* f0 = (_File*)elementp;
+	_File* f1 = (_File*)keyp;
+	
+	return strcmp(f0->name, f1->name) == 0;
 }
 int file_equals(void* elementp, void* keyp)
 {
@@ -454,6 +498,45 @@ void folder_add(Folder* folder, Folder* toPlus)
 	}
 }
 
+void folder_remove_file_at_path(_Folder* folder, Queue* components)
+{
+	assert(folder && components);
+	
+	char* component = queue_pop(components);
+	
+	if (queue_length(components) > 0) // Then component is a folder
+	{
+		_Folder search;
+		search.name = component;
+		_Folder* found = queue_search(folder->folders, folder_equals, &search);
+		if (!found) { goto FAIL; }
+		folder_remove_file_at_path(found, components);
+	}
+	else // This component is a file or a folder
+	{
+		_File search;
+		search.name = component;
+		_File* found = queue_remove(folder->files, file_equals_name_only, &search);
+		if (!found) { goto FAIL; }
+		
+		if (found->is_folder)
+		{
+			_Folder fsearch;
+			fsearch.name = component;
+			_Folder* ffound = queue_remove(folder->folders, folder_equals, &fsearch);
+			if (!ffound) { goto FAIL; }
+			folder_destroy((Folder*)ffound);
+		}
+		file_destroy((File*)found);
+	}
+	free(component);
+	return;
+	
+	FAIL:
+	printf("Trying to delete file at path that does not exist!\n");
+	assert(0);
+}
+
 // ******************************** Filesystem ********************************
 
 typedef struct
@@ -656,6 +739,18 @@ void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, F
 {
 	filesystem_diff_helper(old, new, additions, deletions, file_equals);
 	//filesystem_handle_updates(*additions, *deletions);
+}
+
+void filesystem_remove_file_at_path(FileSystem* filesystem, char* path)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	assert(path);
+	
+	Queue* components = get_path_components(path);	
+	folder_remove_file_at_path((_Folder*)(fs->root), components);
+	assert(queue_length(components) == 0);
+	queue_destroy(components);
 }
 
 #define FILE_MARKER (0xFF)

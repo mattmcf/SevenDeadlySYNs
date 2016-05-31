@@ -6,6 +6,7 @@
 
 char* copy_string(char* string);
 void push_string(Queue* queue, char* str);
+Queue* get_path_components(char* path);
 
 /*
 A nice c "class" that deals with the filesystem. See the bottom of FileSystem.c for example usage.
@@ -60,6 +61,11 @@ void filesystem_minus_equals(FileSystem* filesystem0, FileSystem* filesystem1);
 // filesystem1 : (not claimed) The other filesystem. Not modified. This argument should come from the
 //							   additions return value of filesystem_diff.
 void filesystem_plus_equals(FileSystem* filesystem0, FileSystem* filesystem1);
+
+// Removes the file (or folder) at the specified path. On success, filesystem is modified. On failure, assert false
+//	filesystem : (not claimed) The filesystem to remove from
+//	path	   : (not claimed) The path to the file or folder that will be removed
+void filesystem_remove_file_at_path(FileSystem* filesystem, char* path);
 
 // Performs a deep copy of the given filesystem.
 //	filesystem : (not claimed) The filesystem to copy.
