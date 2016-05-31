@@ -152,7 +152,8 @@ int main() {
 		char file_got[PATH_MAX+1];
 		memset(&file_got, '\0', PATH_MAX+1);
 		int chunk_got, peer_got_id;
-		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
+		while( (receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) &&
+				containsPeer(peer_got_id) == 1) {
 			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
@@ -216,6 +217,21 @@ int destroyPeerTable(peer_table* deleteTable){
 	free(deleteTable);
 	printf("Done destroying peer table\n");
 	return 1;
+}
+
+// returns 1 if peer id is contained in table, -1 otherwise
+int containsPeer(int peerID) {
+	if (!peerTable || peerID < 1) {
+		return -1;
+	}
+
+	for (int i = 0; i < peerTable->numberOfEntries++; i++) {
+		if (peerTable->peerIDs[i] == peerID) {
+			return 1;
+		}
+	}
+
+	return -1;
 }
 
 // Takes a new peer and adds them to a table based on unique ID
@@ -346,7 +362,7 @@ int clientGotBroadcast(char * file_got, int chunk_got, TNT *network, int peer_go
 	printf("Distributing chunk acquisition update (owner %d, file: %s, chunk: %d)\n",peer_got_id,file_got,chunk_got);
 	for (int i = 0; i < peerTableSize; i++) {
 		// send to all peers (except author of acq)
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id&& peerTable->peerIDs[i] != 0 ){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id && peerTable->peerIDs[i] != 0 ){
 			if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
 				printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
 			}else{
@@ -379,6 +395,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	printf("PRINTING DELETIONS:\n");
 	filesystem_print(deletions);
 	filesystem_minus_equals(fs, deletions);
+	printf("here");
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);

@@ -27,6 +27,9 @@ peer_table* createPeerTable();
 // destroys peer table and frees memory
 int destroyPeerTable(peer_table* deleteTable);
 
+// returns 1 if peer table contains id, -1 otherwise
+int containsPeer(int peerID);
+
 // Takes a new peer and adds them to a table based on unique ID
 int addPeerToTable(int peerID);
 

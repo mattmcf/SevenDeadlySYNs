@@ -92,8 +92,8 @@ char * get_absolute_root(char * root_arg) {
 
 	/* check if the folder already exists, if it doesn't then make it */
 	char * new_dir = tilde_expand(root_arg);;
-	if (0 != access(root_arg, (F_OK)) ){
-		printf("Cannot access %s -- creating directory\n", root_arg);
+	if (0 != access(new_dir, (F_OK)) ){
+		printf("Cannot access %s -- creating directory\n", new_dir);
 		perror("reason");
 
 		/* it doesn't exist, so make it */
@@ -107,7 +107,7 @@ char * get_absolute_root(char * root_arg) {
 
 	/* check to make sure argument is a directory */
 	struct stat statbuf;
-	if (stat(root_arg, &statbuf) == -1) {
+	if (stat(new_dir, &statbuf) == -1) {
 		fprintf(stderr,"get_absolute_root error: stat error on %s\n", root_arg);
 		return NULL;
 	}
@@ -119,7 +119,7 @@ char * get_absolute_root(char * root_arg) {
 	}
 
 	/* make sure you get the absolute path */
-	char * absolute_path = realpath(root_arg, NULL);
+	char * absolute_path = realpath(new_dir, NULL);
 	if (!absolute_path){
 		fprintf(stderr,"get_absolute_root error: failed to get real path of %s\n", root_arg);
 		return NULL;
@@ -148,11 +148,11 @@ char * append_DSRoot(char * relative_path, char * root) {
 		return NULL;
 	}
 
-	printf("catting strings %s and %s\n", root, relative_path);
+	//printf("catting strings %s and %s\n", root, relative_path);
 	char * result = (char *)malloc(strlen(relative_path) + strlen(root) + 1);
 	memcpy(result, root, strlen(root) + 1);
 	strcat(result, relative_path);
-	printf("result: %s\n", result);
+	//printf("result: %s\n", result);
 
 	return result;
 }
@@ -288,23 +288,25 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		int len;
 		time_t mod_time;
 		while (NULL != (path = filesystemiterator_next(add_iterator, &len, &mod_time))){
-			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
+
+			char *expanded_path = append_DSRoot(path, dartsync_dir);
+			printf("UpdateLocalFilesystem: found addition at: %s\n", expanded_path);
 
 			/* if addition is just a directory -> make that and then go onto files */
 			if (len == -1) {
 
-				if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				if (-1 == mkdir(expanded_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
 				// char new_dir[1024];
 				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
 				// if (system(new_dir) != 0) {
-					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", path);
+					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", expanded_path);
 					perror("Failed because");
 				}
 				continue;
 			}
 
 			/* re make that deleted file */
-			char *expanded_path = append_DSRoot(path, dartsync_dir);
+			//char *expanded_path = append_DSRoot(path, dartsync_dir);
 			ChunkyFile *file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 			if (!file){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
@@ -443,7 +445,7 @@ void DropFromNetwork(){
 	filesystem_destroy(cur_fs);
 	filetable_destroy(ft);
 
-	free(dartsync_dir);
+	//free(dartsync_dir);
 
 	exit(0);
 }
