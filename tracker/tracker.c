@@ -25,6 +25,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <wordexp.h> // for shell expansion of ~
+#include <limits.h>
 
 #include "tracker.h"
 #include "../common/constant.h"
@@ -162,8 +163,8 @@ int main() {
 
 		// See if any clients have a chunk acquisition update to deseminate
 		//char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
-		char file_got[1000];
-		memset(&file_got, '\0', 1000);
+		char file_got[PATH_MAX+1];
+		memset(&file_got, '\0', PATH_MAX+1);
 		int chunk_got, peer_got_id;
 		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
 			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
@@ -172,7 +173,7 @@ int main() {
 			// update file table
 			//filetable_print(filetable);
 			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
-			memset(&file_got, '\0', 1000);
+			memset(&file_got, '\0', PATH_MAX+1);
 		}
 		//free(file_got);
 
