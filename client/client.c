@@ -382,7 +382,12 @@ int RemoveFileDeletions(FileSystem *deletions){
 
 int GetFileAdditions(FileSystem *additions, int author_id){
 	printf("GetFileAdditions: ready to iterate over additions!\n");
+	char* save_path = filesystem_get_root_path(additions);
+	filesystem_set_root_path(additions, "");
 	FileSystemIterator* add_iterator = filesystemiterator_new(additions,0);
+	filesystem_set_root_path(additions, save_path);
+	free(save_path);
+
 	char *path;
 
 	if (!add_iterator){
@@ -422,6 +427,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		
 		/* request all chunks */
 		path = tilde_compress(path);
+
 		printf("Send chunk request for file %s\n", path);
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
@@ -539,6 +545,7 @@ int main(int argv, char* argc[]){
 		char *filepath;
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
+			// char* root_path = filesystem_get_root_path(cur_fs);
 			char *expanded_path = tilde_expand(filepath);
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
