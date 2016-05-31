@@ -288,23 +288,25 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		int len;
 		time_t mod_time;
 		while (NULL != (path = filesystemiterator_next(add_iterator, &len, &mod_time))){
-			printf("UpdateLocalFilesystem: found addition at: %s\n", path);
+
+			char *expanded_path = append_DSRoot(path, dartsync_dir);
+			printf("UpdateLocalFilesystem: found addition at: %s\n", expanded_path);
 
 			/* if addition is just a directory -> make that and then go onto files */
 			if (len == -1) {
 
-				if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+				if (-1 == mkdir(expanded_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
 				// char new_dir[1024];
 				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
 				// if (system(new_dir) != 0) {
-					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", path);
+					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", expanded_path);
 					perror("Failed because");
 				}
 				continue;
 			}
 
 			/* re make that deleted file */
-			char *expanded_path = append_DSRoot(path, dartsync_dir);
+			//char *expanded_path = append_DSRoot(path, dartsync_dir);
 			ChunkyFile *file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 			if (!file){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
