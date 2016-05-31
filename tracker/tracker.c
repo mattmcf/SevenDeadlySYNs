@@ -89,6 +89,7 @@ int main() {
 	filesystem_print(fs);
 
 	filetable = filetable_new();
+	filetable_add_filesystem(filetable, fs, 0);
 	
 	filetable_print(filetable);
 
