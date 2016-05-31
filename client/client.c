@@ -521,7 +521,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		int total_chunks = chunkyfile_num_chunks(file);
 		if (total_chunks < 1) {
 			fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
-			exit(1);
+			continue;
 		}
 
 		/* get all chunks */
