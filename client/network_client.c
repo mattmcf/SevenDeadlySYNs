@@ -567,7 +567,10 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	if (!thread_block || !filepath) {
 		format_printf(err_format, "send_chunk_request error: null cnt or filepath\n");
 		return -1;
-	} 
+	} else if (num_chunks < 0) {
+		format_printf(err_format, "send_chunk_request error: no chunks!\n");
+		return -1;
+	}
 
 	_CNT_t * cnt = (_CNT_t *)thread_block;
 
