@@ -830,6 +830,16 @@ FileSystemIterator* filesystemiterator_new(FileSystem* filesystem, int file_firs
 	return (FileSystemIterator*)fsi;
 }
 
+FileSystemIterator* filesystemiterator_relative_new(FileSystem* filesystem, int file_first)
+{
+	char* save_path = filesystem_get_root_path(filesystem);
+	filesystem_set_root_path(filesystem, "");
+	FileSystemIterator* fsi = filesystemiterator_new(filesystem, file_first);
+	filesystem_set_root_path(filesystem, save_path);
+	free(save_path);
+	return fsi;
+}
+
 void filesystemiterator_destroy(FileSystemIterator* iterator)
 {
 	assert(iterator);
