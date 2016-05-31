@@ -309,10 +309,10 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
 				continue;
 			}
-			chunkyfile_write(file);
+			//chunkyfile_write(file);
 
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
-			filetable_set_chunkyfile(ft, expanded_path, file);
+			filetable_set_chunkyfile(ft, path, file);
 
 			/* figure out how many chunks we need to request */
 			int num_chunks = chunkyfile_num_chunks(file);
@@ -521,7 +521,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		int total_chunks = chunkyfile_num_chunks(file);
 		if (total_chunks < 1) {
 			fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
-			exit(1);
+			continue;
 		}
 
 		/* get all chunks */
@@ -633,6 +633,8 @@ int main(int argv, char* argc[]){
 	int peer_id = -1, chunk_id = -1, len = -1;
 	FileSystem *master;
 	int recv_len;
+	filesystem_print(cur_fs);
+	filetable_print(ft);
 	while (1){
 		sleep(POLL_STATUS_DIFF);
 
@@ -715,7 +717,7 @@ int main(int argv, char* argc[]){
 		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
 				&len, &chunk_data)){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
-			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, expanded_path);
+			printf("CLIENT MAIN: received chunk %d for file %s (expanded: %s\n", chunk_id, filepath, expanded_path);
 
 			/* if len is -1, then we received a rejection response */
 			if (-1 == len){	// how should I handle this???
