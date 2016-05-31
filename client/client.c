@@ -658,12 +658,17 @@ int main(int argv, char* argc[]){
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
 
+			printf("appending %s, %s\n", filepath, dartsync_dir);
 			// char* root_path = filesystem_get_root_path(cur_fs);
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
+
+			printf("1 ");
 
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
 			//ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
+
+			printf("2 ");
 
 			if (!file){	
 				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
@@ -674,10 +679,14 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
+			printf("3 ");
+
 			char *chunk_text;
 			int chunk_len;
 			if (GET_ALL_CHUNKS == chunk_id){	// send the entire file
 				int num_chunks = chunkyfile_num_chunks(file);
+
+				printf("4 ");
 
 				for (int i = 0; i < num_chunks; i++){
 					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", expanded_path, i, peer_id);
@@ -695,6 +704,8 @@ int main(int argv, char* argc[]){
 				/* send that chunk to the peer */
 				send_chunk(cnt, peer_id, filepath, chunk_id, chunk_text, chunk_len);
 			}
+
+			printf("5 \n");
 
 			/* destroy that chunky file */
 			chunkyfile_destroy(file);
