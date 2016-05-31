@@ -318,7 +318,7 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	{
 		if ((int)(long)queue_get(chunk, i) == peer)
 		{
-			format_printf(ERR_FMT, "Trying to add peer to chunk that peer already has\n");
+			format_printf(ERR_FMT, "Trying to add peer %d to chunk %d that peer already has\n", peer, chunkNum);
 			assert(0);
 		}
 	}
