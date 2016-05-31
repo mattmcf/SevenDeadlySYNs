@@ -1518,7 +1518,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 
 		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
 
-		// I manually stored the number of expected chunks in the data length field. whatever.
+		// I manually stored the number of expected chunks in the data field. whatever.
 		for (int i = 0; i < (int)(long)queue_item->data; i++) {
 			increment_conn_record(cnt, peer->id);
 		}
