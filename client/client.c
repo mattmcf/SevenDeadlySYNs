@@ -309,7 +309,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
 				continue;
 			}
-			chunkyfile_write(file);
+			//chunkyfile_write(file);
 
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
 			filetable_set_chunkyfile(ft, expanded_path, file);
