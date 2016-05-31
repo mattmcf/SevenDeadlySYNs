@@ -310,7 +310,7 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	if (!chunk)
 	{
 		filetable_print(filetable);
-		format_printf(ERR_FMT, "Trying to access chunk of file that does not exist\n");
+		format_printf(ERR_FMT, "Trying to access chunk %d of file (%s) that does not exist\n", chunkNum, path);
 		assert(0);
 	}
 	
@@ -318,8 +318,9 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	{
 		if ((int)(long)queue_get(chunk, i) == peer)
 		{
-			format_printf(ERR_FMT, "Trying to add peer to chunk that peer already has\n");
-			assert(0);
+			format_printf(ERR_FMT, "Trying to add peer %d to chunk %d that peer already has\n", peer, chunkNum);
+			//assert(0);
+			return;
 		}
 	}
 	queue_push(chunk, (void*)(long)peer);

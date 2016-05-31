@@ -454,7 +454,7 @@ FileSystem* filesystem_new(char* path)
 	{
 		fs->root_path = NULL;		
 		_Folder* root_folder = create_new(_Folder);
-		root_folder->name = "";
+		root_folder->name = calloc(1, sizeof(char));
 		root_folder->files = queue_new();
 		root_folder->folders = queue_new();
 		fs->root = (Folder*)root_folder;
