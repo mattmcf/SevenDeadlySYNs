@@ -702,8 +702,6 @@ int main(int argv, char* argc[]){
 				send_chunk(cnt, peer_id, filepath, chunk_id, chunk_text, chunk_len);
 			}
 
-			printf("5 \n");
-
 			/* destroy that chunky file */
 			chunkyfile_destroy(file);
 
@@ -751,6 +749,7 @@ int main(int argv, char* argc[]){
 
 			/* destroy the old filesystem struct and recreate it to reflect changes */
 			filesystem_destroy(cur_fs);
+			cur_fs = NULL;
 			cur_fs = filesystem_new(dartsync_dir);
 
 			free(chunk_data);
@@ -801,6 +800,7 @@ int main(int argv, char* argc[]){
 
 			/* update the current filesystem pointer */
 			filesystem_destroy(cur_fs);
+			cur_fs = NULL;
 			cur_fs = filesystem_new(dartsync_dir);
 
 			/* get ready for next recv diff or iteration of loop */
