@@ -55,11 +55,11 @@ char * tilde_expand(char * original_path) {
 	char * expanded_string = NULL;
 	wordexp_t exp_result;
 	wordexp(original_path, &exp_result, 0);
-  expanded_string = strdup(exp_result.we_wordv[0]);
-  wordfree(&exp_result);
+ 	expanded_string = strdup(exp_result.we_wordv[0]);
+  	wordfree(&exp_result);
 
-  printf("expanded_string: %s\n", expanded_string);
-  return expanded_string;
+  	printf("expanded_string: %s\n", expanded_string);
+  	return expanded_string;
 }
 
 int main() {
@@ -85,7 +85,7 @@ int main() {
 	} 
 
 	// create file system
-	fs = filesystem_new(dartsync_dir);
+	fs = filesystem_new(NULL);
 	filesystem_print(fs);
 
 	filetable = filetable_new();
@@ -165,13 +165,17 @@ int main() {
 		char file_got[200];
 		int chunk_got, peer_got_id;
 		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
+			if (NULL != strstr(file_got, DARTSYNC_DIR)){
+				printf("receive_client_got: received a path with DARTSYNC_DIR: %s\n", file_got);
+				continue;
+			}
 			char *expanded_path = tilde_expand(file_got);
 			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, expanded_path);
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
 			// update file table
 			//filetable_print(filetable);
-			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
+			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
 			memset(&file_got, '\0', 200);
 		}
 		//free(file_got);
