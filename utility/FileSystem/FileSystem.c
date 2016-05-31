@@ -382,7 +382,7 @@ void folder_remove(Folder* folder, Folder* toSubtract)
 				
 		if (removed)
 		{			
-			folder_remove(removed, toRemove, folder_equals);
+			folder_remove(removed, toRemove);
 		}
 	}
 }
