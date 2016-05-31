@@ -29,6 +29,7 @@ FileSystem* filesystem_new(char* path);
 // Prints the filesystem in a nice way
 //	fs : (not claimed) The filesystem to print
 void filesystem_print(FileSystem* fs);
+void filesystem_print_list(FileSystem* filesystem);
 
 // Returns true if the filesystem is empty (contains no files or folders)
 //	filesystem : (not claimed) the filesystem to check

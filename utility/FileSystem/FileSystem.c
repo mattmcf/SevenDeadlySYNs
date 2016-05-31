@@ -12,10 +12,13 @@
 #include <assert.h>
 #include <wordexp.h>
 #include <sys/types.h>
+#include "../ColoredPrint/ColoredPrint.h"
 
 #define create_new(type) ((type*)malloc(sizeof(type)))
 #define max(a,b)	(a > b ? a : b)
 #define numDigits(a) (a == 0 ? 1 : (int)(log10(a) + 1))
+
+int blueid = -1;
 
 char* add_strings(int count, ...)
 {
@@ -441,7 +444,12 @@ void folder_add(Folder* folder, Folder* toPlus)
 	{
 		_Folder* folderToAdd = queue_get(toAdd->folders, i);
 		_Folder* found = queue_search(f->folders, folder_equals, folderToAdd);
+		if (!found)
+		{
+			printf("Trying to add contents of folder with name %s to filesystem that does not contain said folder.\n", folderToAdd->name);
+		}		
 		assert(found);
+		
 		folder_add((Folder*)found, (Folder*)folderToAdd);
 	}
 }
@@ -456,6 +464,12 @@ typedef struct
 
 FileSystem* filesystem_new(char* path)
 {
+	if (blueid < 0)
+	{
+		FORMAT_ARG args[] = {COLOR_L_BLUE, COLOR_UNDERLINE, 0};
+		blueid = register_format(args);
+	}
+	
 	_FileSystem* fs = create_new(_FileSystem);
 	
 	if (path == NULL)
@@ -544,6 +558,27 @@ FileSystem* filesystem_copy(FileSystem* filesystem)
 	copy->root_path = copy_string(fs->root_path);
 	copy->root = folder_copy(fs->root);
 	return (FileSystem*)copy;
+}
+void filesystem_print_list(FileSystem* filesystem)
+{
+	assert(filesystem);
+	
+	FileSystemIterator* fsi = filesystemiterator_new(filesystem, 0);
+	
+	char* path;
+	int size;
+	time_t mod;
+	while ((path = filesystemiterator_next(fsi, &size, &mod)))
+	{
+		if (size < 0)
+		{
+			format_printf(blueid, "%s\n", path);
+		}
+		else
+		{
+			printf("%s\n", path);
+		}
+	}
 }
 void filesystem_print(FileSystem* filesystem)
 {

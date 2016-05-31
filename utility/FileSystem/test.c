@@ -12,7 +12,7 @@ int main()
 	
 	printf("Testing serialization and deserialization...\n");
 	
-	char* path = "/Users/jacob/Dropbox/";
+	char* path = "/Users/jacob/dartsync/";
 	printf("Loading filesystem at %s\n", path);
 	FileSystem* fs = filesystem_new(path);
 	
@@ -70,7 +70,7 @@ int main()
 	
 		
 	printf("\n\n*****************************\n\nTesting diff detection. Make changes in next 5 seconds.\n");
-	sleep(2);
+	sleep(5);
 		
 	FileSystem* changes = filesystem_new(path);
 	
@@ -82,15 +82,16 @@ int main()
 	{
 		filesystem_diff(fs, changes, &additions, &deletions);
 		printf("Additions\n");
-		filesystem_print(additions);
+		filesystem_print_list(additions);
 		printf("Deletions\n");
-		filesystem_print(deletions);
+		filesystem_print_list(deletions);
 	
+		printf("Testing additive change propogation\n");
 		FileSystem* withChanges = filesystem_copy(fs);
 		filesystem_minus_equals(withChanges, deletions);	
 		filesystem_plus_equals(withChanges, additions);
 	
-		printf("Old + additions - deletions\n");
+		printf("Old - deletions + additions\n");
 		filesystem_print(withChanges);
 	
 		filesystem_destroy(additions);
