@@ -67,24 +67,6 @@ int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
 
-	/* set directory that will be used */
-	dartsync_dir = tilde_expand(DARTSYNC_DIR);
-	if (!dartsync_dir) {
-		fprintf(stderr, "Failed to expand %s\n", DARTSYNC_DIR);
-		exit(-1);
-	}
-
-	/* check if the folder already exists, if it doesn't then make it */
-	if (0 != access(dartsync_dir, (F_OK)) ){
-		printf("Cannot access %s -- creating directory\n", dartsync_dir);
-		perror("reason");
-		/* it doesn't exist, so make it */
-		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-			printf("TRACKER MAIN: failed to create DARTSYNC_DIR\n");
-			exit(-1);
-		}
-	} 
-
 	// create file system
 	fs = filesystem_new(NULL);
 	filesystem_print(fs);
