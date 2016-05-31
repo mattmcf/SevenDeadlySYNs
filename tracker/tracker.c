@@ -118,6 +118,8 @@ int main() {
 		while ((peerID = receive_master_request(network))>0){
 			printf("Sending master file system and file table...");
 			fflush(stdout);
+			filesystem_print(fs);
+			filetable_print(filetable);
 			//filesystem_print(fs);
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
