@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <wordexp.h> // for shell expansion of ~
 #include <string.h> // strdup
+#include <limits.h>
 
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
@@ -62,6 +63,90 @@ int RemoveFileDeletions(FileSystem *deletions);
  * after a diff and make requests for the files' chunks from peers
  */
 int GetFileAdditions(FileSystem *additions, int author_id);
+
+// returns the user's argument for which directory they'd like to sychronize
+//	root_arg : (not claimed) root argument from user
+//	ret : (not claimed) allocated, expanded, checked user argument for root (must be claimed)
+char * get_absolute_root(char * root_arg) {
+	if (!root_arg) {
+		fprintf(stderr,"get_absolute_root error: null argument\n");
+		return NULL;
+	}
+
+	if (strlen(root_arg) < 1) {
+		fprintf(stderr,"get_absolute_root error: root_arg is zero chars long\n");
+		return NULL;
+	}
+
+	/* make sure sync directory isn't root */
+	if (strlen(root_arg) == 1 && strcmp(root_arg, "/") == 0) {
+		fprintf(stderr,"DARTSYNC ERROR! DON'T SYNCHRONIZE ROOT!\n");
+	 	return NULL;
+	}
+
+	/* make sure sync directory argument doesn't end in "/" */
+	if (root_arg[strlen(root_arg)-1] == '/') {
+		root_arg[strlen(root_arg)] = '\0';
+	}
+
+	/* check if the folder already exists, if it doesn't then make it */
+	if (0 != access(root_arg, (F_OK)) ){
+		printf("Cannot access %s -- creating directory\n", root_arg);
+		perror("reason");
+		/* it doesn't exist, so make it */
+		if (-1 == mkdir(root_arg, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+			printf("CLIENT MAIN: failed to create sync dir (%s)\n", root_arg);
+			return NULL;
+		}
+	} 
+
+	/* check to make sure argument is a directory */
+	struct stat statbuf;
+	if (stat(root_arg, &statbuf) == -1) {
+		fprintf(stderr,"get_absolute_root error: stat error on %s\n", root_arg);
+		return NULL;
+	}
+
+	/* make sure it is directory? */
+	if (!S_ISDIR(statbuf.st_mode)) {
+		fprintf(stderr,"get_absolute_root error: %s is not a directory\n", root_arg);
+		return NULL;
+	}
+
+	/* make sure you get the absolute path */
+	char * absolute_path = realpath(root_arg, NULL);
+	if (!absolute_path){
+		fprintf(stderr,"get_absolute_root error: failed to get real path of %s\n", root_arg);
+		return NULL;
+	}
+	
+	printf("CLIENT -- using DartSync Root as %s\n", absolute_path);
+	return absolute_path;
+}
+
+// appends relative_path onto root
+//	relative_path : (not claimed) relative path
+// 	root : (not claimed) Dart sync root path
+//	ret : (not claimed) new concatenated string (caller must claim)
+char * append_DSroot(char * relative_path, char * root) {
+	if (!root || !relative_path) {
+		fprintf(stderr,"append_DSroot error: null arguments\n");
+		return NULL;
+	}
+
+	if (root[strlen(root)-1] == '/') {
+		fprintf(stderr,"append_DSroot error: root directory string shouldn't end in a slash!\n");
+		return NULL;
+	}
+
+	printf("catting strings %s and %s\n", root, relative_path);
+	char * result = (char *)malloc(strlen(relative_path) + strlen(root) + 1);
+	memcpy(result, root, strlen(root));
+	strcat(result, relative_path);
+	printf("result: %s\n", result);
+
+	return result;
+}
 
 // expands the ~/dart_sync dir
 //	original_path : (not claimed) DARTSYNC_DIR
@@ -440,8 +525,8 @@ int CheckFileSystem(FileSystem *fs){
 int main(int argv, char* argc[]){
 
 	/* arg check */
-	if (2 != argv){
-		printf("CLIENT MAIN: need to pass the tracker IP address\n");
+	if (3 != argv){
+		printf("CLIENT MAIN usage error: \'./client_app\' [IP ADDRESS] [SYNC DIRECTORY]\n");
 		exit(0);
 	} 
 
@@ -465,23 +550,30 @@ int main(int argv, char* argc[]){
 	signal(SIGINT, DropFromNetwork);
 	
 	/* set directory that will be used */
-	dartsync_dir = tilde_expand(DARTSYNC_DIR);
+	dartsync_dir = get_absolute_root(argc[2]);
 	if (!dartsync_dir) {
-		fprintf(stderr, "Failed to expand %s\n", DARTSYNC_DIR);
+		fprintf(stderr,"Failed to get absolute root path for %s\n",argc[2]);
 		exit(-1);
 	}
 
-	/* check if the folder already exists, if it doesn't then make it */
-	if (0 != access(dartsync_dir, (F_OK)) ){
-		printf("Cannot access %s -- creating directory\n", dartsync_dir);
-		perror("reason");
-		/* it doesn't exist, so make it */
-		if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-		//if (system("mkdir ~/dart_sync") != 0) {
-			printf("CLIENT MAIN: failed to create DARTSYNC_DIR (%s)\n",dartsync_dir);
-			exit(-1);
-		}
-	} 
+	/* set directory that will be used */
+	//dartsync_dir = tilde_expand(DARTSYNC_DIR);
+	// if (!dartsync_dir) {
+	// 	fprintf(stderr, "Failed to expand %s\n", DARTSYNC_DIR);
+	// 	exit(-1);
+	// }
+
+	// /* check if the folder already exists, if it doesn't then make it */
+	// if (0 != access(dartsync_dir, (F_OK)) ){
+	// 	printf("Cannot access %s -- creating directory\n", dartsync_dir);
+	// 	perror("reason");
+	// 	/* it doesn't exist, so make it */
+	// 	if (-1 == mkdir(dartsync_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+	// 	//if (system("mkdir ~/dart_sync") != 0) {
+	// 		printf("CLIENT MAIN: failed to create DARTSYNC_DIR (%s)\n",dartsync_dir);
+	// 		exit(-1);
+	// 	}
+	// } 
 
 	/* get the current local filesystem */
 	if (NULL == (cur_fs = filesystem_new(dartsync_dir))){
@@ -526,6 +618,7 @@ int main(int argv, char* argc[]){
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
 			char *expanded_path = tilde_expand(filepath);
+
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
 
