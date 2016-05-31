@@ -484,9 +484,12 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 	while (NULL != (path = filesystemiterator_next(add_iterator, &len, &mod_time))){
 		printf("GetFileAdditions: found addition at: %s\n", path);
 
+		/* get the expanded path */
+		char *expanded_path = append_DSRoot(path, dartsync_dir);
+
 		/* if this is a folder */
 		if (-1 == len){
-			if (-1 == mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+			if (-1 == mkdir(expanded_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
 				printf("GetFileAdditions: failed to create directory \'%s\'\n", path);
 				perror("Failed because");
 			}
@@ -494,7 +497,6 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		}
 
 		/* open chunk file and get the number of chunks */
-		char *expanded_path = append_DSRoot(path, dartsync_dir);
 		printf("Opening new chunky file at %s\n", expanded_path);
 		ChunkyFile* file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 		if (!file){
