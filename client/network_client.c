@@ -584,8 +584,8 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_name = strdup(filepath);
 	queue_item->file_str_len = strlen(queue_item->file_name) + 1;	// include null terminator
-	queue_item->data_len = num_chunks;	// fuck your face, I'm putting the number of chunks as the null data len
-	queue_item->data = 0;
+	queue_item->data_len = 0;	// I'm stupid -- let's hide the number of chunks in the data field
+	queue_item->data = (void *)(long)num_chunks; // see above
 
 	asyncqueue_push(cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK], (void *)queue_item);
 	return 1;
@@ -1519,7 +1519,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
 
 		// I manually stored the number of expected chunks in the data length field. whatever.
-		for (int i = 0; i < queue_item->data_len; i++) {
+		for (int i = 0; i < (int)(long)queue_item->data; i++) {
 			increment_conn_record(cnt, peer->id);
 		}
 
