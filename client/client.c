@@ -633,6 +633,8 @@ int main(int argv, char* argc[]){
 	int peer_id = -1, chunk_id = -1, len = -1;
 	FileSystem *master;
 	int recv_len;
+	filesystem_print(cur_fs);
+	filetable_print(ft);
 	while (1){
 		sleep(POLL_STATUS_DIFF);
 
