@@ -275,7 +275,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	FileSystemIterator *fs_iterator = filesystemiterator_relative_new(cur_fs, 0);
 	if (!fs_iterator){
 		printf("UpdateLocalFilesystem: failed to create relative iterator for cur_fs\n");
-		return -1;
+		return;
 	} else if (-1 == CheckFileSystem(cur_fs)){
 		printf("UpdateLocalFilesystem: no local files remaining after deletions\n");
 	} else {
