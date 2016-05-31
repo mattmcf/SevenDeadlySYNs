@@ -312,7 +312,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			//chunkyfile_write(file);
 
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
-			filetable_set_chunkyfile(ft, expanded_path, file);
+			filetable_set_chunkyfile(ft, path, file);
 
 			/* figure out how many chunks we need to request */
 			int num_chunks = chunkyfile_num_chunks(file);
