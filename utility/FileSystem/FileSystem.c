@@ -520,7 +520,7 @@ char* filesystem_get_root_path(FileSystem* filesystem)
 {
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	assert(fs);
-	return fs->root_path ? fs->root_path : "";
+	return fs->root_path;
 }
 void filesystem_set_root_path(FileSystem* filesystem, char* path)
 {
@@ -836,7 +836,10 @@ FileSystemIterator* filesystemiterator_relative_new(FileSystem* filesystem, int 
 	filesystem_set_root_path(filesystem, "");
 	FileSystemIterator* fsi = filesystemiterator_new(filesystem, file_first);
 	filesystem_set_root_path(filesystem, save_path);
-	free(save_path);
+	if (save_path)
+	{
+		free(save_path);
+	}
 	return fsi;
 }
 
