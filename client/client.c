@@ -285,6 +285,10 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		time_t mod_time;
 		while (NULL != (path = filesystemiterator_next(fs_iterator, &len, &mod_time))){
 			int num_chunks = num_chunks_for_size(len);
+			if (num_chunks < 1){
+				printf("UpdateLocalFilesystem: no chunks for file\n");
+				continue;
+			}
 			for (int i = 0; i < num_chunks; i++){
 				send_chunk_got(cnt, path, i);
 			}
