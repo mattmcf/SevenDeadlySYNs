@@ -162,17 +162,17 @@ int main() {
 
 		// See if any clients have a chunk acquisition update to deseminate
 		//char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
-		char file_got[200];
+		char file_got[1000];
+		memset(&file_got, '\0', 1000);
 		int chunk_got, peer_got_id;
 		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
-			char *expanded_path = tilde_expand(file_got);
-			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, expanded_path);
+			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
 			// update file table
 			//filetable_print(filetable);
-			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
-			memset(&file_got, '\0', 200);
+			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
+			memset(&file_got, '\0', 1000);
 		}
 		//free(file_got);
 
@@ -382,8 +382,8 @@ int sendUpdates(int peerID){
 int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions){
 	// update file system
 
-	filesystem_set_root_path(additions, filesystem_get_root_path(fs));
-	filesystem_set_root_path(deletions, filesystem_get_root_path(fs));
+	filesystem_set_root_path(additions, NULL);
+	filesystem_set_root_path(deletions, NULL);
 	printf("PRINTING ADDITIONS:\n");
 	filesystem_print(additions);
 	printf("PRINTING DELETIONS:\n");
