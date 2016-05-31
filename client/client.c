@@ -439,8 +439,11 @@ void DropFromNetwork(){
 	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
-	filesystem_destroy(cur_fs);
-	filetable_destroy(ft);
+	printf("DropFromNetwork: matt's memory is cleaned up, destroying mine\n");
+	if (cur_fs)
+		filesystem_destroy(cur_fs);
+	if (ft)
+		filetable_destroy(ft);
 
 	//free(dartsync_dir);
 
