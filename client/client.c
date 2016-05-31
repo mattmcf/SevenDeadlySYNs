@@ -315,13 +315,15 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			filetable_set_chunkyfile(ft, path, file);
 
 			/* figure out how many chunks we need to request */
-			int num_chunks = chunkyfile_num_chunks(file);
-			if (-1 == num_chunks){
-				printf("UpdateLocalFilesystem: chunkyfile_num_chunks() failed\n");
+			int total_chunks = chunkyfile_num_chunks(file);
+			if (total_chunks < 1) {
+				fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
+				chunkyfile_write(file);
+				continue;
 			}
 
 			/* for each chunk, find a peer who has it, and request it */
-			for (int i = 0; i < num_chunks; i++){ //???
+			for (int i = 0; i < total_chunks; i++){ //???
 				/* get the peers who have the chunk that we want */
 				printf("UpdateLocalFilesystem: looking for peers with %s's chunk %d\n", path, i);
 				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
@@ -513,7 +515,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 			printf("GetFileAdditions: failed to open new chunkyfile\n");
 			continue;
 		}
-		chunkyfile_write(file);
+		//chunkyfile_write(file);
 		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", expanded_path);
@@ -524,6 +526,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		int total_chunks = chunkyfile_num_chunks(file);
 		if (total_chunks < 1) {
 			fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
+			chunkyfile_write(file);
 			continue;
 		}
 
