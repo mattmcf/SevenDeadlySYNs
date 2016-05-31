@@ -26,9 +26,17 @@ int main()
 	*/
 	
 	FileTable* ft = filetable_new();
-	FileSystem* fs = filesystem_new("/Users/jacob/Dropbox");
-	
-	filetable_add_filesystem(ft, fs, 10);
+	FileSystem* fs1 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/simulator_code/");
+	FileSystem* fs2 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/src/");
+	FileSystem* fs3 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/tests/");
+
+	filetable_add_filesystem(ft, fs1, 10);
+	filetable_add_filesystem(ft, fs2, 11);
+	filetable_add_filesystem(ft, fs3, 12);
+
+	filetable_add_filesystem(ft, fs1, 11);
+	filetable_add_filesystem(ft, fs2, 12);
+	filetable_add_filesystem(ft, fs3, 10);
 	
 	char* data;
 	int length;
@@ -41,7 +49,21 @@ int main()
 	
 	printf("%d\n", length);
 	
+	//filetable_print(ftds);
+
+	filetable_remove_peer(ft, 12);
+
 	filetable_print(ftds);
+
+	FileTableIterator * fti = filetableiterator_new(ftds);
+
+	char * path;
+	int i = 0;
+	while ( (path = filetableiterator_path_next(fti)) != NULL) {
+		printf("%d: %s\n", i++, path);
+	}
 	
+	filetableiterator_destroy(fti);
+
 	return 0;
 }

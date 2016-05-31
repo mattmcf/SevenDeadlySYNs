@@ -142,6 +142,12 @@ int main() {
 			}
 			filetable_remove_peer(filetable, peerID);
 			printf("\tRemoved peer %d from table.\n", peerID);
+
+			/* scan through file table -- 
+			 * if there's a file whose chunks don't have a single owner, then we should
+			 * delete that file from the filesystem 
+			 */
+
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
 			peerID = -1;
