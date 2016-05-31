@@ -146,6 +146,8 @@ int main() {
 			printf("\tRemoved peer %d from table.\n", peerID);
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
+			filesystem_print(fs);
+			filetable_print(filetable);
 			peerID = -1;
 		}
 
