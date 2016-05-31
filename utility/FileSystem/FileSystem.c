@@ -448,14 +448,25 @@ typedef struct
 
 FileSystem* filesystem_new(char* path)
 {
-	assert(path);
-	
-    wordexp_t exp_result;
-    wordexp(path, &exp_result, 0);
 	_FileSystem* fs = create_new(_FileSystem);
-	fs->root_path = copy_string(exp_result.we_wordv[0]);
-	fs->root = folder_new(exp_result.we_wordv[0], "");
-	assert(fs->root);
+	
+	if (path == NULL)
+	{
+		fs->root_path = NULL;		
+		_Folder* root_folder = create_new(_Folder);
+		root_folder->name = "";
+		root_folder->files = queue_new();
+		root_folder->folders = queue_new();
+		fs->root = (Folder*)root_folder;
+	}
+	else
+	{
+	    wordexp_t exp_result;
+	    wordexp(path, &exp_result, 0);
+		fs->root_path = copy_string(exp_result.we_wordv[0]);
+		fs->root = folder_new(exp_result.we_wordv[0], "");
+		assert(fs->root);
+	}
 		
 	return (FileSystem*)fs;
 }
@@ -470,6 +481,35 @@ void filesystem_destroy(FileSystem* filesystem)
 	folder_destroy(fs->root);
 	free(fs);
 	return;
+}
+int filesystem_is_empty(FileSystem* filesystem)
+{
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	assert(fs->root);
+	
+	_Folder* folder = (_Folder*)(fs->root);
+	if (queue_length(folder->files) == 0 && queue_length(folder->folders) == 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+int filesystem_equals(FileSystem* filesystem0, FileSystem* filesystem1)
+{
+	assert(filesystem0 && filesystem1);
+	
+	FileSystem* additions = NULL;
+	FileSystem* deletions = NULL;
+		
+	filesystem_diff(filesystem0, filesystem1, &additions, &deletions);
+	
+	int empty = filesystem_is_empty(additions) && filesystem_is_empty(deletions);
+	
+	filesystem_destroy(additions);
+	filesystem_destroy(deletions);
+	
+	return empty;
 }
 Folder* filesystem_get_root(FileSystem* filesystem)
 {
@@ -689,113 +729,146 @@ FileSystem* filesystem_deserialize(char* data, int* bytesRead)
 
 typedef struct
 {
-	FileSystem* fs;
-	Queue* folder_stack;
-	Queue* path_stack;
-	int file_index;
-	Queue* current_files;
-	char* path;
+	Queue* file_list;
+	_File* prev_file;
 } _FileSystemIterator;
 
-FileSystemIterator* filesystemiterator_new(FileSystem* fs)
+void filesystem_get_path_list_file_first(char* path, Queue* file_list, _Folder* f)
 {
-	assert(fs);
+	Queue* folders = queue_new();
+	for (int i = 0; i < queue_length(f->files); i++)
+	{
+		_File* file = queue_get(f->files, i);
+		if (!file->is_folder)
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 0;
+			new_file->size = file->size;
+			new_file->last_modified = file->last_modified;
+			queue_push(file_list, new_file);
+		}
+		else
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 1;
+			new_file->size = 0;
+			new_file->last_modified = 0;
+			queue_push(folders, new_file);
+		}
+	}
+	for (int i = 0; i < queue_length(f->folders); i++)
+	{
+		_Folder* folder = queue_get(f->folders, i);
+		
+		char* next_path = add_strings(3, path, "/", folder->name);		
+		filesystem_get_path_list_file_first(next_path, file_list, folder);
+		free(next_path);
+	}
+	queue_concat(file_list, folders);
+	queue_destroy(folders);
+}
+
+void filesystem_get_path_list_folder_first(char* path, Queue* file_list, _Folder* f)
+{
+	Queue* files = queue_new();
+	for (int i = 0; i < queue_length(f->files); i++)
+	{
+		_File* file = queue_get(f->files, i);
+		if (!file->is_folder)
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 0;
+			new_file->size = file->size;
+			new_file->last_modified = file->last_modified;
+			queue_push(files, new_file);
+		}
+		else
+		{
+			_File* new_file = create_new(_File);
+			new_file->name = add_strings(3, path, "/", file->name);
+			new_file->is_folder = 1;
+			new_file->size = 0;
+			new_file->last_modified = 0;
+			queue_push(file_list, new_file);
+		}
+	}
+	for (int i = 0; i < queue_length(f->folders); i++)
+	{
+		_Folder* folder = queue_get(f->folders, i);
+		
+		char* next_path = add_strings(3, path, "/", folder->name);		
+		filesystem_get_path_list_folder_first(next_path, file_list, folder);
+		free(next_path);
+	}
+	queue_concat(file_list, files);
+	queue_destroy(files);
+}
+
+FileSystemIterator* filesystemiterator_new(FileSystem* filesystem, int file_first)
+{
 	_FileSystemIterator* fsi = create_new(_FileSystemIterator);
-	fsi->fs = fs;
-	fsi->folder_stack = queue_new();
-	fsi->path_stack = queue_new();
-	fsi->file_index = 0;
-	fsi->path = NULL;
-	fsi->current_files = folder_get_files(filesystem_get_root(fs));
-	queue_push(fsi->folder_stack, filesystem_get_root(fs));
-	queue_push(fsi->path_stack, copy_string(filesystem_get_root_path(fs)));
+	
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	assert(fs);
+	assert(fs->root);
+	
+	fsi->file_list = queue_new();
+	fsi->prev_file = NULL;
+	
+	if (file_first)
+	{
+		filesystem_get_path_list_file_first(fs->root_path, fsi->file_list, (_Folder*)(fs->root));
+	}
+	else
+	{
+		filesystem_get_path_list_folder_first(fs->root_path, fsi->file_list, (_Folder*)(fs->root));
+	}
+	
 	return (FileSystemIterator*)fsi;
 }
+
+FileSystemIterator* filesystemiterator_relative_new(FileSystem* filesystem, int file_first)
+{
+	char* save_path = filesystem_get_root_path(filesystem);
+	filesystem_set_root_path(filesystem, "");
+	FileSystemIterator* fsi = filesystemiterator_new(filesystem, file_first);
+	filesystem_set_root_path(filesystem, save_path);
+	free(save_path);
+	return fsi;
+}
+
 void filesystemiterator_destroy(FileSystemIterator* iterator)
 {
 	assert(iterator);
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	
-	queue_destroy(fsi->folder_stack);
-	queue_apply(fsi->path_stack, free);
-	queue_destroy(fsi->path_stack);
-	if (fsi->path)
-	{
-		free(fsi->path);
-	}
+	queue_apply(fsi->file_list, (QueueApplyFunction)file_destroy);
+	queue_destroy(fsi->file_list);
+	free(fsi);
 }
 
 char* filesystemiterator_next(FileSystemIterator* iterator, int* length, time_t* mod_time)
 {
 	_FileSystemIterator* fsi = (_FileSystemIterator*)iterator;
 	assert(fsi);
-	
-	// If there is a path that has been set, then free it.
-	if (fsi->path)
+
+	if (fsi->prev_file)
 	{
-		free(fsi->path);
-		fsi->path = NULL;
+		free(fsi->prev_file);
+		fsi->prev_file = NULL;
 	}
 	
-	// If the we have iterated through all the files in the current directory...
-	if (fsi->file_index == queue_length(fsi->current_files))
+	if ((fsi->prev_file = queue_pop(fsi->file_list)) == NULL)
 	{
-		// Get the next folder from the folder stack. Return if it is NULL.
-		Folder* folder = queue_spop(fsi->folder_stack);
-		if (folder == NULL)
-		{
-			*length = -1;
-			*mod_time = 0;
-			return NULL;
-		}
-		
-		char* current_path = queue_spop(fsi->path_stack);
-		
-		// Iterate through the subfolders of the next folder and push them onto the stack
-		Queue* subfolders = folder_get_folders(folder);			
-		for (int i = 0; i < queue_length(subfolders); i++)
-		{
-			Folder* f = queue_get(subfolders, i);
-			queue_push(fsi->folder_stack, f);
-			queue_push(fsi->path_stack, add_strings(3, current_path, "/", folder_get_name(f)));
-		}
-	
-		// Reset the file index
-		fsi->file_index = 0;
-		
-		free(current_path);
-		
-		Folder* next_folder = queue_speek(fsi->folder_stack);
-		if (next_folder == NULL)
-		{
-			*length = -1;
-			*mod_time = 0;
-			return NULL;
-		}
-		fsi->current_files = folder_get_files(next_folder);
-		
-		*length = -1;
-		fsi->path = NULL;
-		*mod_time = 0;
-		return filesystemiterator_next(iterator, length, mod_time);
+		return NULL;
 	}
 	
-	char* path = queue_speek(fsi->path_stack);
-	assert(path);
-	File* file = queue_get(fsi->current_files, fsi->file_index);
-	fsi->file_index += 1;
-	fsi->path = add_strings(3, path, "/", file_get_name(file));
-	if (((_File*)file)->is_folder)
-	{
-		*length = -1;
-		*mod_time = 0;
-	}
-	else
-	{
-		*mod_time = ((_File*)file)->last_modified;
-		*length = (int)(((_File*)file)->size);
-	}
-	return fsi->path;
+	*length = fsi->prev_file->is_folder ? -1 : fsi->prev_file->size;
+	*mod_time = fsi->prev_file->last_modified;
+	return fsi->prev_file->name;
 }
 
 // ******************************** Main ********************************

@@ -55,11 +55,11 @@ char * tilde_expand(char * original_path) {
 	char * expanded_string = NULL;
 	wordexp_t exp_result;
 	wordexp(original_path, &exp_result, 0);
-  expanded_string = strdup(exp_result.we_wordv[0]);
-  wordfree(&exp_result);
+ 	expanded_string = strdup(exp_result.we_wordv[0]);
+  	wordfree(&exp_result);
 
-  printf("expanded_string: %s\n", expanded_string);
-  return expanded_string;
+  	printf("expanded_string: %s\n", expanded_string);
+  	return expanded_string;
 }
 
 int main() {
@@ -85,10 +85,11 @@ int main() {
 	} 
 
 	// create file system
-	fs = filesystem_new(dartsync_dir);
+	fs = filesystem_new(NULL);
 	filesystem_print(fs);
 
 	filetable = filetable_new();
+	filetable_add_filesystem(filetable, fs, 0);
 	
 	filetable_print(filetable);
 
@@ -130,9 +131,11 @@ int main() {
 		// printf("checking for master request\n");
 		while ((peerID = receive_master_request(network))>0){
 			printf("Send master\n");
+			filesystem_print(fs);
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
+			filetable_print(filetable);
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
@@ -158,18 +161,20 @@ int main() {
 		}
 
 		// See if any clients have a chunk acquisition update to deseminate
-		char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
+		//char * file_got = (char*)malloc(200*sizeof(char)); // i dont think there will be a longer filepath than that
+		char file_got[1000];
+		memset(&file_got, '\0', 1000);
 		int chunk_got, peer_got_id;
 		while(receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) {
-			char *expanded_path = tilde_expand(file_got);
-			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, expanded_path);
+			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
 			// update file table
-			filetable_print(filetable);
-			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
+			//filetable_print(filetable);
+			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
+			memset(&file_got, '\0', 1000);
 		}
-		free(file_got);
+		//free(file_got);
 
 		// if there is a file update
 			// take the diff
@@ -377,8 +382,8 @@ int sendUpdates(int peerID){
 int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions){
 	// update file system
 
-	filesystem_set_root_path(additions, filesystem_get_root_path(fs));
-	filesystem_set_root_path(deletions, filesystem_get_root_path(fs));
+	filesystem_set_root_path(additions, NULL);
+	filesystem_set_root_path(deletions, NULL);
 	printf("PRINTING ADDITIONS:\n");
 	filesystem_print(additions);
 	printf("PRINTING DELETIONS:\n");

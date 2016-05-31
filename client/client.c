@@ -34,6 +34,7 @@
 /* ------------------------- Global Variables -------------------------- */
 CNT* cnt;
 FileSystem *cur_fs;
+FileSystem *prev_fs = NULL;
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
 int myID = 0;
@@ -128,7 +129,7 @@ char * get_absolute_root(char * root_arg) {
 //	relative_path : (not claimed) relative path
 // 	root : (not claimed) Dart sync root path
 //	ret : (not claimed) new concatenated string (caller must claim)
-char * append_DSroot(char * relative_path, char * root) {
+char * append_DSRoot(char * relative_path, char * root) {
 	if (!root || !relative_path) {
 		fprintf(stderr,"append_DSroot error: null arguments\n");
 		return NULL;
@@ -177,7 +178,6 @@ char * tilde_compress(char * original_path){
 	// printf("Tilde compressing string %s\n", original_path);
 	
 	for (int i = strlen(original_path)-1; i >= 9; i--){
-		printf("i = %d\n", i);
 		if (original_path[i] == 'c' &&
 			original_path[i-1] == 'n' &&
 			original_path[i-2] == 'y' &&
@@ -239,6 +239,7 @@ int SendMasterFSRequest(FileSystem *cur_fs){
 		sleep(1);
 	}
 	printf("Received master file table\n");
+	filetable_print(ft);
 
 	UpdateLocalFilesystem(master);
 	return 1;
@@ -269,7 +270,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	} else {
 		/* iterate over additions to see if we need to request files */
 		printf("UpdateLocalFilesystem: ready to iterate over additions!\n");
-		FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+		FileSystemIterator* add_iterator = filesystemiterator_relative_new(additions, 0);
 
 		if (!add_iterator){
 			printf("UpdateLocalFilesystem: failed to make add iterator\n");
@@ -295,7 +296,8 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* re make that deleted file */
-			ChunkyFile *file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
+			char *expanded_path = append_DSRoot(path, dartsync_dir);
+			ChunkyFile *file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 			if (!file){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
 				continue;
@@ -303,7 +305,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			chunkyfile_write(file);
 
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
-			filetable_set_chunkyfile(ft, path, file);
+			filetable_set_chunkyfile(ft, expanded_path, file);
 
 			/* figure out how many chunks we need to request */
 			int num_chunks = chunkyfile_num_chunks(file);
@@ -336,6 +338,8 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 
 			/* get ready for next iteration */
 			path = NULL;
+			free(expanded_path);
+			expanded_path = NULL;
 		}
 
 		filesystemiterator_destroy(add_iterator);
@@ -351,45 +355,55 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	filesystem_destroy(deletions);
 }
 
-void CheckLocalFilesystem(){
+void CheckLocalFilesystem()
+{
 	FileSystem *new_fs = filesystem_new(dartsync_dir);
 	FileSystem *adds = NULL, *dels = NULL;
 
-	if (!new_fs){
+	if (!new_fs)
+	{
 		printf("CheckLocalFilesystem: filesystem_new() failed\n");
 		return;
 	}
 
-	//printf("CheckLocalFilesystem: cur_fs ------------\n");
-	//filesystem_print(cur_fs);
-	//printf("CheckLocalFilesystem: new_fs ------------\n");
-	//filesystem_print(new_fs);
-	filesystem_diff(cur_fs, new_fs, &adds, &dels);
-	//printf("CheckLocalFilesystem: got diff\n");
+	if (prev_fs == NULL || !filesystem_equals(prev_fs, new_fs))
+	{
+		printf("CheckLocalFilesystem: Local filesystem is changing. Waiting to settle before reporting diffs.\n");
+		if (prev_fs)
+		{
+			filesystem_destroy(prev_fs);
+		}
+		prev_fs = new_fs;
+		return;
+	}
 
-	if (1 == CheckFileSystem(adds)) {
+	filesystem_diff(cur_fs, new_fs, &adds, &dels);
+
+	if (1 == CheckFileSystem(adds)) 
+	{
 		printf("CheckLocalFilesystem: Additions Seen ----\n");
 		filesystem_print(adds);
 	}
 
-	if (1 == CheckFileSystem(dels)) {
+	if (1 == CheckFileSystem(dels)) 
+	{
 		printf("CheckLocalFilesystem: Deletions Seen -----\n");
 		filesystem_print(dels);
 	}
-	// if (1 == CheckLocalFilesystem(dels)) {
-	// 	printf("CheckLocalFilesystem: Deletions Seen -----\n");
-	// 	filesystem_print(dels);
-	// }
 
 	/* if there are either additions or deletions, then we need to let the 
 	 * master know */
-	if (!adds && !dels){
+	if (!adds && !dels)
+	{
 		printf("CheckLocalFilesystem: diff failed\n");
 		filesystem_destroy(new_fs);
-	} else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels))){
+	} 
+	else if ((1 == CheckFileSystem(adds)) || (1 == CheckFileSystem(dels)))
+	{
 		printf("CheckLocalFilesystem: about to send diffs to the tracker\n");
 		/* send the difs to the tracker */
-		if (-1 == send_updated_files(cnt, adds, dels)){
+		if (-1 == send_updated_files(cnt, adds, dels))
+		{
 			printf("CheckLocalFilesystem: send_updated_files() failed\n");
 		}
 
@@ -403,7 +417,9 @@ void CheckLocalFilesystem(){
 		filesystem_destroy(dels);
 		cur_fs = NULL;
 		cur_fs = new_fs; 
-	} else {
+	} 
+	else 
+	{
 		/* else we have no diffs so just destroy the new fs we created */
 		filesystem_destroy(new_fs);
 		filesystem_destroy(adds);
@@ -426,7 +442,7 @@ void DropFromNetwork(){
 
 int RemoveFileDeletions(FileSystem *deletions){
 	printf("RemoveFileDeletions: ready to iterate over deletions!\n");
-	FileSystemIterator* del_iterator = filesystemiterator_new(deletions);
+	FileSystemIterator* del_iterator = filesystemiterator_new(deletions, 1);
 	char *path;
 	int len;
 	time_t mod_time;
@@ -453,7 +469,8 @@ int RemoveFileDeletions(FileSystem *deletions){
 
 int GetFileAdditions(FileSystem *additions, int author_id){
 	printf("GetFileAdditions: ready to iterate over additions!\n");
-	FileSystemIterator* add_iterator = filesystemiterator_new(additions);
+	FileSystemIterator* add_iterator = filesystemiterator_relative_new(additions, 0);
+
 	char *path;
 
 	if (!add_iterator){
@@ -477,22 +494,22 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		}
 
 		/* open chunk file and get the number of chunks */
-		printf("Opening new chunky file\n");
-		ChunkyFile* file = chunkyfile_new_for_writing_to_path(path, len, mod_time);
+		char *expanded_path = append_DSRoot(path, dartsync_dir);
+		printf("Opening new chunky file at %s\n", expanded_path);
+		ChunkyFile* file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 		if (!file){
 			printf("GetFileAdditions: failed to open new chunkyfile\n");
 			continue;
 		}
-		//chunkyfile_write(file);
+		chunkyfile_write(file);
 		
 		/* write that file to the path */
-		printf("chunky file write to path: %s\n", path);
+		printf("chunky file write to path: %s\n", expanded_path);
 
 		// ADD CHUNKYFILE TO HASH TABLE!!!!!
 		filetable_set_chunkyfile(ft, path, file);
 		
-		/* request all chunks */
-		path = tilde_compress(path);
+		/* get all chunks */
 		printf("Send chunk request for file %s\n", path);
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
 
@@ -509,7 +526,7 @@ int CheckFileSystem(FileSystem *fs){
 	char *path;
 	int len;
 	time_t mod_time;
-	FileSystemIterator *iterator = filesystemiterator_new(fs);
+	FileSystemIterator *iterator = filesystemiterator_new(fs,0);
 
 	if (NULL != (path = filesystemiterator_next(iterator, &len, &mod_time))){
 		printf("CheckFileSystem: FileSystem is nonempty\n");
@@ -617,10 +634,13 @@ int main(int argv, char* argc[]){
 		char *filepath;
 		while (-1 != receive_chunk_request(cnt, &peer_id, &filepath, &chunk_id)){
 			printf("CLIENT MAIN: received chunk request from peer: %d\n", peer_id);
-			char *expanded_path = tilde_expand(filepath);
+
+			// char* root_path = filesystem_get_root_path(cur_fs);
+			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 
 			/* get the chunk that they are requesting */
-			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
+			//ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
+			ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
 
 			if (!file){	
 				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
@@ -658,6 +678,8 @@ int main(int argv, char* argc[]){
 
 			peer_id = -1;
 			filepath = NULL;
+			free(expanded_path);
+			expanded_path = NULL;
 		}
 
 		/* poll for any received chunks */
@@ -666,7 +688,7 @@ int main(int argv, char* argc[]){
 		int chunk_id;
 		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
 				&len, &chunk_data)){
-			char *expanded_path = tilde_expand(filepath);
+			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, expanded_path);
 
 			/* if len is -1, then we received a rejection response */
@@ -676,7 +698,7 @@ int main(int argv, char* argc[]){
 			}
 
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
-			ChunkyFile* file = filetable_get_chunkyfile(ft, expanded_path);
+			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
 			if (!file){
 				printf("CLIENT MAIN: failed to get chunkfile from ft on receive_chunk\n");
 				continue;
@@ -693,7 +715,7 @@ int main(int argv, char* argc[]){
 				chunkyfile_write(file);
 				/* destroy the chunky file */
 				chunkyfile_destroy(file);
-				filetable_set_chunkyfile(ft, expanded_path, NULL);
+				filetable_set_chunkyfile(ft, filepath, NULL);
 			}
 
 			/* destroy the old filesystem struct and recreate it to reflect changes */
@@ -704,15 +726,17 @@ int main(int argv, char* argc[]){
 			peer_id = -1;
 			filepath = NULL;
 			chunk_data = NULL;
+			free(expanded_path);
+			expanded_path = NULL;
 		}
 
 		/* check for chunk aquisition updates and add them to our file table */
 		while (-1 != receive_chunk_got(cnt, &peer_id, &filepath, &chunk_id)){
-			char *expanded_path = tilde_expand(filepath);
+			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 			printf("CLIENT MAIN: received chunk acq update from %d on file %s chunk %d\n", 
 					peer_id, expanded_path, chunk_id);
 
-			filetable_set_that_peer_has_file_chunk(ft, expanded_path, peer_id, chunk_id);
+			filetable_set_that_peer_has_file_chunk(ft, filepath, peer_id, chunk_id);
 			peer_id = -1;
 		}
 
