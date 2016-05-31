@@ -1,0 +1,411 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q2script</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-10-27"><meta name="DC.source" content="q2script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Matt McFarland</a></li><li><a href="#2">Constants and In-Line Functions</a></li><li><a href="#5">Load Legendre Polynomial Data</a></li><li><a href="#6">Map Legendre Roots to [0 1]</a></li><li><a href="#11">Calculate Guassian Quadratures for Function A</a></li><li><a href="#12">Calculate Gaussian Quadratures for Function B</a></li></ul></div><h2>Matt McFarland<a name="1"></a></h2><p>E91, Lab 5, Question 2</p><pre class="codeinput">close <span class="string">all</span>; clear <span class="string">all</span>;
+</pre><h2>Constants and In-Line Functions<a name="2"></a></h2><p><b>Functions</b></p><pre class="codeinput">Fa = @(x) ((x.^2) .* exp(-x));
+Fb = @(x) (x.^(1/3));
+</pre><p><b>Constants</b></p><pre class="codeinput">from        = 0;                    <span class="comment">% start for integration, a</span>
+to          = 1;                    <span class="comment">% end for integration,   b</span>
+n           = [2 3 4 5];            <span class="comment">% degrees of Legendre Polynomials</span>
+</pre><h2>Load Legendre Polynomial Data<a name="5"></a></h2><p>Obtained in textbook. Table 4.12</p><p>Column 1 = Degree</p><p>Column 2 = Root</p><p>Column 3 = Coefficient</p><pre class="codeinput">L = load(<span class="string">'legendre.txt'</span>)
+</pre><pre class="codeoutput">
+L =
+
+    2.0000   -0.5774    1.0000
+    2.0000    0.5774    1.0000
+    3.0000   -0.7746    0.5556
+    3.0000         0    0.8889
+    3.0000    0.7746    0.5556
+    4.0000   -0.8611    0.3479
+    4.0000   -0.3400    0.6521
+    4.0000    0.3400    0.6521
+    4.0000    0.8611    0.3479
+    5.0000   -0.9062    0.2369
+    5.0000   -0.5385    0.4786
+    5.0000         0    0.5689
+    5.0000    0.5385    0.4786
+    5.0000    0.9062    0.2369
+
+</pre><h2>Map Legendre Roots to [0 1]<a name="6"></a></h2><p><img src="q2script_eq11660752595162035868.png" alt="$$ \int_{a}^{b} f(x)dx = \int_{-1}^{1}&#xA;f(\frac{(b-a)t+(b+a)}{2}) \frac{b-a}{2} dt $$"></p><p>Where a is 0 and b is 1.</p><p><img src="q2script_eq06869125016772475704.png" alt="$$ \int_{-1}^{1} f(\frac{t+1}{2})\frac{1}{2} dt $$"></p><p>We can evaluate this transformed integral of f using the Gaussian Quadrature formula</p><pre class="codeinput">TtoX = @(t) (1/2*(t+1));
+dx_t = (to - from)/2;
+</pre><p>Get Roots and Constants for n = 2</p><pre class="codeinput">a1_2 = L(1,3);
+a2_2 = L(2,3);
+
+root1_2 = L(1,2);
+root2_2 = L(2,2);
+</pre><p>Get Roots and Constants for n = 3</p><pre class="codeinput">a1_3 = L(3,3);
+a2_3 = L(4,3);
+a3_3 = L(5,3);
+
+root1_3 = L(3,2);
+root2_3 = L(4,2);
+root3_3 = L(5,2);
+</pre><p>Get Roots and Constants for n = 4</p><pre class="codeinput">a1_4 = L(6,3);
+a2_4 = L(7,3);
+a3_4 = L(8,3);
+a4_4 = L(9,3);
+
+root1_4 = L(6,2);
+root2_4 = L(7,2);
+root3_4 = L(8,2);
+root4_4 = L(9,2);
+</pre><p>Get Roots and Constants for n = 5</p><pre class="codeinput">a1_5 = L(10,3);
+a2_5 = L(11,3);
+a3_5 = L(12,3);
+a4_5 = L(13,3);
+a5_5 = L(14,3);
+
+root1_5 = L(10,2);
+root2_5 = L(11,2);
+root3_5 = L(12,2);
+root4_5 = L(13,2);
+root5_5 = L(14,2);
+</pre><h2>Calculate Guassian Quadratures for Function A<a name="11"></a></h2><pre class="codeinput">A = zeros(1,length(n));
+
+N_2a = (a1_2 * Fa(TtoX(root1_2)) + a2_2 * Fa(TtoX(root2_2))) * dx_t;
+fprintf(<span class="string">'Part A: n = 2 -&gt; area = %.25f\n'</span>,N_2a);
+fprintf(<span class="string">'Evaluations -&gt; 2\n'</span>);
+A(1) = N_2a;
+
+N_3a = (a1_3 * Fa(TtoX(root1_3)) + a2_3 * Fa(TtoX(root2_3)) + <span class="keyword">...</span>
+    a3_3 * Fa(TtoX(root3_3))) * dx_t;
+fprintf(<span class="string">'Part A: n = 3 -&gt; area = %.25f\n'</span>,N_3a);
+fprintf(<span class="string">'Evaluations -&gt; 3\n'</span>);
+A(2) = N_3a;
+
+N_4a = (a1_4 * Fa(TtoX(root1_4)) + a2_4 * Fa(TtoX(root2_4)) + <span class="keyword">...</span>
+    a3_4 * Fa(TtoX(root3_4)) + a4_4 * Fa(TtoX(root4_4))) * dx_t;
+fprintf(<span class="string">'Part A: n = 4 -&gt; area = %.25f\n'</span>,N_4a);
+fprintf(<span class="string">'Evaluations -&gt; 4\n'</span>);
+A(3) = N_4a;
+
+N_5a = (a1_5 * Fa(TtoX(root1_5)) + a2_5 * Fa(TtoX(root2_5)) + <span class="keyword">...</span>
+    a3_5 * Fa(TtoX(root3_5)) + a4_5 * Fa(TtoX(root4_5)) + <span class="keyword">...</span>
+    a5_5 * Fa(TtoX(root5_5))) * dx_t;
+fprintf(<span class="string">'Part A: n = 5 -&gt; area = %.25f\n'</span>,N_5a);
+fprintf(<span class="string">'Evaluations -&gt; 5\n\n'</span>);
+A(4) = N_5a;
+
+difA = zeros(1,length(n));
+<span class="keyword">for</span> i = 2:length(n)
+    difA(i) = abs(A(i) - A(i-1));
+<span class="keyword">end</span>
+
+figure()
+subplot(2,1,1)
+semilogy(n,A,<span class="string">'bo-'</span>)
+xlabel(<span class="string">'n - degree of legendre'</span>)
+ylabel(<span class="string">'A Quadrature'</span>)
+title(<span class="string">'Gaussian Quadrature of Function A'</span>)
+
+subplot(2,1,2)
+semilogy(n,difA,<span class="string">'rx-'</span>)
+xlabel(<span class="string">'n'</span>);
+ylabel(<span class="string">'n - (n-1)'</span>)
+title(<span class="string">'Error Reduction for increasing n'</span>)
+axis([n(1) n(end) -inf inf])
+</pre><pre class="codeoutput">Part A: n = 2 -&gt; area = 0.1594104309667113694715113
+Evaluations -&gt; 2
+Part A: n = 3 -&gt; area = 0.1605953868159704922558007
+Evaluations -&gt; 3
+Part A: n = 4 -&gt; area = 0.1606027775142595537261059
+Evaluations -&gt; 4
+Part A: n = 5 -&gt; area = 0.1606027941137231351831360
+Evaluations -&gt; 5
+
+</pre><img vspace="5" hspace="5" src="q2script_01.png" alt=""> <h2>Calculate Gaussian Quadratures for Function B<a name="12"></a></h2><pre class="codeinput">B = zeros(1,length(n));
+
+N_2b = (a1_2 * Fb(TtoX(root1_2)) + a2_2 * Fb(TtoX(root2_2))) * dx_t;
+fprintf(<span class="string">'Part B: n = 2 -&gt; area = %.25f\n'</span>,N_2b);
+fprintf(<span class="string">'Evaluations -&gt; 2\n'</span>);
+B(1) = N_2b;
+
+N_3b = (a1_3 * Fb(TtoX(root1_3)) + a2_3 * Fb(TtoX(root2_3)) + <span class="keyword">...</span>
+    a3_3 * Fb(TtoX(root3_3))) * dx_t;
+fprintf(<span class="string">'Part B: n = 3 -&gt; area = %.25f\n'</span>,N_3b);
+fprintf(<span class="string">'Evaluations -&gt; 3\n'</span>);
+B(2) = N_3b;
+
+N_4b = (a1_4 * Fb(TtoX(root1_4)) + a2_4 * Fb(TtoX(root2_4)) + <span class="keyword">...</span>
+    a3_4 * Fb(TtoX(root3_4)) + a4_4 * Fb(TtoX(root4_4))) * dx_t;
+fprintf(<span class="string">'Part B: n = 4 -&gt; area = %.25f\n'</span>,N_4b);
+fprintf(<span class="string">'Evaluations -&gt; 4\n'</span>);
+B(3) = N_4b;
+
+N_5b = (a1_5 * Fb(TtoX(root1_5)) + a2_5 * Fb(TtoX(root2_5)) + <span class="keyword">...</span>
+    a3_5 * Fb(TtoX(root3_5)) + a4_5 * Fb(TtoX(root4_5)) + <span class="keyword">...</span>
+    a5_5 * Fb(TtoX(root5_5))) * dx_t;
+fprintf(<span class="string">'Part B: n = 5 -&gt; area = %.25f\n'</span>,N_5b);
+fprintf(<span class="string">'Evaluations -&gt; 5\n\n'</span>);
+B(4) = N_5b;
+
+difB = zeros(1,length(n));
+<span class="keyword">for</span> i = 2:length(n)
+    difB(i) = abs(B(i) - B(i-1));
+<span class="keyword">end</span>
+
+figure()
+subplot(2,1,1)
+semilogy(n,B,<span class="string">'bo-'</span>)
+xlabel(<span class="string">'n - degree of legendre'</span>)
+ylabel(<span class="string">'A Quadrature'</span>)
+title(<span class="string">'Gaussian Quadrature of Function B'</span>)
+
+subplot(2,1,2)
+semilogy(n,difB,<span class="string">'rx-'</span>)
+xlabel(<span class="string">'n'</span>);
+ylabel(<span class="string">'n - (n-1)'</span>)
+title(<span class="string">'Error Reduction for increasing n'</span>)
+axis([n(1) n(end) -inf inf])
+</pre><pre class="codeoutput">Part B: n = 2 -&gt; area = 0.7597780222928949278582422
+Evaluations -&gt; 2
+Part B: n = 3 -&gt; area = 0.7538554699822079818716247
+Evaluations -&gt; 3
+Part B: n = 4 -&gt; area = 0.7519464766575401082349117
+Evaluations -&gt; 4
+Part B: n = 5 -&gt; area = 0.7511323126283468987196557
+Evaluations -&gt; 5
+
+</pre><img vspace="5" hspace="5" src="q2script_02.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Matt McFarland
+% E91, Lab 5, Question 2
+
+close all; clear all;
+
+%% Constants and In-Line Functions
+
+%%
+% *Functions*
+Fa = @(x) ((x.^2) .* exp(-x));
+Fb = @(x) (x.^(1/3));
+
+%%
+% *Constants*
+from        = 0;                    % start for integration, a
+to          = 1;                    % end for integration,   b
+n           = [2 3 4 5];            % degrees of Legendre Polynomials
+
+%% Load Legendre Polynomial Data 
+% Obtained in textbook. Table 4.12
+%
+% Column 1 = Degree
+%
+% Column 2 = Root
+%
+% Column 3 = Coefficient
+L = load('legendre.txt')
+
+%% Map Legendre Roots to [0 1]
+% 
+% $$ \int_{a}^{b} f(x)dx = \int_{-1}^{1}
+% f(\frac{(b-a)t+(b+a)}{2}) \frac{b-a}{2} dt $$
+%
+% Where a is 0 and b is 1.
+%
+% $$ \int_{-1}^{1} f(\frac{t+1}{2})\frac{1}{2} dt $$
+%
+% We can evaluate this transformed integral of f using the
+% Gaussian Quadrature formula
+TtoX = @(t) (1/2*(t+1));
+dx_t = (to - from)/2;
+
+%% 
+% Get Roots and Constants for n = 2
+a1_2 = L(1,3);
+a2_2 = L(2,3);
+
+root1_2 = L(1,2);
+root2_2 = L(2,2);
+%% 
+% Get Roots and Constants for n = 3
+a1_3 = L(3,3);
+a2_3 = L(4,3);
+a3_3 = L(5,3);
+
+root1_3 = L(3,2);
+root2_3 = L(4,2);
+root3_3 = L(5,2);
+%% 
+% Get Roots and Constants for n = 4
+a1_4 = L(6,3);
+a2_4 = L(7,3);
+a3_4 = L(8,3);
+a4_4 = L(9,3);
+
+root1_4 = L(6,2);
+root2_4 = L(7,2);
+root3_4 = L(8,2);
+root4_4 = L(9,2);
+%%
+% Get Roots and Constants for n = 5
+a1_5 = L(10,3);
+a2_5 = L(11,3);
+a3_5 = L(12,3);
+a4_5 = L(13,3);
+a5_5 = L(14,3);
+
+root1_5 = L(10,2);
+root2_5 = L(11,2);
+root3_5 = L(12,2);
+root4_5 = L(13,2);
+root5_5 = L(14,2);
+
+%% Calculate Guassian Quadratures for Function A
+A = zeros(1,length(n));
+
+N_2a = (a1_2 * Fa(TtoX(root1_2)) + a2_2 * Fa(TtoX(root2_2))) * dx_t;
+fprintf('Part A: n = 2 -> area = %.25f\n',N_2a);
+fprintf('Evaluations -> 2\n');
+A(1) = N_2a;
+
+N_3a = (a1_3 * Fa(TtoX(root1_3)) + a2_3 * Fa(TtoX(root2_3)) + ...
+    a3_3 * Fa(TtoX(root3_3))) * dx_t;
+fprintf('Part A: n = 3 -> area = %.25f\n',N_3a);
+fprintf('Evaluations -> 3\n');
+A(2) = N_3a;
+
+N_4a = (a1_4 * Fa(TtoX(root1_4)) + a2_4 * Fa(TtoX(root2_4)) + ...
+    a3_4 * Fa(TtoX(root3_4)) + a4_4 * Fa(TtoX(root4_4))) * dx_t;
+fprintf('Part A: n = 4 -> area = %.25f\n',N_4a);
+fprintf('Evaluations -> 4\n');
+A(3) = N_4a;
+
+N_5a = (a1_5 * Fa(TtoX(root1_5)) + a2_5 * Fa(TtoX(root2_5)) + ...
+    a3_5 * Fa(TtoX(root3_5)) + a4_5 * Fa(TtoX(root4_5)) + ...
+    a5_5 * Fa(TtoX(root5_5))) * dx_t;
+fprintf('Part A: n = 5 -> area = %.25f\n',N_5a);
+fprintf('Evaluations -> 5\n\n');
+A(4) = N_5a;
+
+difA = zeros(1,length(n));
+for i = 2:length(n)
+    difA(i) = abs(A(i) - A(i-1));
+end
+
+figure()
+subplot(2,1,1)
+semilogy(n,A,'bo-')
+xlabel('n - degree of legendre')
+ylabel('A Quadrature')
+title('Gaussian Quadrature of Function A')
+
+subplot(2,1,2)
+semilogy(n,difA,'rx-')
+xlabel('n');
+ylabel('n - (n-1)')
+title('Error Reduction for increasing n')
+axis([n(1) n(end) -inf inf])
+
+%% Calculate Gaussian Quadratures for Function B
+B = zeros(1,length(n));
+
+N_2b = (a1_2 * Fb(TtoX(root1_2)) + a2_2 * Fb(TtoX(root2_2))) * dx_t;
+fprintf('Part B: n = 2 -> area = %.25f\n',N_2b);
+fprintf('Evaluations -> 2\n');
+B(1) = N_2b;
+
+N_3b = (a1_3 * Fb(TtoX(root1_3)) + a2_3 * Fb(TtoX(root2_3)) + ...
+    a3_3 * Fb(TtoX(root3_3))) * dx_t;
+fprintf('Part B: n = 3 -> area = %.25f\n',N_3b);
+fprintf('Evaluations -> 3\n');
+B(2) = N_3b;
+
+N_4b = (a1_4 * Fb(TtoX(root1_4)) + a2_4 * Fb(TtoX(root2_4)) + ...
+    a3_4 * Fb(TtoX(root3_4)) + a4_4 * Fb(TtoX(root4_4))) * dx_t;
+fprintf('Part B: n = 4 -> area = %.25f\n',N_4b);
+fprintf('Evaluations -> 4\n');
+B(3) = N_4b;
+
+N_5b = (a1_5 * Fb(TtoX(root1_5)) + a2_5 * Fb(TtoX(root2_5)) + ...
+    a3_5 * Fb(TtoX(root3_5)) + a4_5 * Fb(TtoX(root4_5)) + ...
+    a5_5 * Fb(TtoX(root5_5))) * dx_t;
+fprintf('Part B: n = 5 -> area = %.25f\n',N_5b);
+fprintf('Evaluations -> 5\n\n');
+B(4) = N_5b;
+
+difB = zeros(1,length(n));
+for i = 2:length(n)
+    difB(i) = abs(B(i) - B(i-1));
+end
+
+figure()
+subplot(2,1,1)
+semilogy(n,B,'bo-')
+xlabel('n - degree of legendre')
+ylabel('A Quadrature')
+title('Gaussian Quadrature of Function B')
+
+subplot(2,1,2)
+semilogy(n,difB,'rx-')
+xlabel('n');
+ylabel('n - (n-1)')
+title('Error Reduction for increasing n')
+axis([n(1) n(end) -inf inf])
+##### SOURCE END #####
+--></body></html>

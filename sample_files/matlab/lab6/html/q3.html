@@ -1,0 +1,367 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q3</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-11-03"><meta name="DC.source" content="q3.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Matt McFarland</a></li><li><a href="#3">Define Constants and Equations</a></li><li><a href="#4">Solve for each value of 'a'</a></li></ul></div><h2>Matt McFarland<a name="1"></a></h2><p>ENGS 91, lab 6, question 3</p><pre class="codeinput"><span class="keyword">function</span> [] = q3()
+</pre><pre class="codeinput">close <span class="string">all</span>;clear <span class="string">all</span>;
+</pre><h2>Define Constants and Equations<a name="3"></a></h2><pre class="codeinput">a           = [.5 1.5 2.5 3.5];
+y0          = 0.0;
+y0_prime    = 0.1;
+
+t_0         = 0;        <span class="comment">% start time</span>
+t_end       = 100;      <span class="comment">% end time</span>
+step_size   = .01;       <span class="comment">% step size of .01 (unitless)</span>
+fprintf(<span class="string">'step size is %f\n'</span>, step_size);
+
+len         = length(a);
+
+ODEfunc     = @(a,y_p,y) (a .* y_p - y_p.^3 - y);  <span class="comment">% solving this</span>
+</pre><pre class="codeoutput">step size is 0.010000
+</pre><h2>Solve for each value of 'a'<a name="4"></a></h2><pre class="codeinput">figure()
+hold <span class="string">on</span>
+    <span class="keyword">for</span> i = 1:len
+        solutions = q3solve(a(i),step_size,t_0,t_end,ODEfunc, y0, y0_prime);
+
+        voltage = solutions(:,2);
+        current = solutions(:,3);
+
+        plot(current,voltage);
+    <span class="keyword">end</span>
+hold <span class="string">off</span>
+
+xlabel(<span class="string">'current'</span>)
+ylabel(<span class="string">'voltage'</span>)
+title(<span class="string">'Solutions to V vs I for various a values'</span>);
+legend(<span class="string">'a = .5'</span>, <span class="string">'a = 1.5'</span>, <span class="string">'a = 2.5'</span>, <span class="string">'a = 3.5'</span>)
+</pre><img vspace="5" hspace="5" src="q3_02.png" alt=""> <pre class="codeinput"><span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="q3_01.png" alt=""> <p>Function to solve this ODE system for a given a value  outputs n x 4 matrix  Column 1 = t value  Column 2 = y value               --- Z1  Column 3 = y prime value         --- Z2 and Z1'  Column 4 = y double prime value  --- Z2'</p><pre class="codeinput"><span class="keyword">function</span> [solution] = q3solve(a,h,t_start,t_end,RateFunc, y0, yp0)
+<span class="comment">% Use AB - AM 4 step predictor - corrector scheme</span>
+
+    points = (t_end - t_start) / h + 1;     <span class="comment">% number of points to solve for</span>
+    solution = zeros(points,4);
+
+    <span class="comment">% set first row</span>
+    solution(1,1) = t_start;
+    solution(1,2) = y0;         <span class="comment">% Z1</span>
+    solution(1,3) = yp0;        <span class="comment">% Z2</span>
+    solution(1,4) = RateFunc(a,yp0,y0);
+
+    <span class="comment">% Part 1 - use RK40 to get first 4 initial values</span>
+    <span class="keyword">for</span> i = 1:3
+        solution(i+1,1) = solution(i,1) + h; <span class="comment">% update time value</span>
+        Z2_start = solution(i,3);
+        Z1_start = solution(i,2);
+
+        [Z2_next, Z1_next] = q3RK4O(RateFunc,Z2_start,Z1_start,h,a);
+        solution(i+1,3) = Z2_next;   <span class="comment">% Z2 next</span>
+        solution(i+1,2) = Z1_next;   <span class="comment">% Z1 next</span>
+        solution(i+1,4) = RateFunc(a,Z2_next,Z1_next); <span class="comment">% Z2 prime next</span>
+    <span class="keyword">end</span>
+
+    <span class="comment">% Part 2 - get predicted values</span>
+    <span class="keyword">for</span> i = 4:points-1
+
+        <span class="comment">% Get Z1 values needed to solve for the next predicted Z1.</span>
+        Z1_cur      = solution(i,2);
+        Z1_back1    = solution(i-1,2);
+        Z1_back2    = solution(i-2,2);
+        Z1_back3    = solution(i-3,2);
+
+        <span class="comment">% Get Z2 values needed to solve for</span>
+        Z2_cur      = solution(i,3);       <span class="comment">% Z2 is Z1'</span>
+        Z2_back1    = solution(i-1,3);
+        Z2_back2    = solution(i-2,3);
+        Z2_back3    = solution(i-3,3);
+
+        <span class="comment">% Calculate rate function for Z2</span>
+        f_Z2_cur    = RateFunc(a,Z2_cur,Z1_cur);
+        f_Z2_back1  = RateFunc(a,Z2_back1,Z1_back1);
+        f_Z2_back2  = RateFunc(a,Z2_back2,Z1_back2);
+        f_Z2_back3  = RateFunc(a,Z2_back3,Z1_back3);
+
+        <span class="comment">% predict next Z2</span>
+        Z2_next_p   = ABFourStep(h, Z2_cur, f_Z2_cur, f_Z2_back1, <span class="keyword">...</span>
+            f_Z2_back2, f_Z2_back3);
+
+        <span class="comment">% predict next Z1</span>
+        Z1_next_p   = ABFourStep(h, Z1_cur, Z2_cur, Z2_back1, <span class="keyword">...</span>
+            Z2_back2, Z2_back3);
+
+        <span class="comment">% get rate function evaluated at predicted values</span>
+        f_Z2_predict = RateFunc(a, Z2_next_p, Z1_next_p);
+
+        <span class="comment">% correct next Z2</span>
+        Z2_next_corrected = AMFourStep(h, Z2_cur, f_Z2_predict, <span class="keyword">...</span>
+            f_Z2_cur, f_Z2_back1, f_Z2_back2, f_Z2_back3);
+
+        <span class="comment">% Now correct Z1</span>
+        Z1_next_corrected = AMFourStep(h, Z1_cur, Z2_next_corrected, <span class="keyword">...</span>
+            Z2_cur, Z2_back1, Z2_back2, Z2_back3);
+
+        <span class="comment">% Save Values</span>
+        solution(i+1,1) = solution(i,1) + h;
+        solution(i+1,2) = Z1_next_corrected;
+        solution(i+1,3) = Z2_next_corrected;
+        solution(i+1,4) = f_Z2_predict;
+
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><p>Adams-Bashforth Four Step method. Must have values of the ODE computed. Predicts the next w_i+1 to use in the AM 4 step method</p><pre class="codeinput"><span class="keyword">function</span> [AB_next] = ABFourStep(h, w_cur, f_cur, f_back, f_back2, f_back3)
+
+    AB_next = w_cur + h/24 .* (55 * f_cur - 59 * f_back + <span class="keyword">...</span>
+        37 * f_back2 - 9 * f_back3);
+<span class="keyword">end</span>
+</pre><p>Adams-Moulton Four Step method. Must have values of ODE computed before. Uses prediction form ABFourStep to correct and get better w_i+1</p><pre class="codeinput"><span class="keyword">function</span> [AM_next] = AMFourStep(h, w_cur, f_forward, f_cur, f_back, f_back2, f_back3)
+
+    AM_next = w_cur + h/720 .* (251 * f_forward + 646 * f_cur <span class="keyword">...</span>
+        - 264 * f_back + 106 * f_back2 - 19 * f_back3);
+<span class="keyword">end</span>
+</pre><p>Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size modified for this assignment and rate function</p><pre class="codeinput"><span class="keyword">function</span> [Z2_next, Z1_next] = q3RK4O(RateFunc,Z2,Z1,h,a)
+    V1 = RateFunc(a,Z2,Z1);
+    R1 = Z2;
+
+    V2 = RateFunc(a, Z2 + h/2 * V1, Z1 + h/2 * R1);
+    <span class="comment">%R3 = Z2;</span>
+    R2 = Z2 + h/2 * V1;
+
+    V3 = RateFunc(a, Z2 + h/2 * V2, Z1 + h/2 * R2);
+    <span class="comment">%R3 = Z2;</span>
+    R3 = Z2 + h/2 * V2;
+
+    V4 = RateFunc(a, Z2 + h * V3, Z1 + h * R3);
+    <span class="comment">%R4 = Z2;</span>
+    R4 = Z2 + h * V3;
+
+    Z2_next = Z2 + h/6 * (V1 + 2*(V2 + V3) + V4);
+    Z1_next = Z1 + h/6 * (R1 + 2*(R2 + R3) + R4);
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Matt McFarland
+% ENGS 91, lab 6, question 3
+
+function [] = q3()
+close all;clear all;
+%% Define Constants and Equations
+a           = [.5 1.5 2.5 3.5];
+y0          = 0.0;
+y0_prime    = 0.1;
+
+t_0         = 0;        % start time
+t_end       = 100;      % end time
+step_size   = .01;       % step size of .01 (unitless)
+fprintf('step size is %f\n', step_size);
+
+len         = length(a);
+
+ODEfunc     = @(a,y_p,y) (a .* y_p - y_p.^3 - y);  % solving this
+
+%% Solve for each value of 'a'
+figure()
+hold on
+    for i = 1:len
+        solutions = q3solve(a(i),step_size,t_0,t_end,ODEfunc, y0, y0_prime);
+
+        voltage = solutions(:,2);
+        current = solutions(:,3);
+        
+        plot(current,voltage);
+    end
+hold off
+
+xlabel('current')
+ylabel('voltage')
+title('Solutions to V vs I for various a values');
+legend('a = .5', 'a = 1.5', 'a = 2.5', 'a = 3.5')
+
+end
+
+%%
+% Function to solve this ODE system for a given a value
+%  outputs n x 4 matrix 
+%  Column 1 = t value
+%  Column 2 = y value               REPLACE_WITH_DASH_DASH- Z1
+%  Column 3 = y prime value         REPLACE_WITH_DASH_DASH- Z2 and Z1'
+%  Column 4 = y double prime value  REPLACE_WITH_DASH_DASH- Z2'
+function [solution] = q3solve(a,h,t_start,t_end,RateFunc, y0, yp0)
+% Use AB - AM 4 step predictor - corrector scheme
+
+    points = (t_end - t_start) / h + 1;     % number of points to solve for
+    solution = zeros(points,4);
+    
+    % set first row
+    solution(1,1) = t_start;
+    solution(1,2) = y0;         % Z1
+    solution(1,3) = yp0;        % Z2
+    solution(1,4) = RateFunc(a,yp0,y0);
+    
+    % Part 1 - use RK40 to get first 4 initial values
+    for i = 1:3
+        solution(i+1,1) = solution(i,1) + h; % update time value
+        Z2_start = solution(i,3);
+        Z1_start = solution(i,2);
+        
+        [Z2_next, Z1_next] = q3RK4O(RateFunc,Z2_start,Z1_start,h,a);
+        solution(i+1,3) = Z2_next;   % Z2 next
+        solution(i+1,2) = Z1_next;   % Z1 next
+        solution(i+1,4) = RateFunc(a,Z2_next,Z1_next); % Z2 prime next
+    end
+    
+    % Part 2 - get predicted values
+    for i = 4:points-1
+            
+        % Get Z1 values needed to solve for the next predicted Z1. 
+        Z1_cur      = solution(i,2);
+        Z1_back1    = solution(i-1,2);
+        Z1_back2    = solution(i-2,2);
+        Z1_back3    = solution(i-3,2);
+        
+        % Get Z2 values needed to solve for 
+        Z2_cur      = solution(i,3);       % Z2 is Z1'
+        Z2_back1    = solution(i-1,3);
+        Z2_back2    = solution(i-2,3);
+        Z2_back3    = solution(i-3,3);
+        
+        % Calculate rate function for Z2
+        f_Z2_cur    = RateFunc(a,Z2_cur,Z1_cur);
+        f_Z2_back1  = RateFunc(a,Z2_back1,Z1_back1);
+        f_Z2_back2  = RateFunc(a,Z2_back2,Z1_back2);
+        f_Z2_back3  = RateFunc(a,Z2_back3,Z1_back3);
+       
+        % predict next Z2
+        Z2_next_p   = ABFourStep(h, Z2_cur, f_Z2_cur, f_Z2_back1, ...
+            f_Z2_back2, f_Z2_back3);        
+        
+        % predict next Z1
+        Z1_next_p   = ABFourStep(h, Z1_cur, Z2_cur, Z2_back1, ...
+            Z2_back2, Z2_back3);
+
+        % get rate function evaluated at predicted values
+        f_Z2_predict = RateFunc(a, Z2_next_p, Z1_next_p);
+        
+        % correct next Z2
+        Z2_next_corrected = AMFourStep(h, Z2_cur, f_Z2_predict, ...
+            f_Z2_cur, f_Z2_back1, f_Z2_back2, f_Z2_back3);
+        
+        % Now correct Z1
+        Z1_next_corrected = AMFourStep(h, Z1_cur, Z2_next_corrected, ...
+            Z2_cur, Z2_back1, Z2_back2, Z2_back3);
+        
+        % Save Values
+        solution(i+1,1) = solution(i,1) + h;
+        solution(i+1,2) = Z1_next_corrected;
+        solution(i+1,3) = Z2_next_corrected;
+        solution(i+1,4) = f_Z2_predict;
+        
+    end
+    
+end
+
+%%
+% Adams-Bashforth Four Step method. Must have values of the ODE computed.
+% Predicts the next w_i+1 to use in the AM 4 step method
+function [AB_next] = ABFourStep(h, w_cur, f_cur, f_back, f_back2, f_back3)
+
+    AB_next = w_cur + h/24 .* (55 * f_cur - 59 * f_back + ...
+        37 * f_back2 - 9 * f_back3);
+end
+
+%%
+% Adams-Moulton Four Step method. Must have values of ODE computed before.
+% Uses prediction form ABFourStep to correct and get better w_i+1
+function [AM_next] = AMFourStep(h, w_cur, f_forward, f_cur, f_back, f_back2, f_back3)
+
+    AM_next = w_cur + h/720 .* (251 * f_forward + 646 * f_cur ...
+        - 264 * f_back + 106 * f_back2 - 19 * f_back3);
+end
+
+%% 
+% Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size
+% modified for this assignment and rate function
+function [Z2_next, Z1_next] = q3RK4O(RateFunc,Z2,Z1,h,a)
+    V1 = RateFunc(a,Z2,Z1);
+    R1 = Z2;
+    
+    V2 = RateFunc(a, Z2 + h/2 * V1, Z1 + h/2 * R1);
+    %R3 = Z2;
+    R2 = Z2 + h/2 * V1;
+    
+    V3 = RateFunc(a, Z2 + h/2 * V2, Z1 + h/2 * R2);
+    %R3 = Z2;
+    R3 = Z2 + h/2 * V2;
+    
+    V4 = RateFunc(a, Z2 + h * V3, Z1 + h * R3);
+    %R4 = Z2;
+    R4 = Z2 + h * V3;
+    
+    Z2_next = Z2 + h/6 * (V1 + 2*(V2 + V3) + V4);
+    Z1_next = Z1 + h/6 * (R1 + 2*(R2 + R3) + R4);
+end
+
+##### SOURCE END #####
+--></body></html>

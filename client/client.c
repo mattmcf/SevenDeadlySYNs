@@ -174,7 +174,7 @@ char * tilde_expand(char * original_path) {
 	expanded_string = strdup(exp_result.we_wordv[0]);
 	wordfree(&exp_result);
 
-	printf("expanded_string: %s\n", expanded_string);
+	printf("expanded_string %s\n", expanded_string);
   	return expanded_string;
 }
 

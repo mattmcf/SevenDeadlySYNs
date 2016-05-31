@@ -1,0 +1,695 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q4script</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-10-26"><meta name="DC.source" content="q4script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Matt McFarland</a></li><li><a href="#3">Define Constants and Functions</a></li><li><a href="#7">EULER'S METHOD</a></li><li><a href="#10">Calculate Solutions for Other Solution Methods</a></li><li><a href="#15">Plot Inverse of Delta T vs. Error Magnitude (log-log)</a></li><li><a href="#23">Generic ODE Solution Function and Specific Solution Functions</a></li><li><a href="#28">A-B / A-M 2-Step Predictor Corrector Solution to ODE</a></li></ul></div><h2>Matt McFarland<a name="1"></a></h2><p>E91, lab 5, question 4</p><pre class="codeinput"><span class="keyword">function</span> [] = q4script()
+</pre><pre class="codeinput">    close <span class="string">all</span>; clear <span class="string">all</span>;
+</pre><h2>Define Constants and Functions<a name="3"></a></h2><p><b>Constants</b></p><pre class="codeinput">    start_t     = 1;
+    end_t       = 2;
+    start_y     = -1;
+
+    n_end       = 15;
+    n           = 0:n_end;
+    methods     = 5;
+</pre><p><b>Functions</b></p><pre class="codeinput">    Rate        = @(y,t)    1 ./ t^2 - y ./ t - y.^2;
+    Y           = @(t)      -1 ./ t;         <span class="comment">% Real Solution</span>
+    StepSize    = @(n)      .2 .* (2.^-n);   <span class="comment">% Step size (delta t)</span>
+</pre><p><b>ODE Solution Functions</b></p><pre class="codeinput">    EulerFunc       = @Euler;           <span class="comment">% Single Step</span>
+    MidpointFunc    = @Midpoint;        <span class="comment">% "</span>
+    ModEulerFunc    = @ModifiedEuler;   <span class="comment">% "</span>
+    RK4OFunc        = @RK4O;            <span class="comment">% "</span>
+    TwoStepFunc     = @TwoStep;         <span class="comment">% Multi-Step</span>
+</pre><pre>Create an error storage matrix for error of given method at t = 2</pre><pre>Row signifies step size (n-1)
+Column 1 = Y(t=2)
+Column 2 = 1 / Delta t which is inverse of stepsize
+Column 3 = Eulers Method
+Column 4 = Midpoint Method
+Column 5 = Modified Euler's Method
+Column 6 = 2-Step A-B/A-M Method (1 correction)
+Column 7 = Runge-Kutta 4th Order</pre><pre class="codeinput">    errors      = zeros(length(n),methods+2);
+    errors(:,1) = Y(end_t);
+    errors(:,2) = (1 ./ StepSize(n))';
+
+    t = linspace(start_t,end_t,100); <span class="comment">% Trace exact solutions for plotting</span>
+    y = Y(t);
+</pre><h2>EULER'S METHOD<a name="7"></a></h2><pre class="codeinput">    [Euler_t, Euler_y] = SolveODE(Rate, EulerFunc, StepSize, start_y, start_t, end_t, n_end);
+</pre><pre>Plot Euler Method Results</pre><pre class="codeinput">    figure(1)
+    hold <span class="string">on</span>
+    plot(t,y,<span class="string">'k'</span>);                <span class="comment">% Real Solution</span>
+    legend_str1{1} = <span class="string">'Exact'</span>;
+
+    <span class="keyword">for</span> i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+        plot(Euler_t(i,1:points) , Euler_y(i,1:points),<span class="string">'x'</span>)
+        legend_str1{i+1} = sprintf(<span class="string">'Euler n = %d'</span>,n(i));
+    <span class="keyword">end</span>
+    hold <span class="string">off</span>
+    legend(legend_str1,<span class="string">'Location'</span>,<span class="string">'southeast'</span>);
+    axis([start_t end_t -1 -.3])
+    xlabel(<span class="string">'t'</span>)
+    ylabel(<span class="string">'y'</span>)
+    title_str = title(<span class="string">'Euler Methods Approximations for stepsize $ \frac{1}{5*2^n} $'</span>);
+    set(title_str,<span class="string">'Interpreter'</span>,<span class="string">'Latex'</span>,<span class="string">'FontSize'</span>,15)
+</pre><img vspace="5" hspace="5" src="q4script_01.png" alt=""> <pre>Plot Errors for Euler's N methods</pre><pre class="codeinput">    figure(2)
+    hold <span class="string">on</span>
+    <span class="keyword">for</span> i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+        plot(Euler_t(i,1:points),log(abs(Y(Euler_t(i,1:points)) - <span class="keyword">...</span>
+            Euler_y(i,1:points))), <span class="string">'x'</span>)
+        <span class="comment">% Lose first point at t = 0 because log (0) isn't displayed</span>
+    <span class="keyword">end</span>
+    hold <span class="string">off</span>
+    legend(legend_str1{2:end},<span class="string">'Location'</span>,<span class="string">'southeast'</span>);
+    xlabel(<span class="string">'t'</span>)
+    ylabel(<span class="string">'log |Y(t) - Y_n(t)|'</span>)
+    title(<span class="string">'Log of Error Magnitude of Euler Approximation'</span>)
+</pre><img vspace="5" hspace="5" src="q4script_02.png" alt=""> <h2>Calculate Solutions for Other Solution Methods<a name="10"></a></h2><pre>MIDPOINT METHOD</pre><pre class="codeinput">    [Mid_t, Mid_y] = SolveODE(Rate, MidpointFunc, StepSize, <span class="keyword">...</span>
+        start_y, start_t, end_t, n_end);
+</pre><pre>MODIFIED EULER'S METHOD</pre><pre class="codeinput">    [ModdedEuler_t, ModdedEuler_y] = SolveODE(Rate, ModEulerFunc, <span class="keyword">...</span>
+        StepSize, start_y, start_t, end_t, n_end);
+</pre><pre>RUNGE-KUTTA 4th ORDER METHOD</pre><pre class="codeinput">    [RK_t, RK_y] = SolveODE(Rate, RK4OFunc, StepSize, start_y, <span class="keyword">...</span>
+        start_t, end_t, n_end);
+</pre><pre>A-B / A-M TWO STEP PREDICTOR-CORRECTOR SCHEME</pre><pre class="codeinput">    [TS_t, TS_y] = TwoStep(Rate, StepSize, start_y, start_t, end_t, n_end);
+</pre><pre>Store errors at t = 2 for each method for the given n</pre><pre class="codeinput">    <span class="keyword">for</span> i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+
+        errors(i,3) = abs(errors(i,1) - Euler_y(i,points));
+        errors(i,4) = abs(errors(i,1) - Mid_y(i,points));
+        errors(i,5) = abs(errors(i,1) - ModdedEuler_y(i,points));
+        errors(i,6) = abs(errors(i,1) - TS_y(i,points));
+        errors(i,7) = abs(errors(i,1) - RK_y(i,points));
+    <span class="keyword">end</span>
+</pre><h2>Plot Inverse of Delta T vs. Error Magnitude (log-log)<a name="15"></a></h2><p>X values are calculated (use for slope calculation)</p><pre class="codeinput">    log_x           = log(errors(:,2));
+    log_vals        = log(errors(:,3:7));
+
+    figure(3)
+    hold <span class="string">on</span>
+    <span class="keyword">for</span> m = 1:methods
+        plot(log_x,log_vals(:,m),<span class="string">'o-'</span>)
+    <span class="keyword">end</span>
+    hold <span class="string">off</span>
+    grid <span class="string">on</span>
+    legend(<span class="string">'Euler'</span>,<span class="string">'Midpoint'</span>,<span class="string">'Modded Euler'</span>,<span class="string">'A-B / A-M'</span>, <span class="string">'RK_4O'</span>, <span class="keyword">...</span>
+        <span class="string">'Location'</span>,<span class="string">'southwest'</span>);
+    xlabel(<span class="string">'log $\frac{1}{\Delta t}$'</span>,<span class="string">'Interpreter'</span>,<span class="string">'Latex'</span>,<span class="string">'FontSize'</span>,15);
+    ylabel(<span class="string">'log| y(2) - w(2) |'</span>)
+    title(<span class="string">'Magnitude of Slope Indicates Order of Error Reduction'</span>)
+</pre><img vspace="5" hspace="5" src="q4script_03.png" alt=""> <pre>Tabulated log of errors between Y(2) and approximated Y(2)
+Calculated shows degree to which error is decreasing as a function
+of h. Use first 3 point and s points because linear behavior is constant
+end points hit machine limit of precision (RK4O, Midpoint and
+TwoStep).</pre><pre class="codeinput">    s = 5;              <span class="comment">% point to calculate slope at (from third to s)</span>
+</pre><pre>Euler's Method</pre><pre class="codeinput">    Euler_log_errors = log(errors(:,3))
+    Euler_slope = (log_vals(s,1) - log_vals(1,1)) / (log_x(s) - log_x(1))
+</pre><pre class="codeoutput">
+Euler_log_errors =
+
+   -2.1960
+   -2.8671
+   -3.5481
+   -4.2347
+   -4.9245
+   -5.6159
+   -6.3082
+   -7.0009
+   -7.6938
+   -8.3869
+   -9.0800
+   -9.7731
+  -10.4662
+  -11.1594
+  -11.8525
+  -12.5456
+
+
+Euler_slope =
+
+   -0.9841
+
+</pre><pre>MidPoint Method</pre><pre class="codeinput">    MidPoint_log_errors = log(errors(:,4))
+    Midpoint_slope = (log_vals(s,2) - log_vals(1,2)) / (log_x(s) - log_x(1))
+</pre><pre class="codeoutput">
+MidPoint_log_errors =
+
+   -7.2572
+   -9.2766
+  -11.3354
+  -13.4071
+  -15.4833
+  -17.5612
+  -19.6400
+  -21.7191
+  -23.7984
+  -25.8774
+  -27.9508
+  -30.0610
+  -31.8966
+  -32.8148
+  -31.3826
+  -32.1069
+
+
+Midpoint_slope =
+
+   -2.9669
+
+</pre><pre>Modifed Euler's Method</pre><pre class="codeinput">    ModdedEuler_log_errors = log(errors(:,5))
+    ModdedEuler_slope = (log_vals(s+2,3) - log_vals(1+2,3)) / (log_x(s+2) - log_x(1+2))
+</pre><pre class="codeoutput">
+ModdedEuler_log_errors =
+
+   -4.1056
+   -5.4163
+   -6.7729
+   -8.1466
+   -9.5271
+  -10.9107
+  -12.2956
+  -13.6813
+  -15.0672
+  -16.4534
+  -17.8396
+  -19.2258
+  -20.6121
+  -21.9984
+  -23.3848
+  -24.7705
+
+
+ModdedEuler_slope =
+
+   -1.9919
+
+</pre><pre>A-B / A-M Two Step, Predictor Corrector (One Correction)</pre><pre class="codeinput">    TwoStep_log_errors = log(errors(:,6))
+    TwoStep_slope = (log_vals(s,4) - log_vals(1,4)) / (log_x(s) - log_x(1))
+</pre><pre class="codeoutput">
+TwoStep_log_errors =
+
+   -5.8045
+   -7.5239
+   -9.4153
+  -11.3985
+  -13.4293
+  -15.4843
+  -17.5515
+  -19.6248
+  -21.7012
+  -23.7791
+  -25.8580
+  -27.9349
+  -29.9916
+  -32.9526
+  -31.4114
+  -32.1777
+
+
+TwoStep_slope =
+
+   -2.7501
+
+</pre><pre>Runge-Kutta Fourth Order</pre><pre class="codeinput">    RK4O_log_errors = (errors(:,7))
+    RK4O_slope = (log_vals(s,5) - log_vals(1,5)) / (log_x(s) - log_x(1))
+</pre><pre class="codeoutput">
+RK4O_log_errors =
+
+   1.0e-04 *
+
+    0.5452
+    0.0380
+    0.0025
+    0.0002
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+    0.0000
+
+
+RK4O_slope =
+
+   -3.9358
+
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><h2>Generic ODE Solution Function and Specific Solution Functions<a name="23"></a></h2><pre>Generic Single Step Solution method solves ODE given a solution method
+Outputs a n X 2^n matrix of solution values
+where for values(row, column)
+Row is the n in the step size calculation
+Column is the ith step</pre><pre>Can be applied for Single Step solution functions</pre><pre class="codeinput"><span class="keyword">function</span> [t, y] = SolveODE(RateFunc,SolutionFunc,StepFunc,y_0,t_0,t_end,n_max)
+    <span class="comment">% --- INPUTS ---</span>
+    <span class="comment">% RateFunc      = ODE to evaluate</span>
+    <span class="comment">% SolutionFunc  = calculates w_i+1</span>
+    <span class="comment">% StepFunc      = calculates Delta t for given n</span>
+    <span class="comment">% y_0           = initial y coordinate</span>
+    <span class="comment">% t_0           = initial t coordinate</span>
+    <span class="comment">% t_end         = final t coordinate to solve ODE at</span>
+    <span class="comment">% n_max         = solve for n = 0, 1, 3 ... n_max</span>
+
+    <span class="comment">% --- OUTPUTS ---</span>
+    <span class="comment">% t             = (n_max + 1) X 2^n_max matrix with solutions t values</span>
+    <span class="comment">% y             = (n_max + 1) X 2^n_max matrix with solutions y values</span>
+
+    <span class="comment">% Find out how many steps will be needed for the n_max method</span>
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    t = zeros(n_max + 1, max_len);
+    y = zeros(n_max + 1, max_len);
+
+    t(:,1) = t_0;
+    y(:,1) = y_0;
+
+    n = 0:n_max;
+
+    <span class="comment">% Calculate Solutions iterations for each n value</span>
+    <span class="keyword">for</span> i = 1:length(n)
+        delta_t = StepFunc(n(i));
+        steps = (t_end - t_0) / delta_t;
+        <span class="keyword">for</span> j = 1:steps
+            t(i,j+1) = t(i,1) + j * delta_t;
+            y(i,j+1) = SolutionFunc(RateFunc,y(i,j),t(i,j),delta_t);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><p>Euler's Method for calculating the next y value for a given rate function, current (y,t), and step size</p><pre class="codeinput"><span class="keyword">function</span> [next_y] = Euler(RateFunc,y,t,step)
+    next_y = RateFunc(y,t) * step + y;
+<span class="keyword">end</span>
+</pre><p>Midpoint Method for solving ODE given rate function, current (y,t) and step size</p><pre class="codeinput"><span class="keyword">function</span> [next_y] = Midpoint(RateFunc,y,t,step)
+    f_i             = RateFunc(y,t);
+    midpoint_rate   = RateFunc(y + step/2 * f_i, t + step/2);
+    next_y          = y + step * midpoint_rate;
+<span class="keyword">end</span>
+</pre><p>Midpoint Method for solving ODE given rate function, current (y,t) and step size</p><pre class="codeinput"><span class="keyword">function</span> [next_y] = ModifiedEuler(RateFunc,y,t,step)
+    f_i             = RateFunc(y,t);
+    f_next          = RateFunc(y + step * f_i, t + step);
+    next_y          = y + step/2 * (f_i + f_next);
+<span class="keyword">end</span>
+</pre><p>Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size</p><pre class="codeinput"><span class="keyword">function</span> [next_y] = RK4O(RateFunc,y,t,step)
+    f1              = RateFunc(y,t);
+    f2              = RateFunc(y + step/2 * f1, t + step/2);
+    f3              = RateFunc(y + step/2 * f2, t + step/2);
+    f4              = RateFunc(y + step * f3, t + step);
+
+    next_y          = y + step/6 * (f1 + 2*(f2 + f3) + f4);
+<span class="keyword">end</span>
+</pre><h2>A-B / A-M 2-Step Predictor Corrector Solution to ODE<a name="28"></a></h2><pre>Uses Runge-Kutta Fourth Order method to get y_1 (second point)</pre><pre class="codeinput"><span class="keyword">function</span> [TwoStep_t, TwoStep_y] = TwoStep(RateFunc, StepFunc, y_0, t_0, t_end, n_max)
+
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    TwoStep_t = zeros(n_max + 1, max_len);
+    TwoStep_y = zeros(n_max + 1, max_len);
+
+    TwoStep_t(:,1) = t_0;
+    TwoStep_y(:,1) = y_0;
+
+    n = 0:n_max;
+
+    <span class="comment">% For each n (stepsize)</span>
+    <span class="keyword">for</span> i = 1:length(n)
+        delta_t         = StepFunc(n(i));
+        steps           = (t_end - t_0) / delta_t;
+
+        <span class="comment">% Use RK40 for a single step to get f_1</span>
+        TwoStep_y(i,2)  = RK4O(RateFunc,y_0,t_0,delta_t);
+        TwoStep_t(i,2)  = TwoStep_t(i,1) + delta_t;
+
+        <span class="comment">% Calculate using prediction - correction with 1 correction</span>
+        <span class="keyword">for</span> j = 2:steps
+            TwoStep_t(i,j+1) = TwoStep_t(i,1) + j * delta_t;
+
+            f_cur       = RateFunc( TwoStep_y(i,j),   TwoStep_t(i,j)   );
+            f_back      = RateFunc( TwoStep_y(i,j-1), TwoStep_t(i,j-1) );
+            predict     = TwoStep_y(i,j) + delta_t/2 * (3 * f_cur - f_back);
+            correct     = RateFunc( predict, TwoStep_t(i,j+1) );
+
+            TwoStep_y(i,j+1) = TwoStep_y(i,j) + <span class="keyword">...</span>
+                delta_t/12 * (5 * correct + 8 * f_cur - f_back);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Matt McFarland
+%
+% E91, lab 5, question 4
+%
+
+function [] = q4script()
+    close all; clear all;
+    
+    %% Define Constants and Functions
+    % 
+    % *Constants*
+    
+    start_t     = 1;
+    end_t       = 2;
+    start_y     = -1; 
+
+    n_end       = 15;
+    n           = 0:n_end;
+    methods     = 5;
+
+    
+    %%
+    % *Functions*
+    
+    Rate        = @(y,t)    1 ./ t^2 - y ./ t - y.^2;
+    Y           = @(t)      -1 ./ t;         % Real Solution
+    StepSize    = @(n)      .2 .* (2.^-n);   % Step size (delta t)
+    
+    %%
+    % *ODE Solution Functions*
+    
+    EulerFunc       = @Euler;           % Single Step
+    MidpointFunc    = @Midpoint;        % "
+    ModEulerFunc    = @ModifiedEuler;   % "
+    RK4OFunc        = @RK4O;            % "
+    TwoStepFunc     = @TwoStep;         % Multi-Step
+    
+    %% 
+    %  Create an error storage matrix for error of given method at t = 2 
+    %
+    %  Row signifies step size (n-1) 
+    %  Column 1 = Y(t=2)  
+    %  Column 2 = 1 / Delta t which is inverse of stepsize
+    %  Column 3 = Eulers Method 
+    %  Column 4 = Midpoint Method 
+    %  Column 5 = Modified Euler's Method 
+    %  Column 6 = 2-Step A-B/A-M Method (1 correction) 
+    %  Column 7 = Runge-Kutta 4th Order 
+    
+    errors      = zeros(length(n),methods+2);
+    errors(:,1) = Y(end_t);
+    errors(:,2) = (1 ./ StepSize(n))';
+    
+    t = linspace(start_t,end_t,100); % Trace exact solutions for plotting
+    y = Y(t);
+    
+    %% EULER'S METHOD
+    [Euler_t, Euler_y] = SolveODE(Rate, EulerFunc, StepSize, start_y, start_t, end_t, n_end);
+    
+    %%
+    %  Plot Euler Method Results
+    figure(1)
+    hold on
+    plot(t,y,'k');                % Real Solution
+    legend_str1{1} = 'Exact';
+    
+    for i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+        plot(Euler_t(i,1:points) , Euler_y(i,1:points),'x')
+        legend_str1{i+1} = sprintf('Euler n = %d',n(i));  
+    end
+    hold off
+    legend(legend_str1,'Location','southeast');
+    axis([start_t end_t -1 -.3])
+    xlabel('t')
+    ylabel('y')
+    title_str = title('Euler Methods Approximations for stepsize $ \frac{1}{5*2^n} $');
+    set(title_str,'Interpreter','Latex','FontSize',15)
+
+    %% 
+    %  Plot Errors for Euler's N methods
+    figure(2)
+    hold on
+    for i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+        plot(Euler_t(i,1:points),log(abs(Y(Euler_t(i,1:points)) - ...
+            Euler_y(i,1:points))), 'x')
+        % Lose first point at t = 0 because log (0) isn't displayed
+    end
+    hold off
+    legend(legend_str1{2:end},'Location','southeast');
+    xlabel('t')
+    ylabel('log |Y(t) - Y_n(t)|')
+    title('Log of Error Magnitude of Euler Approximation')
+        
+    %% Calculate Solutions for Other Solution Methods
+    %  MIDPOINT METHOD
+    [Mid_t, Mid_y] = SolveODE(Rate, MidpointFunc, StepSize, ...
+        start_y, start_t, end_t, n_end);
+    
+    %% 
+    %  MODIFIED EULER'S METHOD
+    [ModdedEuler_t, ModdedEuler_y] = SolveODE(Rate, ModEulerFunc, ...
+        StepSize, start_y, start_t, end_t, n_end);
+        
+    %% 
+    %  RUNGE-KUTTA 4th ORDER METHOD
+    [RK_t, RK_y] = SolveODE(Rate, RK4OFunc, StepSize, start_y, ...
+        start_t, end_t, n_end);  
+    
+    %%
+    %  A-B / A-M TWO STEP PREDICTOR-CORRECTOR SCHEME
+    [TS_t, TS_y] = TwoStep(Rate, StepSize, start_y, start_t, end_t, n_end);
+    
+    %%
+    %  Store errors at t = 2 for each method for the given n
+    for i = 1:length(n)
+        points = (end_t - start_t) / StepSize(n(i)) + 1;
+        
+        errors(i,3) = abs(errors(i,1) - Euler_y(i,points));
+        errors(i,4) = abs(errors(i,1) - Mid_y(i,points));
+        errors(i,5) = abs(errors(i,1) - ModdedEuler_y(i,points));
+        errors(i,6) = abs(errors(i,1) - TS_y(i,points));
+        errors(i,7) = abs(errors(i,1) - RK_y(i,points));
+    end
+
+    %% Plot Inverse of Delta T vs. Error Magnitude (log-log)
+    % X values are calculated (use for slope calculation)
+    log_x           = log(errors(:,2));
+    log_vals        = log(errors(:,3:7));
+    
+    figure(3)
+    hold on
+    for m = 1:methods
+        plot(log_x,log_vals(:,m),'o-')
+    end
+    hold off
+    grid on
+    legend('Euler','Midpoint','Modded Euler','A-B / A-M', 'RK_4O', ...
+        'Location','southwest');
+    xlabel('log $\frac{1}{\Delta t}$','Interpreter','Latex','FontSize',15);
+    ylabel('log| y(2) - w(2) |')
+    title('Magnitude of Slope Indicates Order of Error Reduction')
+    
+    %%
+    %  Tabulated log of errors between Y(2) and approximated Y(2)
+    %  Calculated shows degree to which error is decreasing as a function
+    %  of h. Use first 3 point and s points because linear behavior is constant 
+    %  end points hit machine limit of precision (RK4O, Midpoint and
+    %  TwoStep).
+    %  
+    
+    s = 5;              % point to calculate slope at (from third to s)
+    %%
+    %  Euler's Method    
+    Euler_log_errors = log(errors(:,3))
+    Euler_slope = (log_vals(s,1) - log_vals(1,1)) / (log_x(s) - log_x(1))
+    
+    %%
+    %  MidPoint Method    
+    MidPoint_log_errors = log(errors(:,4))
+    Midpoint_slope = (log_vals(s,2) - log_vals(1,2)) / (log_x(s) - log_x(1))
+    
+    %%
+    %  Modifed Euler's Method    
+    ModdedEuler_log_errors = log(errors(:,5))
+    ModdedEuler_slope = (log_vals(s+2,3) - log_vals(1+2,3)) / (log_x(s+2) - log_x(1+2))
+    
+    %%
+    %  A-B / A-M Two Step, Predictor Corrector (One Correction)
+    TwoStep_log_errors = log(errors(:,6))
+    TwoStep_slope = (log_vals(s,4) - log_vals(1,4)) / (log_x(s) - log_x(1))
+    
+    %%
+    %  Runge-Kutta Fourth Order
+    RK4O_log_errors = (errors(:,7))
+    RK4O_slope = (log_vals(s,5) - log_vals(1,5)) / (log_x(s) - log_x(1))
+end
+
+%% Generic ODE Solution Function and Specific Solution Functions
+%
+%  Generic Single Step Solution method solves ODE given a solution method
+%  Outputs a n X 2^n matrix of solution values
+%  where for values(row, column)
+%  Row is the n in the step size calculation
+%  Column is the ith step
+% 
+%  Can be applied for Single Step solution functions
+function [t, y] = SolveODE(RateFunc,SolutionFunc,StepFunc,y_0,t_0,t_end,n_max)
+    % REPLACE_WITH_DASH_DASH- INPUTS REPLACE_WITH_DASH_DASH-
+    % RateFunc      = ODE to evaluate
+    % SolutionFunc  = calculates w_i+1
+    % StepFunc      = calculates Delta t for given n
+    % y_0           = initial y coordinate
+    % t_0           = initial t coordinate
+    % t_end         = final t coordinate to solve ODE at
+    % n_max         = solve for n = 0, 1, 3 ... n_max
+    
+    % REPLACE_WITH_DASH_DASH- OUTPUTS REPLACE_WITH_DASH_DASH-
+    % t             = (n_max + 1) X 2^n_max matrix with solutions t values
+    % y             = (n_max + 1) X 2^n_max matrix with solutions y values
+    
+    % Find out how many steps will be needed for the n_max method
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    t = zeros(n_max + 1, max_len);
+    y = zeros(n_max + 1, max_len);
+    
+    t(:,1) = t_0;
+    y(:,1) = y_0;
+    
+    n = 0:n_max;
+    
+    % Calculate Solutions iterations for each n value
+    for i = 1:length(n)
+        delta_t = StepFunc(n(i));
+        steps = (t_end - t_0) / delta_t;
+        for j = 1:steps
+            t(i,j+1) = t(i,1) + j * delta_t;
+            y(i,j+1) = SolutionFunc(RateFunc,y(i,j),t(i,j),delta_t);
+        end
+    end
+
+end
+
+%% 
+% Euler's Method for calculating the next y value for a given rate function, current (y,t), and step size
+function [next_y] = Euler(RateFunc,y,t,step)
+    next_y = RateFunc(y,t) * step + y;
+end
+
+
+%%
+% Midpoint Method for solving ODE given rate function, current (y,t) and step size
+function [next_y] = Midpoint(RateFunc,y,t,step)
+    f_i             = RateFunc(y,t);
+    midpoint_rate   = RateFunc(y + step/2 * f_i, t + step/2);
+    next_y          = y + step * midpoint_rate;
+end
+
+%%
+% Midpoint Method for solving ODE given rate function, current (y,t) and step size
+function [next_y] = ModifiedEuler(RateFunc,y,t,step)
+    f_i             = RateFunc(y,t);
+    f_next          = RateFunc(y + step * f_i, t + step);
+    next_y          = y + step/2 * (f_i + f_next);
+end
+
+%% 
+% Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size
+function [next_y] = RK4O(RateFunc,y,t,step)
+    f1              = RateFunc(y,t);
+    f2              = RateFunc(y + step/2 * f1, t + step/2);
+    f3              = RateFunc(y + step/2 * f2, t + step/2);
+    f4              = RateFunc(y + step * f3, t + step);
+    
+    next_y          = y + step/6 * (f1 + 2*(f2 + f3) + f4);
+end
+
+%% A-B / A-M 2-Step Predictor Corrector Solution to ODE 
+%  Uses Runge-Kutta Fourth Order method to get y_1 (second point)
+function [TwoStep_t, TwoStep_y] = TwoStep(RateFunc, StepFunc, y_0, t_0, t_end, n_max)
+
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    TwoStep_t = zeros(n_max + 1, max_len);
+    TwoStep_y = zeros(n_max + 1, max_len);
+    
+    TwoStep_t(:,1) = t_0;
+    TwoStep_y(:,1) = y_0;
+    
+    n = 0:n_max;
+
+    % For each n (stepsize)
+    for i = 1:length(n)
+        delta_t         = StepFunc(n(i));
+        steps           = (t_end - t_0) / delta_t;
+        
+        % Use RK40 for a single step to get f_1
+        TwoStep_y(i,2)  = RK4O(RateFunc,y_0,t_0,delta_t);
+        TwoStep_t(i,2)  = TwoStep_t(i,1) + delta_t;
+        
+        % Calculate using prediction - correction with 1 correction 
+        for j = 2:steps
+            TwoStep_t(i,j+1) = TwoStep_t(i,1) + j * delta_t;
+            
+            f_cur       = RateFunc( TwoStep_y(i,j),   TwoStep_t(i,j)   );
+            f_back      = RateFunc( TwoStep_y(i,j-1), TwoStep_t(i,j-1) );
+            predict     = TwoStep_y(i,j) + delta_t/2 * (3 * f_cur - f_back);
+            correct     = RateFunc( predict, TwoStep_t(i,j+1) );
+            
+            TwoStep_y(i,j+1) = TwoStep_y(i,j) + ... 
+                delta_t/12 * (5 * correct + 8 * f_cur - f_back);
+        end
+    end         
+end
+
+##### SOURCE END #####
+--></body></html>

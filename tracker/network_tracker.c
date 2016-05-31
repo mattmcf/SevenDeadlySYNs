@@ -991,7 +991,7 @@ void check_file_acq_q(_TNT_t * tnt) {
 		format_printf(network_format,"NETWORK -- sending chunk acquisition update to client %d\n", queue_item->client_id);
 
 		if (send_client_message(tnt, queue_item, FILE_ACQ_UPDATE) != 1) {
-			format_printf(err_format,"failed to send hunk acquisition update to client %d\n", queue_item->client_id);
+			format_printf(err_format,"failed to send chunk acquisition update to client %d\n", queue_item->client_id);
 		}
 
 		free(queue_item->data);
