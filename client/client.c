@@ -439,8 +439,11 @@ void DropFromNetwork(){
 	EndClientNetwork(cnt);
 
 	/* close our files and free our memory */
-	filesystem_destroy(cur_fs);
-	filetable_destroy(ft);
+	printf("DropFromNetwork: matt's memory is cleaned up, destroying mine\n");
+	if (cur_fs)
+		filesystem_destroy(cur_fs);
+	if (ft)
+		filetable_destroy(ft);
 
 	//free(dartsync_dir);
 
@@ -664,13 +667,9 @@ int main(int argv, char* argc[]){
 			// char* root_path = filesystem_get_root_path(cur_fs);
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 
-			printf("1 ");
-
 			/* get the chunk that they are requesting */
 			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
 			//ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
-
-			printf("2 ");
 
 			if (!file){	
 				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
@@ -681,14 +680,10 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
-			printf("3 ");
-
 			char *chunk_text;
 			int chunk_len;
 			if (GET_ALL_CHUNKS == chunk_id){	// send the entire file
 				int num_chunks = chunkyfile_num_chunks(file);
-
-				printf("4 ");
 
 				for (int i = 0; i < num_chunks; i++){
 					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", expanded_path, i, peer_id);
