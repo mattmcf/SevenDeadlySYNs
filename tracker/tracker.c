@@ -119,10 +119,10 @@ int main() {
 			printf("Sending master file system and file table...");
 			fflush(stdout);
 			filesystem_print(fs);
+			filetable_print(filetable);
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
-			filetable_print(filetable);
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
@@ -144,6 +144,8 @@ int main() {
 			printf("\tRemoved peer %d from table.\n", peerID);
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
+			filesystem_print(fs);
+			filetable_print(filetable);
 			peerID = -1;
 		}
 
