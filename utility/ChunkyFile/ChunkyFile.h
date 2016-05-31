@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-#define CHUNKYFILE_CHUNK_SIZE (1024)
+#define CHUNKYFILE_CHUNK_SIZE (15000)
 
 typedef struct ChunkyFile ChunkyFile;
 

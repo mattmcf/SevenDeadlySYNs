@@ -271,6 +271,31 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		RemoveFileDeletions(deletions);
 	}
 
+	/* iterate over what I have left, and let the tracker know which chunks I have */
+	FileSystemIterator *fs_iterator = filesystemiterator_relative_new(cur_fs, 0);
+	if (!fs_iterator){
+		printf("UpdateLocalFilesystem: failed to create relative iterator for cur_fs\n");
+		return;
+	} else if (-1 == CheckFileSystem(cur_fs)){
+		printf("UpdateLocalFilesystem: no local files remaining after deletions\n");
+	} else {
+		printf("UpdateLocalFilesystem: we have local files, need to let tracker know what we have\n");
+		char *path;
+		int len;
+		time_t mod_time;
+		while (NULL != (path = filesystemiterator_next(fs_iterator, &len, &mod_time))){
+			int num_chunks = num_chunks_for_size(len);
+			if (num_chunks < 1){
+				printf("UpdateLocalFilesystem: no chunks for file\n");
+				continue;
+			}
+			for (int i = 0; i < num_chunks; i++){
+				send_chunk_got(cnt, path, i);
+			}
+		}
+	}
+	filesystemiterator_destroy(fs_iterator);
+
 	if (!additions){
 		printf("UpdateLocalFilesystem: additions is NULL\n");
 	} else if (-1 == CheckFileSystem(additions)){
@@ -315,13 +340,15 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			filetable_set_chunkyfile(ft, path, file);
 
 			/* figure out how many chunks we need to request */
-			int num_chunks = chunkyfile_num_chunks(file);
-			if (-1 == num_chunks){
-				printf("UpdateLocalFilesystem: chunkyfile_num_chunks() failed\n");
+			int total_chunks = chunkyfile_num_chunks(file);
+			if (total_chunks < 1) {
+				fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
+				chunkyfile_write(file);
+				continue;
 			}
 
 			/* for each chunk, find a peer who has it, and request it */
-			for (int i = 0; i < num_chunks; i++){ //???
+			for (int i = 0; i < total_chunks; i++){ //???
 				/* get the peers who have the chunk that we want */
 				printf("UpdateLocalFilesystem: looking for peers with %s's chunk %d\n", path, i);
 				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
@@ -474,6 +501,9 @@ int RemoveFileDeletions(FileSystem *deletions){
 
 	printf("RemoveFileDeletions: done deleting\n");
 	filesystemiterator_destroy(del_iterator);
+	filesystem_destroy(cur_fs);
+	cur_fs = NULL;
+	cur_fs = filesystem_new(dartsync_dir);
 	return 1;
 }
 
@@ -513,7 +543,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 			printf("GetFileAdditions: failed to open new chunkyfile\n");
 			continue;
 		}
-		chunkyfile_write(file);
+		//chunkyfile_write(file);
 		
 		/* write that file to the path */
 		printf("chunky file write to path: %s\n", expanded_path);
@@ -524,6 +554,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		int total_chunks = chunkyfile_num_chunks(file);
 		if (total_chunks < 1) {
 			fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
+			chunkyfile_write(file);
 			continue;
 		}
 
@@ -702,8 +733,6 @@ int main(int argv, char* argc[]){
 				send_chunk(cnt, peer_id, filepath, chunk_id, chunk_text, chunk_len);
 			}
 
-			printf("5 \n");
-
 			/* destroy that chunky file */
 			chunkyfile_destroy(file);
 
@@ -751,6 +780,7 @@ int main(int argv, char* argc[]){
 
 			/* destroy the old filesystem struct and recreate it to reflect changes */
 			filesystem_destroy(cur_fs);
+			cur_fs = NULL;
 			cur_fs = filesystem_new(dartsync_dir);
 
 			free(chunk_data);
@@ -801,6 +831,7 @@ int main(int argv, char* argc[]){
 
 			/* update the current filesystem pointer */
 			filesystem_destroy(cur_fs);
+			cur_fs = NULL;
 			cur_fs = filesystem_new(dartsync_dir);
 
 			/* get ready for next recv diff or iteration of loop */
