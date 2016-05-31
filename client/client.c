@@ -272,7 +272,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	}
 
 	/* iterate over what I have left, and let the tracker know which chunks I have */
-	FileSystemIterator *fs_iterator = filesystemiterator_relative_new(cur_fs);
+	FileSystemIterator *fs_iterator = filesystemiterator_relative_new(cur_fs, 0);
 	if (!fs_iterator){
 		printf("UpdateLocalFilesystem: failed to create relative iterator for cur_fs\n");
 		return -1;
