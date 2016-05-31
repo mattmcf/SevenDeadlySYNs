@@ -391,27 +391,35 @@ void folder_add(Folder* folder, Folder* toPlus)
 	_Folder* f = (_Folder*)folder;
 	_Folder* toAdd = (_Folder*)toPlus;
 		
+	// Loop through all the files that we are adding
 	for (int i = 0; i < queue_length(toAdd->files); i++)
 	{
 		_File* fileToAdd = queue_get(toAdd->files, i);
 		
+		// If the file that we want to add is a folder...
 		if (fileToAdd->is_folder)
 		{
+			// Get the actual Folder that we want to add. It should always exist.
 			_Folder search;
 			search.name = fileToAdd->name;
 			_Folder* folderToAdd = queue_search(toAdd->folders, folder_equals, &search);
 			assert(folderToAdd);
 			
+			// Find our version of the folder that we are trying to add.
 			_File* fAlreadyContainsFile = queue_search(f->files, file_equals, fileToAdd);
 			_Folder* fAlreadyContainsFolder = queue_search(f->folders, folder_equals, &search);
 			
+			// If we already contain the file struct of the folder
 			if (fAlreadyContainsFile)
 			{
+				// Then we must also have the folder struct
 				assert(fAlreadyContainsFolder);
-				folder_add((Folder*)fAlreadyContainsFolder, (Folder*)folderToAdd);
 			}
 			else
 			{
+				// Then we must also not have the folder struct
+				assert(!fAlreadyContainsFolder);
+				// So create the structs and add them
 				queue_push(f->files, file_copy((File*)fileToAdd));
 				_Folder* newFolder = create_new(_Folder);
 				newFolder->name = copy_string(fileToAdd->name);
