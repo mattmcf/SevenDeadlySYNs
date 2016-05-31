@@ -546,7 +546,7 @@ int main(int argv, char* argc[]){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 			/* get the chunk that they are requesting */
 			//ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
-			ChunkyFile *file = filetable_get_chunkyfile(ft, path);
+			ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
 
 			if (!file){	
 				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
