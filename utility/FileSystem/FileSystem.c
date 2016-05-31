@@ -612,7 +612,7 @@ void filesystem_handle_updates(FileSystem* additions, FileSystem* deletions)
 void filesystem_diff(FileSystem* old, FileSystem* new, FileSystem** additions, FileSystem** deletions)
 {
 	filesystem_diff_helper(old, new, additions, deletions, file_equals);
-	filesystem_handle_updates(*additions, *deletions);
+	//filesystem_handle_updates(*additions, *deletions);
 }
 
 #define FILE_MARKER (0xFF)
