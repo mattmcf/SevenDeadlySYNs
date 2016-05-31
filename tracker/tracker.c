@@ -115,8 +115,6 @@ int main() {
 		// If a peer requests master
 			// send master
 		peerID = -1;
-		printf("checking for master request\n");
-		fflush(stdout);
 		while ((peerID = receive_master_request(network))>0){
 			printf("Sending master file system and file table...");
 			fflush(stdout);
@@ -128,7 +126,7 @@ int main() {
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
-			printf(" Sent!\n");
+			printf(" Sent (to peer %d)!\n", peerID);
 			peerID = -1;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);
