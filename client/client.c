@@ -142,7 +142,7 @@ char * append_DSRoot(char * relative_path, char * root) {
 
 	printf("catting strings %s and %s\n", root, relative_path);
 	char * result = (char *)malloc(strlen(relative_path) + strlen(root) + 1);
-	memcpy(result, root, strlen(root));
+	memcpy(result, root, strlen(root) + 1);
 	strcat(result, relative_path);
 	printf("result: %s\n", result);
 
