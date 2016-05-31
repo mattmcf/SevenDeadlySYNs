@@ -166,9 +166,9 @@ int main() {
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
 			// update file table
 			//filetable_print(filetable);
-			filetable_print(filtable);
+			filetable_print(filetable);
 			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
-			filetable_print(filtable);
+			filetable_print(filetable);
 			memset(&file_got, '\0', PATH_MAX+1);
 		}
 		//free(file_got);
