@@ -725,7 +725,7 @@ int main(int argv, char* argc[]){
 		while (-1 != receive_chunk(cnt, &peer_id, &filepath, &chunk_id, 
 				&len, &chunk_data)){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
-			printf("CLIENT MAIN: received chunk %d for file %s\n", chunk_id, expanded_path);
+			printf("CLIENT MAIN: received chunk %d for file %s (expanded: %s\n", chunk_id, filepath, expanded_path);
 
 			/* if len is -1, then we received a rejection response */
 			if (-1 == len){	// how should I handle this???
