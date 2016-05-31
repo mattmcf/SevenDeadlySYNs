@@ -67,6 +67,10 @@ int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
 
+	struct timespec tim, tim2;
+   	tim.tv_sec = 5;
+   	tim.tv_nsec = 0;
+
 	// create file system
 	fs = filesystem_new(NULL);
 	filesystem_print(fs);
@@ -173,7 +177,8 @@ int main() {
 			printf("\tFinished updating file system\n");
 		}
 		free(clientID);
-		sleep(5);
+		nanosleep(&tim , &tim2);   
+   		
 		printf("Restarting loop.\n");
 	}
 
@@ -181,7 +186,7 @@ int main() {
 	 	printf("Failed to close everything. Quitting anyway.\n");
 	} 
 	EndTrackerNetwork(network);
-	free(dartsync_dir);
+	// free(dartsync_dir);
 	printf("buh-bye\n");
 
 	return 1;
@@ -303,7 +308,7 @@ int closeTracker(){
 // broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID&& peerTable->peerIDs[i] != 0 ){
 			if(send_peer_added(network, peerTable->peerIDs[i], newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
 				printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
 			}
@@ -315,7 +320,7 @@ int newPeerBroadcast(int newPeerID, TNT *network){
 // broadcast to all peers that there is a peer removed
 int lostPeerBroadcast(int lostPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != lostPeerID){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != lostPeerID && peerTable->peerIDs[i] != 0 ){
 			if(send_peer_removed(network, peerTable->peerIDs[i], lostPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
 				printf("Failed to send lost peer update to peer %d\n", peerTable->peerIDs[i]);
 			}
@@ -327,7 +332,7 @@ int lostPeerBroadcast(int lostPeerID, TNT *network){
 // broadcast to all peers that there is a file update
 int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TNT *network, int originator){
 	for (int i = 0; i < peerTableSize; i++){
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != originator){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != originator&& peerTable->peerIDs[i] != 0 ){
 			if(send_FS_update(network, peerTable->peerIDs[i], originator, additions, deletions)<0){
 				printf("Failed to send transaction update to peer %d\n", peerTable->peerIDs[i]);
 			}
@@ -341,7 +346,7 @@ int clientGotBroadcast(char * file_got, int chunk_got, TNT *network, int peer_go
 	printf("Distributing chunk acquisition update (owner %d, file: %s, chunk: %d)\n",peer_got_id,file_got,chunk_got);
 	for (int i = 0; i < peerTableSize; i++) {
 		// send to all peers (except author of acq)
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id&& peerTable->peerIDs[i] != 0 ){
 			if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
 				printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
 			}
