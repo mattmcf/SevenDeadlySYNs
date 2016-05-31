@@ -48,10 +48,10 @@ ChunkyFile* chunkyfile_new_for_writing_to_path(char* path, int size, time_t modi
 {
 	_ChunkyFile* cf = (_ChunkyFile*)malloc(sizeof(_ChunkyFile));
 	
-    wordexp_t exp_result;
-    wordexp(path, &exp_result, 0);
+    //wordexp_t exp_result;
+    //wordexp(path, &exp_result, 0);
 	
-	cf->path = strdup(exp_result.we_wordv[0]);
+	cf->path = strdup(path); //exp_result.we_wordv[0]);
 	cf->data = (char*)malloc(size * sizeof(char));
 	cf->chunks_written = (char*)calloc(num_chunks_for_size(size), sizeof(char));
 	cf->size = size;
