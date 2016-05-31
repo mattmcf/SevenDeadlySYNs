@@ -924,22 +924,23 @@ void * clt_network_start(void * arg) {
 	int connected = 1;
 	while (connected) 
 	{
+		// printf("\t\t\tlisten\n");
 		if (clt_network_listen(cnt, 0.01) < 0) 
 		{
 			format_printf(err_format, "network client failed to select amongst inputs\n");
 			connected = 0;
 			continue;
 		}
-		
+		// printf("\t\t\tnew connects\n");
 		clt_network_process_new_connections(cnt);
-
+		// printf("\t\t\ttracker message\n");
 		if (clt_network_handle_tracker_messages(cnt) != 1)
 		{
 			fprintf(stderr, "failed to handle tracker message. Ending.\n");
 			connected = 0;
 			continue;
 		}
-
+		// printf("\t\t\tlisten\n");
 		clt_network_handle_peer_messages(cnt);
 
 		/* send heart beat if necessary */
@@ -951,7 +952,7 @@ void * clt_network_start(void * arg) {
 		}
 
 		/* poll queues for messages from client logic */
-		//printf("Poll queues\n");
+		// printf("Poll queues\n");
 		poll_queues(cnt);
 		//sleep(1);
 	}
@@ -1251,6 +1252,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 	peer_t * peer = get_peer_by_socket(cnt->peer_table, sockfd);
 
 	c2c_pkt_t pkt;
+	printf("safe recv 1\n");
 	int returnValue = safe_recv(sockfd, &pkt, sizeof(pkt), 0);
 	if (returnValue == -1){
 		format_printf(err_format,"recv failed on socket %d\n", sockfd);
@@ -1263,10 +1265,12 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		if (pkt.file_str_len > 0) {
 			file_name_buf = (char *)malloc(pkt.file_str_len);
 			int recv_file_str_len;
+			printf("safe recv 2\n");
 			if ((recv_file_str_len = safe_recv(sockfd, file_name_buf, pkt.file_str_len, 0)) != pkt.file_str_len) {
 				format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
 				return -1;
 			}
+			printf("safe recv 3\n");
 		}
 
 		if (pkt.data_len > 0) {
