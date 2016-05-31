@@ -296,9 +296,6 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			if (len == -1) {
 
 				if (-1 == mkdir(expanded_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-				// char new_dir[1024];
-				// snprintf(new_dir, sizeof(new_dir), "mkdir %s", path);
-				// if (system(new_dir) != 0) {
 					printf("UpdateLocalFilesystem: failed to create directory \'%s\'\n", expanded_path);
 					perror("Failed because");
 				}
@@ -343,7 +340,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				/* make the request to get that chunk */
 				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
 						i, path, peer_id);
-				send_chunk_request(cnt, peer_id, path, i);
+				send_chunk_request(cnt, peer_id, path, i, 1);
 			}
 
 			/* get ready for next iteration */
@@ -521,9 +518,11 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		// ADD CHUNKYFILE TO HASH TABLE!!!!!
 		filetable_set_chunkyfile(ft, path, file);
 		
+		int total_chunks = chunkyfile_num_chunks(file);
+
 		/* get all chunks */
 		printf("Send chunk request for file %s\n", path);
-		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
+		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS, total_chunks);
 
 		path = NULL;
 	}

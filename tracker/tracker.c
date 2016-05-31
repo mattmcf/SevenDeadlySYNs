@@ -115,18 +115,20 @@ int main() {
 		// If a peer requests master
 			// send master
 		peerID = -1;
-		// printf("checking for master request\n");
+		printf("checking for master request\n");
+		fflush(stdout);
 		while ((peerID = receive_master_request(network))>0){
-			printf("Send master\n");
-			filesystem_print(fs);
+			printf("Sending master file system and file table...");
+			fflush(stdout);
+			//filesystem_print(fs);
 			if(send_master(network, peerID, fs)<0){
 				printf("\tFailed to send master to peer %d\n", peerID);
 			}
-			filetable_print(filetable);
+			//filetable_print(filetable);
 			if(send_master_filetable(network, peerID, filetable)<0) {
 				printf("\tFailed to send master file table to peer %d\n", peerID);
 			}
-
+			printf(" Sent!\n");
 			peerID = -1;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);
@@ -225,7 +227,7 @@ int containsPeer(int peerID) {
 		return -1;
 	}
 
-	for (int i = 0; i < peerTable->numberOfEntries++; i++) {
+	for (int i = 0; i < peerTable->numberOfEntries; i++) {
 		if (peerTable->peerIDs[i] == peerID) {
 			return 1;
 		}
@@ -395,7 +397,6 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	printf("PRINTING DELETIONS:\n");
 	filesystem_print(deletions);
 	filesystem_minus_equals(fs, deletions);
-	printf("here");
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);

@@ -563,7 +563,7 @@ int send_request_for_master(CNT * cnt) {
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
  */
-int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chunk_id) {
+int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chunk_id, int num_chunks) {
 	if (!thread_block || !filepath) {
 		format_printf(err_format, "send_chunk_request error: null cnt or filepath\n");
 		return -1;
@@ -581,7 +581,7 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_name = strdup(filepath);
 	queue_item->file_str_len = strlen(queue_item->file_name) + 1;	// include null terminator
-	queue_item->data_len = 0;
+	queue_item->data_len = num_chunks;	// fuck your face, I'm putting the number of chunks as the null data len
 	queue_item->data = 0;
 
 	asyncqueue_push(cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK], (void *)queue_item);
@@ -1515,24 +1515,29 @@ void check_req_chunk_q(_CNT_t * cnt) {
 
 		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
 
-		if(pkt.chunk_num == 99999){
-			// get number of chunks necessary and then request that many chunks
-			int numberOfChunks = 0;
-			char * path = tilde_expand(queue_item->file_name);
-			struct stat st;
-    		stat(path, &st); 
-    		if (st.st_size % 1024 == 0){
-    			numberOfChunks = st.st_size/1024;
-    		}else{
-    			numberOfChunks = st.st_size/1024 + 1;
-    		}
-    		for (int i = 0; i < numberOfChunks; i++){
-    			increment_conn_record(cnt, peer->id);
-    		}
-
-		}else{
+		// I manually stored the number of expected chunks in the data length field. whatever.
+		for (int i = 0; i < queue_item->data_len; i++) {
 			increment_conn_record(cnt, peer->id);
 		}
+
+		// if(pkt.chunk_num == 99999){
+		// 	// get number of chunks necessary and then request that many chunks
+		// 	int numberOfChunks = 0;
+		// 	char * path = append_DS(queue_item->file_name);
+		// 	struct stat st;
+  //   		stat(path, &st); 
+  //   		if (st.st_size % 1024 == 0){
+  //   			numberOfChunks = st.st_size/1024;
+  //   		}else{
+  //   			numberOfChunks = st.st_size/1024 + 1;
+  //   		}
+  //   		for (int i = 0; i < numberOfChunks; i++){
+    			
+  //   		}
+
+		// }else{
+		// 	increment_conn_record(cnt, peer->id);
+		// }
 
 		free(queue_item->file_name);
 		free(queue_item);

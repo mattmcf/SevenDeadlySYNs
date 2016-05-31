@@ -125,7 +125,7 @@ int send_request_for_master(CNT * cnt);
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
  */
-int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id);
+int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id, int num_chunks);
 
 /* client calls this to send a chunk update to another client 
  * 	cnt - current state of the network 
