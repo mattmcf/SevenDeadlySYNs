@@ -98,6 +98,7 @@ void filesystem_destroy(FileSystem* fs);
 //	fs  : (not claimed) The filesystem to be iterated over
 //	ret : (not claimed) The iterator
 FileSystemIterator* filesystemiterator_new(FileSystem* filesystem, int file_first);
+FileSystemIterator* filesystemiterator_relative_new(FileSystem* filesystem, int file_first);
 
 // Gets the next path of the filesystem
 //	iterator : (not claimed) The iterator being iterated over
