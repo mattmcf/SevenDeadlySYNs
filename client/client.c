@@ -91,14 +91,20 @@ char * get_absolute_root(char * root_arg) {
 	}
 
 	/* check if the folder already exists, if it doesn't then make it */
+	char * new_dir = NULL;
 	if (0 != access(root_arg, (F_OK)) ){
 		printf("Cannot access %s -- creating directory\n", root_arg);
 		perror("reason");
+
+		new_dir = tilde_expand(root_arg);
+
 		/* it doesn't exist, so make it */
-		if (-1 == mkdir(root_arg, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
-			printf("CLIENT MAIN: failed to create sync dir (%s)\n", root_arg);
+		if (-1 == mkdir(new_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
+			printf("CLIENT MAIN: failed to create sync dir (%s)\n", new_dir);
 			return NULL;
 		}
+
+		root_arg = new_dir;
 	} 
 
 	/* check to make sure argument is a directory */
@@ -121,6 +127,10 @@ char * get_absolute_root(char * root_arg) {
 		return NULL;
 	}
 	
+	if (new_dir != NULL) {
+		free(new_dir);
+	}
+
 	printf("CLIENT -- using DartSync Root as %s\n", absolute_path);
 	return absolute_path;
 }
@@ -544,8 +554,8 @@ int CheckFileSystem(FileSystem *fs){
 int main(int argv, char* argc[]){
 
 	/* arg check */
-	if (3 != argv){
-		printf("CLIENT MAIN usage error: \'./client_app\' [IP ADDRESS] [SYNC DIRECTORY]\n");
+	if ( !(argv == 2 || argv == 3) ){
+		printf("CLIENT MAIN usage error: \'./client_app\' [IP ADDRESS] [optional... SYNC DIRECTORY]\n");
 		exit(0);
 	} 
 
@@ -569,10 +579,18 @@ int main(int argv, char* argc[]){
 	signal(SIGINT, DropFromNetwork);
 	
 	/* set directory that will be used */
-	dartsync_dir = get_absolute_root(argc[2]);
-	if (!dartsync_dir) {
-		fprintf(stderr,"Failed to get absolute root path for %s\n",argc[2]);
-		exit(-1);
+	if (argv == 3) {
+		dartsync_dir = get_absolute_root(argc[2]);
+		if (!dartsync_dir) {
+			fprintf(stderr,"Failed to get absolute root path for %s\n",argc[2]);
+			exit(-1);
+		}
+	} else {
+		dartsync_dir = get_absolute_root("~/dart_sync");
+		if (!dartsync_dir) {
+			fprintf(stderr, "Failed to get absolute root path for \'~/dart_sync\'\n");
+			exit(-1);
+		}
 	}
 
 	/* set directory that will be used */
