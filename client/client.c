@@ -425,7 +425,7 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 		filetable_set_chunkyfile(ft, path, file);
 		
 		/* request all chunks */
-		path = tilde_compress(path);
+		//path = tilde_compress(path);
 
 		printf("Send chunk request for file %s\n", path);
 		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS);
