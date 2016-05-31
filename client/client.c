@@ -271,6 +271,27 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 		RemoveFileDeletions(deletions);
 	}
 
+	/* iterate over what I have left, and let the tracker know which chunks I have */
+	FileSystemIterator *fs_iterator = filesystemiterator_relative_new(cur_fs);
+	if (!fs_iterator){
+		printf("UpdateLocalFilesystem: failed to create relative iterator for cur_fs\n");
+		return -1;
+	} else if (-1 == CheckFileSystem(cur_fs)){
+		printf("UpdateLocalFilesystem: no local files remaining after deletions\n");
+	} else {
+		printf("UpdateLocalFilesystem: we have local files, need to let tracker know what we have\n");
+		char *path;
+		int len;
+		time_t mod_time;
+		while (NULL != (path = filesystemiterator_next(fs_iterator, &len, &mod_time))){
+			int num_chunks = num_chunks_for_size(len);
+			for (int i = 0; i < num_chunks; i++){
+				send_chunk_got(cnt, path, i);
+			}
+		}
+	}
+	filesystemiterator_destroy(fs_iterator);
+
 	if (!additions){
 		printf("UpdateLocalFilesystem: additions is NULL\n");
 	} else if (-1 == CheckFileSystem(additions)){
@@ -476,6 +497,9 @@ int RemoveFileDeletions(FileSystem *deletions){
 
 	printf("RemoveFileDeletions: done deleting\n");
 	filesystemiterator_destroy(del_iterator);
+	filesystem_destroy(cur_fs);
+	cur_fs = NULL;
+	cur_fs = filesystem_new(dartsync_dir);
 	return 1;
 }
 

@@ -116,7 +116,7 @@ int main() {
 			// send master
 		peerID = -1;
 		while ((peerID = receive_master_request(network))>0){
-			printf("Sending master file system and file table...");
+			printf("Sending master file system and file table...\n");
 			fflush(stdout);
 			filesystem_print(fs);
 			filetable_print(filetable);
