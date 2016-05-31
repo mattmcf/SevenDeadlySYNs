@@ -152,8 +152,11 @@ int main() {
 		char file_got[PATH_MAX+1];
 		memset(&file_got, '\0', PATH_MAX+1);
 		int chunk_got, peer_got_id;
-		while( (receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1) &&
-				containsPeer(peer_got_id) == 1) {
+		while( (receive_client_got(network, file_got, &chunk_got, &peer_got_id) == 1)){
+			if (containsPeer(peer_got_id) == -1){
+				printf("receive_client_got: received Invalid peer: %d\n", peer_got_id);
+				continue;
+			}
 			printf("\tClient %d received chunk %d of %s\n", peer_got_id, chunk_got, file_got);
 			// let everyone know that a peer got a chunk
 			clientGotBroadcast(file_got, chunk_got, network, peer_got_id);
