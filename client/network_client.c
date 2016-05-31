@@ -1299,7 +1299,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 
 			case CHUNK:
 
-				format_printf(network_format,"NETWORK -- received chunk (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				format_printf(network_format,"NETWORK -- received chunk (%s, %d) from peer %d ", file_name_buf, pkt.chunk_num, peer->id);
 				queue_item->client_id = peer->id;
 				queue_item->chunk_num = pkt.chunk_num;
 				queue_item->file_str_len = pkt.file_str_len;
@@ -1312,9 +1312,11 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				data_buf = NULL; // don't free here -- pass to notify queue
 
 				// disconnect from peer if all requests have been fulfilled
+				int request_fulfilled = -1;
 				if (decrement_conn_record(cnt, peer->id) == 0) { //CHANGEDHERE
-					disconnect_from_peer(peer, peer->id);
+					request_fulfilled = disconnect_from_peer(peer, peer->id);
 				}
+				format_printf(network_format, "(waiting for %d more responses)\n",request_fulfilled);
 
 				notify_chunk_received(cnt, queue_item);
 				break;
@@ -1333,9 +1335,11 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				queue_item->data = NULL;
 
 				// disconnect from peer if all requests have been fulfilled
+				int request_fulfilled2 = -1;
 				if (decrement_conn_record(cnt, peer->id) == 0) { //CHANGEDHERE
-					disconnect_from_peer(peer, peer->id);
+					request_fulfilled2 = disconnect_from_peer(peer, peer->id);
 				}
+				format_printf(network_format, "(waiting for %d more responses)\n",request_fulfilled2);
 
 				notify_error_received(cnt, queue_item);
 				break;
@@ -1516,12 +1520,15 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		send(peer->socketfd, &pkt, sizeof(pkt),0);
 		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
 
-		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d\n", queue_item->file_name, pkt.chunk_num, peer->id);
+		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d ", queue_item->file_name, pkt.chunk_num, peer->id);
 
-		// I manually stored the number of expected chunks in the data length field. whatever.
+		// I manually stored the number of expected chunks in the data field. whatever.
+		int requests = -1;
 		for (int i = 0; i < (int)(long)queue_item->data; i++) {
-			increment_conn_record(cnt, peer->id);
+			requests = increment_conn_record(cnt, peer->id);
 		}
+
+		format_printf(network_format, "(%d outstanding requests)\n",requests);
 
 		// if(pkt.chunk_num == 99999){
 		// 	// get number of chunks necessary and then request that many chunks

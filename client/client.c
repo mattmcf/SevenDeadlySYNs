@@ -684,7 +684,7 @@ int main(int argv, char* argc[]){
 			int chunk_len;
 			if (GET_ALL_CHUNKS == chunk_id){	// send the entire file
 				int num_chunks = chunkyfile_num_chunks(file);
-
+				
 				for (int i = 0; i < num_chunks; i++){
 					printf("CLIENT MAIN: sending %s chunk %d to peer %d\n", expanded_path, i, peer_id);
 
