@@ -349,6 +349,8 @@ int clientGotBroadcast(char * file_got, int chunk_got, TNT *network, int peer_go
 		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != peer_got_id&& peerTable->peerIDs[i] != 0 ){
 			if (send_got_chunk_update(network, peerTable->peerIDs[i], peer_got_id, file_got, chunk_got) != 1) {
 				printf("\tFailed to send File Acq (%s, %d) to client %d\n", file_got, chunk_got, peerTable->peerIDs[i]);
+			}else{
+				printf("Send acq update (owner %d, file: %s, chunk: %d) to client %d\n", peer_got_id,file_got,chunk_got, peerTable->peerIDs[i]);
 			}
 		}				
 	}

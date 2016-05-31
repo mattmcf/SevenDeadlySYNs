@@ -341,8 +341,8 @@ int send_got_chunk_update(TNT * thread_block, int dest_id, int got_id, char * fi
 	queue_item->data = malloc(queue_item->data_len);
 	memcpy(queue_item->data, &chunk_num, sizeof(int));
 	memcpy((char *)((long)queue_item->data + (long)sizeof(int)), &got_id, sizeof(int));
-	memcpy( (char *)((long)queue_item->data + (long)sizeof(int) + (long)sizeof(int)), filename, queue_item->data_len - sizeof(int));
-
+	memcpy( (char *)((long)queue_item->data + (long)sizeof(int) + (long)sizeof(int)), filename, queue_item->data_len - sizeof(int) - sizeof(int));
+	printf("\tSend update that client %d got chunk %d of %s. send to %d\n", got_id, chunk_num, filename, queue_item->client_id);
 	asyncqueue_push(tnt->queues_from_tracker[TKR_2_CLT_FILE_ACQ], (void*)queue_item);
 	return 1;
 }
