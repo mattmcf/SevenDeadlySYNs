@@ -172,6 +172,7 @@ int main() {
 			// update file table
 			//filetable_print(filetable);
 			filetable_set_that_peer_has_file_chunk(filetable, expanded_path, peer_got_id, chunk_got);
+			memset(&file_got, '\0', 200);
 		}
 		//free(file_got);
 
