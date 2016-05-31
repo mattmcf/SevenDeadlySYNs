@@ -91,12 +91,10 @@ char * get_absolute_root(char * root_arg) {
 	}
 
 	/* check if the folder already exists, if it doesn't then make it */
-	char * new_dir = NULL;
+	char * new_dir = tilde_expand(root_arg);;
 	if (0 != access(root_arg, (F_OK)) ){
 		printf("Cannot access %s -- creating directory\n", root_arg);
 		perror("reason");
-
-		new_dir = tilde_expand(root_arg);
 
 		/* it doesn't exist, so make it */
 		if (-1 == mkdir(new_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)){
