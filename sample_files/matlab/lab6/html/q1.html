@@ -1,0 +1,414 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q1</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-11-03"><meta name="DC.source" content="q1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Matt McFarland</a></li><li><a href="#3">Define Functions and Constants</a></li><li><a href="#5">Solve ODE for different time step sizes</a></li><li><a href="#8">Increase the step size by factors of two</a></li><li><a href="#10">Solve this ODE function -- specific to this problem (modified from q4 on lab5)</a></li></ul></div><h2>Matt McFarland<a name="1"></a></h2><p>ENGS 91, lab 6, question 1</p><pre class="codeinput"><span class="keyword">function</span> [] = q1()
+</pre><pre class="codeinput">clear <span class="string">all</span>; close <span class="string">all</span>;
+</pre><h2>Define Functions and Constants<a name="3"></a></h2><pre class="codeinput">A1      = .1;        <span class="comment">% birthrates</span>
+A2      = .1;
+
+B1      = 8.0e-7;    <span class="comment">% deathrates</span>
+B2      = 8.0e-7;
+
+C1      = 1.0e-6;    <span class="comment">% competition rate</span>
+C2      = 1.0e-7;
+
+N1_0    = 1e5;
+N2_0    = 1e5;
+
+t_0     = 0;        <span class="comment">% 0 years</span>
+t_end   = 10;       <span class="comment">% 10 years</span>
+
+n_max   = 9;        <span class="comment">% solve for 1 to n_max point doublings</span>
+
+<span class="comment">% Differential equations</span>
+dN1 = @(N1, N2) (N1 * (A1 - B1 * N1 - C1 * N2));
+dN2 = @(N1, N2) (N2 * (A2 - B2 * N2 - C2 * N1));
+
+<span class="comment">% Stepsize function</span>
+StepSize = @(n) (1 ./ ( 2.^n ));
+
+<span class="comment">% Runge Kutta ODE next step</span>
+RK4OFunc = @MyRK4O;
+</pre><p>Runge Kutta Fourth Order function defined at end of file</p><p>This problem's ODE solver defined at end of file</p><h2>Solve ODE for different time step sizes<a name="5"></a></h2><pre class="codeinput">[N1, N2, t] = SolveODE(dN1, dN2, RK4OFunc, StepSize, N1_0, N2_0, t_0, t_end, n_max);
+
+
+convergence = zeros(n_max+1,4);
+prev_points = (t_end - t_0) / StepSize(0) + 1;
+<span class="keyword">for</span> i = 2:n_max+1
+    points = (t_end - t_0) / StepSize(i-1) + 1;
+
+    convergence(i,1) = points;
+    convergence(i,2) = abs(N1(i,points) - N1(i-1,prev_points));
+
+    convergence(i,3) = points;
+    convergence(i,4) = abs(N2(i,points) - N2(i-1,prev_points));
+
+    prev_points = points;
+<span class="keyword">end</span>
+</pre><p>When the difference between the solutions to the ODEs at t = 10 becomes too small for machine precision, the difference will cease to decrease even though the step size continues to shrink.</p><pre class="codeinput">figure()
+subplot(2,1,1)
+plot(t(end,1:end),N1(end,1:end),<span class="string">'r'</span>, <span class="keyword">...</span>
+    t(end,1:end),N2(end,1:end),<span class="string">'b'</span>)
+xlabel(<span class="string">'years'</span>)
+ylabel(<span class="string">'population'</span>)
+title(<span class="string">'ODE solutions'</span>)
+legend(<span class="string">'N1'</span>,<span class="string">'N2'</span>,<span class="string">'Location'</span>,<span class="string">'southwest'</span>)
+
+subplot(2,1,2)
+semilogy(0:n_max, convergence(:,2), <span class="string">'rx'</span>,<span class="keyword">...</span>
+    0:n_max, convergence(:,4), <span class="string">'bo'</span>);
+xlabel(<span class="string">'n - point doublings'</span>)
+ylabel(<span class="string">'Difference'</span>)
+title(<span class="string">'Difference between N at t = 10 for 1/2^n and 1/2^{n-1} stepsize'</span>)
+legend(<span class="string">'N1'</span>,<span class="string">'N2'</span>)
+</pre><img vspace="5" hspace="5" src="q1_01.png" alt=""> <p>Record the "True" values (limited by our machine precision)</p><p>Step Size needed is StepSize(n = 9) (1/2^9)</p><pre class="codeinput">N1_true = N1(end,end)
+N2_true = N2(end,end)
+
+best_n = 8;
+limit_step_size = StepSize(best_n)
+</pre><pre class="codeoutput">
+N1_true =
+
+      53317.79
+
+
+N2_true =
+
+     109284.01
+
+
+limit_step_size =
+
+          0.00
+
+</pre><h2>Increase the step size by factors of two<a name="8"></a></h2><p>Compare the solution to the ODEs at t = 10 for these larger step sizes. The SolveODE function that I invoked earlier actually solves the ODE's for step sizes in factors of 1/2, 1/4, 1/8, ... So we can just use the data from those solutions to see what happens as we increase the step size (instead of resolving for step sizes we've already computed).</p><pre class="codeinput">error1 = zeros(1,best_n);
+error2 = zeros(1,best_n);
+
+<span class="keyword">for</span> i = (best_n-1):-1:0
+    points = (t_end - t_0) / StepSize(i) + 1;
+
+    <span class="comment">% calculate error from "true" value and value at t = 10 for step size</span>
+    error1(best_n - i) = abs(N1_true - N1(i+1,points));
+    error2(best_n - i) = abs(N2_true - N2(i+1,points));
+<span class="keyword">end</span>
+
+<span class="comment">% Plot log of the error for each increased step size</span>
+figure()
+n_val = (best_n-1):-1: 0;
+stepsizes = StepSize( n_val );
+
+loglog(stepsizes, error1(1:end),<span class="string">'rx'</span>,<span class="keyword">...</span>
+        stepsizes, error2(1:end),<span class="string">'bo'</span>);
+grid <span class="string">on</span>
+xlabel(<span class="string">'h^{-1}'</span>)
+ylabel(<span class="string">'Error of N(t = 10)'</span>)
+title(<span class="string">'Error grows proportionally to h^{4}'</span>)
+legend(<span class="string">'N1'</span>,<span class="string">'N2'</span>,<span class="string">'Location'</span>,<span class="string">'northwest'</span>)
+</pre><img vspace="5" hspace="5" src="q1_02.png" alt=""> <pre class="codeinput"><span class="keyword">end</span>
+</pre><h2>Solve this ODE function -- specific to this problem (modified from q4 on lab5)<a name="10"></a></h2><pre>Outputs a n X 2^n matrix of solution values
+where for values(row, column)
+Row is the n in the step size calculation
+Column is the ith step</pre><pre>Can be applied for Single Step solution functions</pre><pre class="codeinput"><span class="keyword">function</span> [N1, N2, t] = SolveODE(N1RateFunc,N2RateFunc,SolutionFunc,StepFunc,N1_0,N2_0,t_0,t_end,n_max)
+
+    <span class="comment">% Find out how many steps will be needed for the n_max method</span>
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    t = zeros(n_max + 1, max_len);
+    N1 = zeros(n_max + 1, max_len);
+    N2 = zeros(n_max + 1, max_len);
+
+    t(:,1)  = t_0;
+    N1(:,1) = N1_0;
+    N2(:,1) = N2_0;
+
+    n = 0:n_max;
+
+    <span class="comment">% Calculate Solutions iterations for each n value</span>
+    <span class="keyword">for</span> i = 1:length(n)
+        delta_t = StepFunc(n(i));
+        steps = (t_end - t_0) / delta_t;
+        <span class="keyword">for</span> j = 1:steps
+            t(i,j+1) = t(i,1) + j * delta_t;
+            [N1(i,j+1),N2(i,j+1)] = SolutionFunc(N1RateFunc,N2RateFunc,N1(i,j),N2(i,j),delta_t);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><p>Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size Modified for this problem</p><pre class="codeinput"><span class="keyword">function</span> [N1_next, N2_next] = MyRK4O(N1RateFunc,N2RateFunc,N1_0,N2_0,step)
+    <span class="comment">% R# - rate of change for N1</span>
+    <span class="comment">% V# - rate of change for N2</span>
+
+    <span class="comment">% First evaluation</span>
+    R1      = N1RateFunc(N1_0, N2_0);
+    V1      = N2RateFunc(N1_0, N2_0);
+
+    <span class="comment">% Second Evaluation</span>
+    R2      = N1RateFunc(N1_0 + step/2 * R1, N2_0 + step/2 * V1);
+    V2      = N2RateFunc(N1_0 + step/2 * R1, N2_0 + step/2 * V1);
+
+    <span class="comment">% Third Evaluation</span>
+    R3      = N1RateFunc(N1_0 + step/2 * R2, N2_0 + step/2 * V2);
+    V3      = N2RateFunc(N1_0 + step/2 * R2, N2_0 + step/2 * V2);
+
+    <span class="comment">% Fourth Evaluation</span>
+    R4      = N1RateFunc(N1_0 + step * R3, N2_0 + step * V3);
+    V4      = N2RateFunc(N1_0 + step * R3, N2_0 + step * V3);
+
+    <span class="comment">% Get Next Values</span>
+    N1_next = N1_0 + step/6 * (R1 + 2*(R2 + R3) + R4);
+    N2_next = N2_0 + step/6 * (V1 + 2*(V2 + V3) + V4);
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Matt McFarland
+% ENGS 91, lab 6, question 1
+
+function [] = q1()
+clear all; close all;
+
+%% Define Functions and Constants
+A1      = .1;        % birthrates
+A2      = .1;
+
+B1      = 8.0e-7;    % deathrates
+B2      = 8.0e-7;
+
+C1      = 1.0e-6;    % competition rate
+C2      = 1.0e-7;
+
+N1_0    = 1e5;
+N2_0    = 1e5;
+
+t_0     = 0;        % 0 years
+t_end   = 10;       % 10 years
+
+n_max   = 9;        % solve for 1 to n_max point doublings
+
+% Differential equations
+dN1 = @(N1, N2) (N1 * (A1 - B1 * N1 - C1 * N2));
+dN2 = @(N1, N2) (N2 * (A2 - B2 * N2 - C2 * N1));
+
+% Stepsize function
+StepSize = @(n) (1 ./ ( 2.^n ));
+
+% Runge Kutta ODE next step
+RK4OFunc = @MyRK4O;
+
+%%
+% Runge Kutta Fourth Order function defined at end of file
+% 
+% This problem's ODE solver defined at end of file
+
+
+%% Solve ODE for different time step sizes
+[N1, N2, t] = SolveODE(dN1, dN2, RK4OFunc, StepSize, N1_0, N2_0, t_0, t_end, n_max);
+
+
+convergence = zeros(n_max+1,4);
+prev_points = (t_end - t_0) / StepSize(0) + 1;
+for i = 2:n_max+1
+    points = (t_end - t_0) / StepSize(i-1) + 1;
+    
+    convergence(i,1) = points;
+    convergence(i,2) = abs(N1(i,points) - N1(i-1,prev_points));
+    
+    convergence(i,3) = points;
+    convergence(i,4) = abs(N2(i,points) - N2(i-1,prev_points));
+    
+    prev_points = points;
+end
+
+%%
+% When the difference between the solutions to the ODEs at t = 10 becomes
+% too small for machine precision, the difference will cease to decrease
+% even though the step size continues to shrink.
+
+figure()
+subplot(2,1,1)
+plot(t(end,1:end),N1(end,1:end),'r', ...
+    t(end,1:end),N2(end,1:end),'b')
+xlabel('years')
+ylabel('population')
+title('ODE solutions')
+legend('N1','N2','Location','southwest')
+
+subplot(2,1,2)
+semilogy(0:n_max, convergence(:,2), 'rx',...
+    0:n_max, convergence(:,4), 'bo');
+xlabel('n - point doublings')
+ylabel('Difference')
+title('Difference between N at t = 10 for 1/2^n and 1/2^{n-1} stepsize')
+legend('N1','N2')
+
+%%
+% Record the "True" values (limited by our machine precision)
+%
+% Step Size needed is StepSize(n = 9) (1/2^9)
+
+N1_true = N1(end,end)
+N2_true = N2(end,end)
+
+best_n = 8;
+limit_step_size = StepSize(best_n)
+
+%% Increase the step size by factors of two
+% Compare the solution to the ODEs at t = 10 for these larger step sizes.
+% The SolveODE function that I invoked earlier actually solves the ODE's
+% for step sizes in factors of 1/2, 1/4, 1/8, ... So we can just use the
+% data from those solutions to see what happens as we increase the step
+% size (instead of resolving for step sizes we've already computed). 
+
+error1 = zeros(1,best_n);
+error2 = zeros(1,best_n);
+
+for i = (best_n-1):-1:0
+    points = (t_end - t_0) / StepSize(i) + 1;
+    
+    % calculate error from "true" value and value at t = 10 for step size
+    error1(best_n - i) = abs(N1_true - N1(i+1,points));
+    error2(best_n - i) = abs(N2_true - N2(i+1,points));
+end
+
+% Plot log of the error for each increased step size 
+figure()
+n_val = (best_n-1):-1: 0;
+stepsizes = StepSize( n_val );
+
+loglog(stepsizes, error1(1:end),'rx',...
+        stepsizes, error2(1:end),'bo');
+grid on
+xlabel('h^{-1}')
+ylabel('Error of N(t = 10)')
+title('Error grows proportionally to h^{4}')
+legend('N1','N2','Location','northwest')
+
+end
+
+%% Solve this ODE function REPLACE_WITH_DASH_DASH specific to this problem (modified from q4 on lab5)
+%
+%  Outputs a n X 2^n matrix of solution values
+%  where for values(row, column)
+%  Row is the n in the step size calculation
+%  Column is the ith step
+% 
+%  Can be applied for Single Step solution functions
+function [N1, N2, t] = SolveODE(N1RateFunc,N2RateFunc,SolutionFunc,StepFunc,N1_0,N2_0,t_0,t_end,n_max)
+    
+    % Find out how many steps will be needed for the n_max method
+    max_len = (t_end - t_0) / StepFunc(n_max);
+    t = zeros(n_max + 1, max_len);
+    N1 = zeros(n_max + 1, max_len);
+    N2 = zeros(n_max + 1, max_len);
+    
+    t(:,1)  = t_0;
+    N1(:,1) = N1_0;
+    N2(:,1) = N2_0;
+    
+    n = 0:n_max;
+    
+    % Calculate Solutions iterations for each n value
+    for i = 1:length(n)
+        delta_t = StepFunc(n(i));
+        steps = (t_end - t_0) / delta_t;
+        for j = 1:steps
+            t(i,j+1) = t(i,1) + j * delta_t;
+            [N1(i,j+1),N2(i,j+1)] = SolutionFunc(N1RateFunc,N2RateFunc,N1(i,j),N2(i,j),delta_t);
+        end
+    end
+
+end
+
+%% 
+% Runge-Kutta 4th Order Method for solving ODE given rate function, current (y,t) and step size
+% Modified for this problem
+function [N1_next, N2_next] = MyRK4O(N1RateFunc,N2RateFunc,N1_0,N2_0,step)
+    % R# - rate of change for N1
+    % V# - rate of change for N2
+
+    % First evaluation
+    R1      = N1RateFunc(N1_0, N2_0);
+    V1      = N2RateFunc(N1_0, N2_0);
+    
+    % Second Evaluation
+    R2      = N1RateFunc(N1_0 + step/2 * R1, N2_0 + step/2 * V1);
+    V2      = N2RateFunc(N1_0 + step/2 * R1, N2_0 + step/2 * V1);
+    
+    % Third Evaluation
+    R3      = N1RateFunc(N1_0 + step/2 * R2, N2_0 + step/2 * V2);
+    V3      = N2RateFunc(N1_0 + step/2 * R2, N2_0 + step/2 * V2);
+    
+    % Fourth Evaluation
+    R4      = N1RateFunc(N1_0 + step * R3, N2_0 + step * V3);   
+    V4      = N2RateFunc(N1_0 + step * R3, N2_0 + step * V3);
+    
+    % Get Next Values
+    N1_next = N1_0 + step/6 * (R1 + 2*(R2 + R3) + R4);
+    N2_next = N2_0 + step/6 * (V1 + 2*(V2 + V3) + V4);
+end
+
+##### SOURCE END #####
+--></body></html>

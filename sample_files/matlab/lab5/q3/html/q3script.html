@@ -1,0 +1,345 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q3script</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-10-27"><meta name="DC.source" content="q3script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1></h1><!--introduction--><p><b>Matt McFarland</b></p><p><i>E91, Lab5, question 3</i></p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#3">Constants and In-Line Functions</a></li><li><a href="#7">Calculate Adaptive Quadrature for Function A</a></li><li><a href="#8">Calculate Adaptive Quadrature for Function B</a></li><li><a href="#9">Print Calculated Quadratures</a></li><li><a href="#12">Define the Adaptive Quadrature Equation</a></li><li><a href="#13">Recursive Adaptive Quadrature Function</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [] = q3()  <span class="comment">% make this script a function to include AQ.m below</span>
+</pre><pre class="codeinput">    close <span class="string">all</span>; clear <span class="string">all</span>;
+</pre><h2>Constants and In-Line Functions<a name="3"></a></h2><p><b>Functions</b></p><pre class="codeinput">    Fa = @(x) ((x.^2) .* exp(-x));
+    Fb = @(x) (x.^(1/3));
+
+    <span class="comment">% Integral of Functions A and B from limit x=a to x=b</span>
+    RealArea_a = @(a,b)  (a.*(a+2)+2).*exp(-a) - (b.*(b+2)+2).*exp(-b); <span class="comment">% Calculated with Wolfram Alpha</span>
+    RealArea_b = @(a,b)  (3/4)*(b^(4/3) - a^(4/3));
+</pre><p>Open Data File</p><pre class="codeinput">    data_files = [<span class="string">'q3_data1.txt'</span>;<span class="string">'q3_data2.txt'</span>];
+    ptr1 = fopen(<span class="string">'data1.txt'</span>,<span class="string">'w+'</span>);
+    ptr2 = fopen(<span class="string">'data2.txt'</span>,<span class="string">'w+'</span>);
+</pre><p><b>Constants</b></p><pre class="codeinput">    from =      0;          <span class="comment">% Integral start</span>
+    to =        1;          <span class="comment">% Integral end</span>
+    error =     1e-5;     <span class="comment">% error threshold to be distributed</span>
+</pre><h2>Calculate Adaptive Quadrature for Function A<a name="7"></a></h2><p>The Adaptive Quadrature function will recursively call itself until the error is uniformly distributed</p><pre class="codeinput">    Area_A = AQ(Fa, 0, 1, error, RealArea_a,ptr1);
+    fclose(ptr1);
+</pre><h2>Calculate Adaptive Quadrature for Function B<a name="8"></a></h2><pre class="codeinput">    Area_B = AQ(Fb, 0, 1, error, RealArea_b,ptr2);
+    fclose(ptr2);
+</pre><h2>Print Calculated Quadratures<a name="9"></a></h2><pre class="codeinput">    fprintf(<span class="string">'Error threshold = %e\n'</span>,error);
+    fprintf(<span class="string">' Function A has quadrature = %f \n Function B has quadrature = %f\n'</span>, Area_A, Area_B);
+</pre><pre class="codeoutput">Error threshold = 1.000000e-05
+ Function A has quadrature = 0.160605 
+ Function B has quadrature = 0.749996
+</pre><p>Each row represents a panel's stored information</p><pre class="codeinput">    A_data = load(<span class="string">'data1.txt'</span>);
+    B_data = load(<span class="string">'data2.txt'</span>);
+
+    DisplayAQ(A_data,<span class="string">'Function A Evaluations'</span>,<span class="string">'Function A Errors'</span>);
+    DisplayAQ(B_data,<span class="string">'Function B Evaluations'</span>,<span class="string">'Funcation B Errors'</span>);
+</pre><img vspace="5" hspace="5" src="q3script_01.png" alt=""> <img vspace="5" hspace="5" src="q3script_02.png" alt=""> <pre class="codeinput"><span class="keyword">end</span>         <span class="comment">% end q3 function script</span>
+</pre><h2>Define the Adaptive Quadrature Equation<a name="12"></a></h2><pre class="codeinput"><span class="keyword">function</span> [ Area ] = AQ(func,left_x, right_x, error, RealFunc, f_ptr)
+</pre><h2>Recursive Adaptive Quadrature Function<a name="13"></a></h2><p>Applies the adaptive quadrature recursive strategy until the error threshold is reached Will plot the x and f(x) values evaluated to reached threshold accuracy</p><p>Use a conservative error reduction of a factor of 10</p><pre class="codeinput">    threshold = 10;
+</pre><p>Calculate midpoint and h</p><pre class="codeinput">    midpoint    = (left_x + right_x)/2;
+    h1          = (right_x - left_x)/2;
+</pre><p>Get function evaluations at left, right and mid points in bound</p><pre class="codeinput">    f_left      = func(left_x);
+    f_right     = func(right_x);
+    f_mid       = func(midpoint);
+</pre><p>Calculate quadrature for total, left and right segments</p><p>Use Simpson Rule</p><pre class="codeinput">    Total_Area = h1/3 * (f_left + 4*f_mid + f_right);
+</pre><p>Split left and right halves and apply Simpson's Rule on those segments</p><pre class="codeinput">    h2 = h1 / 2;
+
+    x_quarter   = (left_x + midpoint) / 2;
+    x_3quarter  = (midpoint + right_x) / 2;
+
+    f_quarter   = func(x_quarter);
+    f_3quarter  = func(x_3quarter);
+
+    Left_Area   = h2/3 * (f_left + 4*f_quarter + f_mid);
+    Right_Area  = h2/3 * (f_mid + 4*f_3quarter + f_right);
+</pre><p>Evaluate if error threshold has been reached</p><p>If it hasn't, apply Adaptive Quadrature on each segment half</p><pre class="codeinput">    <span class="keyword">if</span> ( abs(Total_Area - Left_Area - Right_Area) &lt; (threshold*error) )
+        Area = Left_Area + Right_Area;
+
+        <span class="comment">% print all data points of evaluation for this panel</span>
+        fprintf(f_ptr,<span class="string">'%f %f %f %f %f %f %f %f %f %f '</span>, <span class="keyword">...</span>
+            left_x, x_quarter, midpoint, x_3quarter, right_x, <span class="keyword">...</span>
+            f_left, f_quarter, f_mid, f_3quarter, f_right);
+
+        <span class="comment">% print error for this segment</span>
+        <span class="comment">% x1 x2, left_error right_error</span>
+        fprintf(f_ptr,<span class="string">'%f %f %.25f %.25f\n'</span>, <span class="keyword">...</span>
+                x_quarter, x_3quarter, <span class="keyword">...</span>
+                abs(Left_Area - RealFunc(left_x,midpoint)), <span class="keyword">...</span>
+                abs(Right_Area - RealFunc(midpoint,right_x)) );
+    <span class="keyword">else</span>
+        Area = AQ(func,left_x,midpoint,error/2,RealFunc,f_ptr) + <span class="keyword">...</span>
+            AQ(func,midpoint,right_x,error/2,RealFunc,f_ptr);
+    <span class="keyword">end</span>
+</pre><pre class="codeinput"><span class="keyword">end</span>         <span class="comment">% AQ function definition</span>
+
+<span class="keyword">function</span> [] = DisplayAQ( data ,title1, title2)
+    x_left      = data(:,1);
+    x_quarter   = data(:,2);
+    x_mid       = data(:,3);
+    x_3quarter  = data(:,4);
+    x_right     = data(:,5);
+
+    f_left      = data(:,6);
+    f_quarter   = data(:,7);
+    f_mid       = data(:,8);
+    f_3quarter  = data(:,9);
+    f_right     = data(:,10);
+
+    Left_err    = abs(data(:,13));
+    Right_err   = abs(data(:,14));
+
+    figure()
+    subplot(2,1,1)
+    plot(   x_left,     f_left,     <span class="string">'or'</span>,<span class="keyword">...</span>
+            x_quarter,  f_quarter,  <span class="string">'xr'</span>,<span class="keyword">...</span>
+            x_mid,      f_mid,      <span class="string">'ko'</span>,<span class="keyword">...</span>
+            x_3quarter, f_3quarter, <span class="string">'xb'</span>,<span class="keyword">...</span>
+            x_right,    f_right,    <span class="string">'bo'</span> <span class="keyword">...</span>
+        );
+    legend(<span class="string">'Left Side'</span>,<span class="string">'Left Midpoint'</span>,<span class="string">'Midpoint'</span>,<span class="string">'Right Midpoint'</span>,<span class="string">'Right Side'</span>,<span class="string">'Location'</span>,<span class="string">'southeast'</span>)
+    xlabel(<span class="string">'x'</span>)
+    ylabel(<span class="string">'y'</span>)
+    title(title1);
+
+    subplot(2,1,2)
+    semilogy(   x_quarter,    Left_err,<span class="string">'rx'</span>, <span class="keyword">...</span>
+                x_3quarter,   Right_err,<span class="string">'rx'</span> <span class="keyword">...</span>
+      );
+    legend(<span class="string">'Panel Error'</span>,<span class="string">'Location'</span>,<span class="string">'southeast'</span>)
+    xlabel(<span class="string">'x'</span>)
+    ylabel(<span class="string">'abs{[F(b)-F(a)] - S(a,b)}'</span>)
+    title(title2);
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% 
+% *Matt McFarland*
+%
+% _E91, Lab5, question 3_
+%%
+
+function [] = q3()  % make this script a function to include AQ.m below
+    close all; clear all;
+    %% Constants and In-Line Functions
+    %
+    %%
+    % *Functions*
+    Fa = @(x) ((x.^2) .* exp(-x));
+    Fb = @(x) (x.^(1/3));
+
+    % Integral of Functions A and B from limit x=a to x=b
+    RealArea_a = @(a,b)  (a.*(a+2)+2).*exp(-a) - (b.*(b+2)+2).*exp(-b); % Calculated with Wolfram Alpha
+    RealArea_b = @(a,b)  (3/4)*(b^(4/3) - a^(4/3));
+    
+    %%
+    % Open Data File
+    data_files = ['q3_data1.txt';'q3_data2.txt'];
+    ptr1 = fopen('data1.txt','w+');
+    ptr2 = fopen('data2.txt','w+');
+    
+    %% 
+    % *Constants*
+
+    from =      0;          % Integral start
+    to =        1;          % Integral end
+    error =     1e-5;     % error threshold to be distributed
+
+    %% Calculate Adaptive Quadrature for Function A
+    %
+    % The Adaptive Quadrature function will recursively call itself until
+    % the error is uniformly distributed
+    Area_A = AQ(Fa, 0, 1, error, RealArea_a,ptr1);
+    fclose(ptr1);
+    
+    %% Calculate Adaptive Quadrature for Function B
+    %
+    Area_B = AQ(Fb, 0, 1, error, RealArea_b,ptr2);
+    fclose(ptr2);
+    
+    %% Print Calculated Quadratures
+    %
+    fprintf('Error threshold = %e\n',error);
+    fprintf(' Function A has quadrature = %f \n Function B has quadrature = %f\n', Area_A, Area_B);
+    
+    %%
+    % Each row represents a panel's stored information
+    A_data = load('data1.txt');
+    B_data = load('data2.txt');
+    
+    DisplayAQ(A_data,'Function A Evaluations','Function A Errors');
+    DisplayAQ(B_data,'Function B Evaluations','Funcation B Errors');
+end         % end q3 function script
+
+
+%% Define the Adaptive Quadrature Equation
+%
+function [ Area ] = AQ(func,left_x, right_x, error, RealFunc, f_ptr)
+    %% Recursive Adaptive Quadrature Function
+    % Applies the adaptive quadrature recursive strategy until 
+    % the error threshold is reached
+    % Will plot the x and f(x) values evaluated to reached threshold
+    % accuracy
+    
+    %%
+    % Use a conservative error reduction of a factor of 10
+    threshold = 10;
+    
+    %%
+    % Calculate midpoint and h
+    midpoint    = (left_x + right_x)/2;
+    h1          = (right_x - left_x)/2;
+    
+    %%
+    % Get function evaluations at left, right and mid points in bound
+    f_left      = func(left_x);
+    f_right     = func(right_x);
+    f_mid       = func(midpoint);     
+    
+    %%
+    % Calculate quadrature for total, left and right segments
+    %
+    % Use Simpson Rule
+    
+    Total_Area = h1/3 * (f_left + 4*f_mid + f_right);
+    
+    %% 
+    % Split left and right halves and apply Simpson's Rule on those segments
+    
+    h2 = h1 / 2;
+    
+    x_quarter   = (left_x + midpoint) / 2;
+    x_3quarter  = (midpoint + right_x) / 2;
+    
+    f_quarter   = func(x_quarter);
+    f_3quarter  = func(x_3quarter);
+    
+    Left_Area   = h2/3 * (f_left + 4*f_quarter + f_mid);
+    Right_Area  = h2/3 * (f_mid + 4*f_3quarter + f_right);
+    
+    %%
+    % Evaluate if error threshold has been reached
+    %
+    % If it hasn't, apply Adaptive Quadrature on each segment half
+    
+    if ( abs(Total_Area - Left_Area - Right_Area) < (threshold*error) )
+        Area = Left_Area + Right_Area;
+        
+        % print all data points of evaluation for this panel
+        fprintf(f_ptr,'%f %f %f %f %f %f %f %f %f %f ', ...
+            left_x, x_quarter, midpoint, x_3quarter, right_x, ...
+            f_left, f_quarter, f_mid, f_3quarter, f_right);
+        
+        % print error for this segment
+        % x1 x2, left_error right_error
+        fprintf(f_ptr,'%f %f %.25f %.25f\n', ...
+                x_quarter, x_3quarter, ...
+                abs(Left_Area - RealFunc(left_x,midpoint)), ...
+                abs(Right_Area - RealFunc(midpoint,right_x)) );        
+    else
+        Area = AQ(func,left_x,midpoint,error/2,RealFunc,f_ptr) + ...
+            AQ(func,midpoint,right_x,error/2,RealFunc,f_ptr);
+    end
+
+end         % AQ function definition
+
+function [] = DisplayAQ( data ,title1, title2)
+    x_left      = data(:,1);
+    x_quarter   = data(:,2);
+    x_mid       = data(:,3);
+    x_3quarter  = data(:,4);
+    x_right     = data(:,5);
+    
+    f_left      = data(:,6);
+    f_quarter   = data(:,7);
+    f_mid       = data(:,8);
+    f_3quarter  = data(:,9);
+    f_right     = data(:,10);
+    
+    Left_err    = abs(data(:,13));
+    Right_err   = abs(data(:,14));
+    
+    figure()
+    subplot(2,1,1)    
+    plot(   x_left,     f_left,     'or',...
+            x_quarter,  f_quarter,  'xr',...
+            x_mid,      f_mid,      'ko',...
+            x_3quarter, f_3quarter, 'xb',...
+            x_right,    f_right,    'bo' ...
+        );
+    legend('Left Side','Left Midpoint','Midpoint','Right Midpoint','Right Side','Location','southeast')
+    xlabel('x')
+    ylabel('y')
+    title(title1);
+    
+    subplot(2,1,2)
+    semilogy(   x_quarter,    Left_err,'rx', ...
+                x_3quarter,   Right_err,'rx' ...
+      );
+    legend('Panel Error','Location','southeast')
+    xlabel('x')
+    ylabel('abs{[F(b)-F(a)] - S(a,b)}')
+    title(title2);
+end
+##### SOURCE END #####
+--></body></html>

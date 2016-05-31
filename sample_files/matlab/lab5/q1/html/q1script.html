@@ -1,0 +1,520 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>q1script</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-10-28"><meta name="DC.source" content="q1script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Matt McFarland</a></li><li><a href="#2">Constants and In-Line Functions</a></li><li><a href="#9">Plot the Functions</a></li><li><a href="#10">Calculate the <img src="q1script_eq14515187628112072317.png" alt="$$ R_{n,0} $$"> Integrations</a></li><li><a href="#12">Use Romberg Rule to Reduce Order of Error (Function A)</a></li><li><a href="#15">Use Romberg Rule to Reduce Order of Error (Function B)</a></li></ul></div><h2>Matt McFarland<a name="1"></a></h2><p>E91, lab 5, question 1</p><pre class="codeinput">close <span class="string">all</span>; clear <span class="string">all</span>;
+</pre><h2>Constants and In-Line Functions<a name="2"></a></h2><p><b>Functions</b></p><pre class="codeinput">Fa = @(x) ((x.^2) .* exp(-x));
+Fb = @(x) (x.^(1/3));
+</pre><p>Romberg_Next gets R_m,j from R_m,j-1(a) and R_m-1,j-1 (b)</p><pre class="codeinput">NextRomberg = @(Ra, Rb, j) ( ( ((4.^j)*Ra) - Rb) / ((4.^j) - 1) );
+</pre><p>Trapezoidal Rule, y_vals = f0 and f1, h = panel width</p><pre class="codeinput">Trap = @(y1, y2, h) h*(y1 + y2)/2;
+</pre><p>Composite Trapezoidal Rule, y_vals = f0, f1, f2, ... fn, h = panel width</p><pre class="codeinput">C_Trap = @(y_vals, h) <span class="keyword">...</span>
+    h/2 * (y_vals(1) + 2*sum(y_vals(2:end-1)) + y_vals(end));
+</pre><p><b>Constants</b></p><pre class="codeinput">from        = 0;                    <span class="comment">% start for integration</span>
+to          = 1;                    <span class="comment">% end for integration</span>
+error       = 1e-11;                <span class="comment">% error tolerance</span>
+n_0         = 1;                    <span class="comment">% panels (2^m where m is doublings)</span>
+h_0         = (from - to) / n_0;    <span class="comment">% starting value for h</span>
+
+max_size    = 20;              <span class="comment">% maximum number of iterations for n</span>
+</pre><p><b>Data</b></p><pre class="codeinput">romberg_a   = zeros(max_size);  <span class="comment">% data for function a</span>
+romberg_b   = zeros(max_size);  <span class="comment">% data for function b</span>
+
+trapezoidal_a   = zeros(2*max_size,1);  <span class="comment">% data for composite integration a</span>
+trap_dif_a      = zeros(2*max_size,1);  <span class="comment">% difference data for composite a</span>
+
+trapezoidal_b   = zeros(2*max_size,1);  <span class="comment">% data for composite integration b</span>
+trap_dif_b      = zeros(2*max_size,1);  <span class="comment">% difference data for composite b</span>
+</pre><h2>Plot the Functions<a name="9"></a></h2><pre class="codeinput">figure(1)
+x = linspace(0,1,1000);
+plot(x,Fa(x),<span class="string">'r'</span>, x,Fb(x),<span class="string">'b--'</span>)
+xlabel(<span class="string">'x'</span>)
+ylabel(<span class="string">'y'</span>)
+title(<span class="string">'Equation A and B'</span>)
+legend(<span class="string">'Fa'</span>,<span class="string">'Fb'</span>, <span class="string">'Location'</span>, <span class="string">'northwest'</span>)
+</pre><img vspace="5" hspace="5" src="q1script_01.png" alt=""> <h2>Calculate the <img src="q1script_eq14515187628112072317.png" alt="$$ R_{n,0} $$"> Integrations<a name="10"></a></h2><p>Start by calculating <img src="q1script_eq01538096321148071676.png" alt="$$ R_{m,0} $$"> for m = 1, 2, 3 ... <i>max_size</i></p><p>Where <img src="q1script_eq03250557490813100138.png" alt="$$ m $$"> is the number of halvings Where <img src="q1script_eq12637232511151411738.png" alt="$$ 2^{m-1} $$"> is the number of panels Where <img src="q1script_eq04599850272429142098.png" alt="$$ 2^{m-1} + 1 $$"> is the number of function evaluations</p><pre class="codeinput"><span class="keyword">for</span> m = 0:(max_size-1)
+    <span class="comment">% zero doublings to 2^(max_size - 1) panels</span>
+
+    n = 2^m;                            <span class="comment">% number of panels</span>
+    h = (to - from) / n;                <span class="comment">% panel width</span>
+    x = linspace(from,to,n+1);          <span class="comment">% x points to evaluate f at</span>
+    ya = Fa(x);                         <span class="comment">% calculate f(x)</span>
+    yb = Fb(x);
+
+    <span class="comment">% Below uses composite trapezoidal rule</span>
+    romberg_a(m+1,1) = C_Trap(ya, h);
+    romberg_b(m+1,1) = C_Trap(yb, h);
+<span class="keyword">end</span>;
+</pre><h2>Use Romberg Rule to Reduce Order of Error (Function A)<a name="12"></a></h2><p>Continue until <img src="q1script_eq01948138184051179772.png" alt="$$ R_{m,j} - R_{m-1,j-1} < \epsilon $$"></p><p><img src="q1script_eq01963041815352680725.png" alt="$$ R_{m,j-1} = \frac{4^j R_{m,j-1} - R_{m-1,j-1}}{4^j - 1} $$"></p><pre class="codeinput">m = 1;              <span class="comment">% number of panel halvings      (# row + 1)</span>
+j = 1;              <span class="comment">% number of error reductions    (# column + 1)</span>
+
+differencea = zeros(max_size,1);
+differencea(1) = 1;  <span class="comment">% arbitrary, &gt; 0 starting value</span>
+<span class="keyword">while</span> (differencea(m) &gt; error &amp;&amp; m &lt; (max_size - 1))
+<span class="comment">% Fill out rows until tolerance or maximum iterations is reached</span>
+
+    row = m + 1;            <span class="comment">% account for 1 indexing in Matlab</span>
+
+    <span class="keyword">for</span> k = 1:j             <span class="comment">% fill out columns in row</span>
+        column = k + 1;     <span class="comment">% account for 1 indexing</span>
+        ra = romberg_a(row, column-1);
+        rb = romberg_a(row-1, column-1);
+        romberg_a(row,column) = NextRomberg(ra, rb, k);
+    <span class="keyword">end</span>
+    m = m + 1;      <span class="comment">% next row</span>
+    j = j + 1;      <span class="comment">% will need to go one column further</span>
+
+    differencea(row) = abs(romberg_a(row,column) - romberg_a(row-1,column-1));
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'Completed Romberg iteration (Function A)\n'</span>);
+fprintf(<span class="string">'Area = %f\n'</span>, romberg_a(row,column));
+fprintf(<span class="string">'Error Reduction Iterations (n) = %d\n'</span>,column-1);
+fprintf(<span class="string">'Halvings = %d\n'</span>,row-1)
+fprintf(<span class="string">'Function Evaluations = %d\n'</span>, 2^(row-1)+1)
+fprintf(<span class="string">'Composite Trapezoidal Integral for this n is: %f\n'</span>, romberg_a(row,1));
+</pre><pre class="codeoutput">Completed Romberg iteration (Function A)
+Area = 0.160603
+Error Reduction Iterations (n) = 5
+Halvings = 5
+Function Evaluations = 33
+Composite Trapezoidal Integral for this n is: 0.160633
+</pre><pre>Plot Error Reduction for Part A</pre><pre class="codeinput">figure()
+semilogy(0:max_size-1,differencea(1:end),<span class="string">'rx'</span>)
+xlabel(<span class="string">'Error Reductions'</span>)
+ylabel(<span class="string">'| R_{m,j} - R_{m-1,j-1} |'</span>)
+title(<span class="string">'Function A Romberg Error Reduction'</span>)
+</pre><img vspace="5" hspace="5" src="q1script_02.png" alt=""> <p>Use Composite Trapezoidal Rule for Function A</p><pre class="codeinput">q = 1;              <span class="comment">% iterator</span>
+trapezoidal_a(1) = C_Trap(Fa([from to]), to-from);
+trap_dif_a(q)    = 1; <span class="comment">% arbitrary starting value</span>
+m = 0:(2*max_size-1);
+<span class="keyword">while</span> trap_dif_a(q) &gt; error
+    q = q + 1;
+    n = 2^m(q);                 <span class="comment">% panels</span>
+    h = (to - from) / n;        <span class="comment">% panel width</span>
+    x = linspace(to,from, n+1); <span class="comment">% points to evaluate at</span>
+    ya = Fa(x);                 <span class="comment">% evaluations</span>
+    trapezoidal_a(q) = C_Trap(ya, h);
+
+    trap_dif_a(q) = abs(trapezoidal_a(q) - trapezoidal_a(q-1));
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'\n Function A Composite Integration\n'</span>)
+fprintf(<span class="string">'Area: %f\n'</span>,trapezoidal_a(q));
+fprintf(<span class="string">'Halvings needed: %d\n'</span>,m(q))           <span class="comment">% halvings needed</span>
+fprintf(<span class="string">'Total panels needed: %d\n'</span>,2^m(q))      <span class="comment">% total panels needed</span>
+fprintf(<span class="string">'Total evaluations needed: %d\n\n'</span>,2^m(q) + 1)  <span class="comment">% total evaluations</span>
+
+figure();
+hold <span class="string">on</span>
+subplot(2,1,1);
+semilogy(m,trapezoidal_a,<span class="string">'bo-'</span>)
+xlabel(<span class="string">'m : halvings'</span>)
+ylabel(<span class="string">'Area'</span>)
+title(<span class="string">'Composite Integration Convegence for Function A'</span>)
+
+subplot(2,1,2);
+semilogy(m,trap_dif_a,<span class="string">'rx'</span>)
+xlabel(<span class="string">'m : halvings'</span>)
+ylabel(<span class="string">'Area(m) - Area(m-1)'</span>)
+title(<span class="string">'Composite Integration Error Reduction for Function A'</span>)
+hold <span class="string">off</span>
+</pre><pre class="codeoutput">
+ Function A Composite Integration
+Area: 0.160603
+Halvings needed: 17
+Total panels needed: 131072
+Total evaluations needed: 131073
+
+</pre><img vspace="5" hspace="5" src="q1script_03.png" alt=""> <h2>Use Romberg Rule to Reduce Order of Error (Function B)<a name="15"></a></h2><p>Repeat same process used in Part A</p><pre class="codeinput">m = 1;              <span class="comment">% number of panel halvings      (# row + 1)</span>
+j = 1;              <span class="comment">% number of error reductions    (# column + 1)</span>
+
+differenceb = zeros(max_size,1);
+differenceb(1) = 1;  <span class="comment">% arbitrary, &gt; 0 starting value</span>
+<span class="keyword">while</span> (differenceb(m) &gt; error &amp;&amp; m &lt; (max_size - 1))
+<span class="comment">% Fill out rows until tolerance or maximum iterations is reached</span>
+
+    row = m + 1;            <span class="comment">% account for 1 indexing in Matlab</span>
+
+    <span class="keyword">for</span> k = 1:j             <span class="comment">% fill out columns in row</span>
+        column = k + 1;     <span class="comment">% account for 1 indexing</span>
+        ra = romberg_b(row, column-1);
+        rb = romberg_b(row-1, column-1);
+        romberg_b(row,column) = NextRomberg(ra, rb, k);
+    <span class="keyword">end</span>
+    m = m + 1;      <span class="comment">% next row</span>
+    j = j + 1;      <span class="comment">% will need to go one column further</span>
+
+    differenceb(row) = abs(romberg_b(row,column) - romberg_b(row-1,column-1));
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'Completed Romberg iteration (Function B)\n'</span>);
+fprintf(<span class="string">'Area = %f\n'</span>, romberg_b(row,column));
+fprintf(<span class="string">'Error Reduction Iterations (n) = %d\n'</span>,column-1);
+fprintf(<span class="string">'Function Evaluations = %d\n'</span>, 2^(row-1)+1)
+fprintf(<span class="string">'Composite Trapezoidal Integral for this n is: %f\n'</span>, romberg_b(row,1));
+</pre><pre class="codeoutput">Completed Romberg iteration (Function B)
+Area = 0.750000
+Error Reduction Iterations (n) = 18
+Function Evaluations = 262145
+Composite Trapezoidal Integral for this n is: 0.750000
+</pre><p>Plot Error Reduction for Part B - Romberg Iteration</p><pre class="codeinput">figure()
+semilogy(0:max_size-1,differenceb(1:end),<span class="string">'rx'</span>)
+xlabel(<span class="string">'m : Halvings'</span>)
+ylabel(<span class="string">'| R_{m,j} - R_{m-1,j-1} |'</span>)
+title(<span class="string">'Function B Romberg Error Reduction'</span>)
+</pre><img vspace="5" hspace="5" src="q1script_04.png" alt=""> <pre>Composite Trapezoidal Rule for Function B</pre><pre class="codeinput">q = 1;              <span class="comment">% iterator</span>
+trapezoidal_b(1) = C_Trap(Fb([from to]), to-from);
+trap_dif_b(q)    = 1; <span class="comment">% arbitrary starting value</span>
+m = 0:(2*max_size-1);
+<span class="keyword">while</span> trap_dif_b(q) &gt; error
+    q = q + 1;
+    n = 2^m(q);                 <span class="comment">% panels</span>
+    h = (to - from) / n;        <span class="comment">% panel width</span>
+    x = linspace(to,from, n+1); <span class="comment">% points to evaluate at</span>
+    ya = Fb(x);                 <span class="comment">% evaluations</span>
+    trapezoidal_b(q) = C_Trap(ya, h);
+
+    trap_dif_b(q) = abs(trapezoidal_b(q) - trapezoidal_b(q-1));
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'\n Function B Composite Integration \n'</span>)
+fprintf(<span class="string">'Area: %f\n'</span>,trapezoidal_b(q));
+fprintf(<span class="string">'Halving iterations needed: %d\n'</span>,m(q))    <span class="comment">% halvings needed</span>
+fprintf(<span class="string">'Panels needed: %d\n'</span>,2^m(q))              <span class="comment">% total panels needed</span>
+fprintf(<span class="string">'Function evaluations: %d\n'</span>,2^m(q) + 1)   <span class="comment">% total evaluations</span>
+</pre><pre class="codeoutput">
+ Function B Composite Integration 
+Area: 0.750000
+Halving iterations needed: 27
+Panels needed: 134217728
+Function evaluations: 134217729
+</pre><pre>Plot Composite Error Reductions for Function B</pre><pre class="codeinput">figure();
+hold <span class="string">on</span>
+subplot(2,1,1);
+semilogy(m,trapezoidal_b,<span class="string">'bo-'</span>)
+xlabel(<span class="string">'m : halvings'</span>)
+ylabel(<span class="string">'Integral'</span>)
+title(<span class="string">'Composite Trapezoidal Convergence for Function B'</span>)
+
+subplot(2,1,2);
+semilogy(m,trap_dif_b,<span class="string">'rx'</span>)
+xlabel(<span class="string">'m : halvings'</span>)
+ylabel(<span class="string">'Area(m) - Area(m-1)'</span>)
+title(<span class="string">'Composite Integration Error Reduction for Function B'</span>)
+hold <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="q1script_05.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Matt McFarland
+% E91, lab 5, question 1
+
+close all; clear all;
+
+%% Constants and In-Line Functions
+
+%%
+% *Functions*
+Fa = @(x) ((x.^2) .* exp(-x));
+Fb = @(x) (x.^(1/3));
+
+%%
+% Romberg_Next gets R_m,j from R_m,j-1(a) and R_m-1,j-1 (b)
+NextRomberg = @(Ra, Rb, j) ( ( ((4.^j)*Ra) - Rb) / ((4.^j) - 1) );
+
+%%
+% Trapezoidal Rule, y_vals = f0 and f1, h = panel width
+Trap = @(y1, y2, h) h*(y1 + y2)/2;
+
+%%
+% Composite Trapezoidal Rule, y_vals = f0, f1, f2, ... fn, h = panel width
+C_Trap = @(y_vals, h) ...
+    h/2 * (y_vals(1) + 2*sum(y_vals(2:end-1)) + y_vals(end));
+
+%%
+% *Constants*
+from        = 0;                    % start for integration
+to          = 1;                    % end for integration
+error       = 1e-11;                % error tolerance
+n_0         = 1;                    % panels (2^m where m is doublings)
+h_0         = (from - to) / n_0;    % starting value for h
+
+max_size    = 20;              % maximum number of iterations for n
+
+%%
+% *Data*
+romberg_a   = zeros(max_size);  % data for function a
+romberg_b   = zeros(max_size);  % data for function b
+
+trapezoidal_a   = zeros(2*max_size,1);  % data for composite integration a
+trap_dif_a      = zeros(2*max_size,1);  % difference data for composite a
+
+trapezoidal_b   = zeros(2*max_size,1);  % data for composite integration b
+trap_dif_b      = zeros(2*max_size,1);  % difference data for composite b
+
+%% Plot the Functions
+figure(1)
+x = linspace(0,1,1000);
+plot(x,Fa(x),'r', x,Fb(x),'bREPLACE_WITH_DASH_DASH')
+xlabel('x')
+ylabel('y')
+title('Equation A and B')
+legend('Fa','Fb', 'Location', 'northwest')
+
+%% Calculate the $$ R_{n,0} $$ Integrations
+% 
+% Start by calculating $$ R_{m,0} $$ for m = 1, 2, 3 ... _max_size_
+%
+
+%%
+% Where $$ m $$ is the number of halvings 
+% Where $$ 2^{m-1} $$ is the number of panels 
+% Where $$ 2^{m-1} + 1 $$ is the number of function evaluations
+%
+for m = 0:(max_size-1) 
+    % zero doublings to 2^(max_size - 1) panels
+    
+    n = 2^m;                            % number of panels
+    h = (to - from) / n;                % panel width
+    x = linspace(from,to,n+1);          % x points to evaluate f at
+    ya = Fa(x);                         % calculate f(x)
+    yb = Fb(x);
+    
+    % Below uses composite trapezoidal rule
+    romberg_a(m+1,1) = C_Trap(ya, h);
+    romberg_b(m+1,1) = C_Trap(yb, h);
+end;
+
+%% Use Romberg Rule to Reduce Order of Error (Function A)
+% 
+% Continue until $$ R_{m,j} - R_{m-1,j-1} < \epsilon $$
+%
+% $$ R_{m,j-1} = \frac{4^j R_{m,j-1} - R_{m-1,j-1}}{4^j - 1} $$
+%
+
+m = 1;              % number of panel halvings      (# row + 1)
+j = 1;              % number of error reductions    (# column + 1)
+
+differencea = zeros(max_size,1);
+differencea(1) = 1;  % arbitrary, > 0 starting value
+while (differencea(m) > error && m < (max_size - 1)) 
+% Fill out rows until tolerance or maximum iterations is reached
+    
+    row = m + 1;            % account for 1 indexing in Matlab   
+    
+    for k = 1:j             % fill out columns in row
+        column = k + 1;     % account for 1 indexing
+        ra = romberg_a(row, column-1);
+        rb = romberg_a(row-1, column-1);
+        romberg_a(row,column) = NextRomberg(ra, rb, k);
+    end
+    m = m + 1;      % next row 
+    j = j + 1;      % will need to go one column further
+    
+    differencea(row) = abs(romberg_a(row,column) - romberg_a(row-1,column-1));   
+end
+
+fprintf('Completed Romberg iteration (Function A)\n');
+fprintf('Area = %f\n', romberg_a(row,column));
+fprintf('Error Reduction Iterations (n) = %d\n',column-1);
+fprintf('Halvings = %d\n',row-1)
+fprintf('Function Evaluations = %d\n', 2^(row-1)+1)
+fprintf('Composite Trapezoidal Integral for this n is: %f\n', romberg_a(row,1));
+
+%% 
+%  Plot Error Reduction for Part A           
+figure()
+semilogy(0:max_size-1,differencea(1:end),'rx')
+xlabel('Error Reductions')
+ylabel('| R_{m,j} - R_{m-1,j-1} |')
+title('Function A Romberg Error Reduction')
+
+
+%%
+% Use Composite Trapezoidal Rule for Function A
+
+q = 1;              % iterator
+trapezoidal_a(1) = C_Trap(Fa([from to]), to-from);
+trap_dif_a(q)    = 1; % arbitrary starting value
+m = 0:(2*max_size-1);
+while trap_dif_a(q) > error
+    q = q + 1;
+    n = 2^m(q);                 % panels
+    h = (to - from) / n;        % panel width
+    x = linspace(to,from, n+1); % points to evaluate at
+    ya = Fa(x);                 % evaluations
+    trapezoidal_a(q) = C_Trap(ya, h);
+    
+    trap_dif_a(q) = abs(trapezoidal_a(q) - trapezoidal_a(q-1));
+end
+
+fprintf('\n Function A Composite Integration\n')
+fprintf('Area: %f\n',trapezoidal_a(q));
+fprintf('Halvings needed: %d\n',m(q))           % halvings needed
+fprintf('Total panels needed: %d\n',2^m(q))      % total panels needed
+fprintf('Total evaluations needed: %d\n\n',2^m(q) + 1)  % total evaluations
+
+figure();
+hold on
+subplot(2,1,1);
+semilogy(m,trapezoidal_a,'bo-')
+xlabel('m : halvings')
+ylabel('Area')
+title('Composite Integration Convegence for Function A')
+
+subplot(2,1,2);
+semilogy(m,trap_dif_a,'rx')
+xlabel('m : halvings')
+ylabel('Area(m) - Area(m-1)')
+title('Composite Integration Error Reduction for Function A')
+hold off
+
+%% Use Romberg Rule to Reduce Order of Error (Function B)
+%
+% Repeat same process used in Part A
+%
+
+m = 1;              % number of panel halvings      (# row + 1)
+j = 1;              % number of error reductions    (# column + 1)
+
+differenceb = zeros(max_size,1);
+differenceb(1) = 1;  % arbitrary, > 0 starting value
+while (differenceb(m) > error && m < (max_size - 1)) 
+% Fill out rows until tolerance or maximum iterations is reached
+    
+    row = m + 1;            % account for 1 indexing in Matlab   
+    
+    for k = 1:j             % fill out columns in row
+        column = k + 1;     % account for 1 indexing
+        ra = romberg_b(row, column-1);
+        rb = romberg_b(row-1, column-1);
+        romberg_b(row,column) = NextRomberg(ra, rb, k);
+    end
+    m = m + 1;      % next row 
+    j = j + 1;      % will need to go one column further
+    
+    differenceb(row) = abs(romberg_b(row,column) - romberg_b(row-1,column-1));   
+end
+
+fprintf('Completed Romberg iteration (Function B)\n');
+fprintf('Area = %f\n', romberg_b(row,column));
+fprintf('Error Reduction Iterations (n) = %d\n',column-1);
+fprintf('Function Evaluations = %d\n', 2^(row-1)+1)
+fprintf('Composite Trapezoidal Integral for this n is: %f\n', romberg_b(row,1));
+
+%% 
+% Plot Error Reduction for Part B - Romberg Iteration  
+figure()
+semilogy(0:max_size-1,differenceb(1:end),'rx')
+xlabel('m : Halvings')
+ylabel('| R_{m,j} - R_{m-1,j-1} |')
+title('Function B Romberg Error Reduction')
+
+%%
+%  Composite Trapezoidal Rule for Function B
+
+q = 1;              % iterator
+trapezoidal_b(1) = C_Trap(Fb([from to]), to-from);
+trap_dif_b(q)    = 1; % arbitrary starting value
+m = 0:(2*max_size-1);
+while trap_dif_b(q) > error
+    q = q + 1;
+    n = 2^m(q);                 % panels
+    h = (to - from) / n;        % panel width
+    x = linspace(to,from, n+1); % points to evaluate at
+    ya = Fb(x);                 % evaluations
+    trapezoidal_b(q) = C_Trap(ya, h);
+    
+    trap_dif_b(q) = abs(trapezoidal_b(q) - trapezoidal_b(q-1));
+end
+
+fprintf('\n Function B Composite Integration \n')
+fprintf('Area: %f\n',trapezoidal_b(q));
+fprintf('Halving iterations needed: %d\n',m(q))    % halvings needed
+fprintf('Panels needed: %d\n',2^m(q))              % total panels needed
+fprintf('Function evaluations: %d\n',2^m(q) + 1)   % total evaluations
+
+%%
+%  Plot Composite Error Reductions for Function B
+figure();
+hold on
+subplot(2,1,1);
+semilogy(m,trapezoidal_b,'bo-')
+xlabel('m : halvings')
+ylabel('Integral')
+title('Composite Trapezoidal Convergence for Function B')
+
+subplot(2,1,2);
+semilogy(m,trap_dif_b,'rx')
+xlabel('m : halvings')
+ylabel('Area(m) - Area(m-1)')
+title('Composite Integration Error Reduction for Function B')
+hold off
+
+
+
+
+##### SOURCE END #####
+--></body></html>
