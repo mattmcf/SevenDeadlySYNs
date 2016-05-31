@@ -390,8 +390,10 @@ ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path)
 	
 	if (fte)
 	{
+		printf("filetable_get_chunkyfile: found fte\n");
 		return fte->file;
 	}
+	printf("filetable_get_chunkyfile: did not find fte\n");
 	return NULL;
 }
 
