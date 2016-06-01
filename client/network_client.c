@@ -407,7 +407,7 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized) {
  * 		TODO - figure out how to combine this with chunky file and
  *		how to expand on it to allow for transerring an entire file
  */
-int receive_chunk_request(CNT * thread_block, int *peer_id, char **filepath, int *chunk_id){
+int receive_chunk_request(CNT * thread_block, int *peer_id, char **filepath, int *chunk_id, int* request_id){
 	if (!thread_block || !filepath || !peer_id || !chunk_id) {
 		format_printf(err_format, "receive_chunk_req failed due to null args\n");
 		return -1;
@@ -419,6 +419,7 @@ int receive_chunk_request(CNT * thread_block, int *peer_id, char **filepath, int
 	chunk_data_t * queue_item = asyncqueue_pop(cnt->clt_queues_to_client[CLT_2_ME_REQUEST_CHUNK]);
 	if (queue_item != NULL) {
 
+		*request_id = queue_item->job_id;
 		*peer_id = queue_item->client_id;
 		*chunk_id = queue_item->chunk_num;
 		*filepath = queue_item->file_name;
@@ -563,7 +564,7 @@ int send_request_for_master(CNT * cnt) {
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
  */
-int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chunk_id, int num_chunks) {
+int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chunk_id, int request_id) {
 	if (!thread_block || !filepath) {
 		format_printf(err_format, "send_chunk_request error: null cnt or filepath\n");
 		return -1;
@@ -580,12 +581,13 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	}
 
 	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+	queue_item->job_id = request_id
 	queue_item->client_id = peer_id;
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_name = strdup(filepath);
 	queue_item->file_str_len = strlen(queue_item->file_name) + 1;	// include null terminator
-	queue_item->data_len = 0;	// I'm stupid -- let's hide the number of chunks in the data field
-	queue_item->data = (void *)(long)num_chunks; // see above
+	queue_item->data_len = 0;	
+	queue_item->data = NULL; 
 
 	asyncqueue_push(cnt->clt_queues_from_client[ME_2_CLT_REQ_CHUNK], (void *)queue_item);
 	return 1;
@@ -598,7 +600,7 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
  *	(claimed) buf	- the chunk that we are sending
  * 	len - the length of the chunk that we are sending 
  */
-int send_chunk(CNT * thread_block, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len) {
+int send_chunk(CNT * thread_block, int peer_id, char * file_name, int chunk_id, char *chunk_data, int chunk_len, int request_id) {
 	if (!thread_block || !file_name || !chunk_data) {
 		format_printf(err_format, "send_chunk error: null arguments\n");
 		return -1;
@@ -612,6 +614,7 @@ int send_chunk(CNT * thread_block, int peer_id, char * file_name, int chunk_id, 
 	}
 
 	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+	queue_item->job_id = request_id;
 	queue_item->client_id = peer_id;
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_str_len = strlen(file_name) + 1;
@@ -1284,7 +1287,8 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		switch (pkt.type) {
 			case CHUNK_REQUEST:
 
-				format_printf(network_format,"NETWORK -- received chunk request (%s, %d) from client %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				format_printf(network_format,"NETWORK -- received chunk request (%s, %d) from client %d : Request ID %d\n", file_name_buf, pkt.chunk_num, peer->id, pkt.job_id);
+				queue_item->job_id = pkt.job_id;
 				queue_item->client_id = peer->id;
 				queue_item->chunk_num = pkt.chunk_num;
 				queue_item->file_str_len = pkt.file_str_len;
@@ -1301,6 +1305,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			case CHUNK:
 
 				format_printf(network_format,"NETWORK -- received chunk (%s, %d) from peer %d ", file_name_buf, pkt.chunk_num, peer->id);
+				queue_item->job_id = pkt.job_id;
 				queue_item->client_id = peer->id;
 				queue_item->chunk_num = pkt.chunk_num;
 				queue_item->file_str_len = pkt.file_str_len;
@@ -1325,6 +1330,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 			case REQ_REJECT:
 
 				format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d", file_name_buf, pkt.chunk_num, peer->id);
+				queue_item->job_id = pkt.job_id;
 				queue_item->client_id = peer->id;
 				queue_item->file_str_len = pkt.file_str_len;
 
@@ -1513,23 +1519,21 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		}
 
 		c2c_pkt_t pkt;
+		pkt.job_id = queue_item->job_id;
 		pkt.type = CHUNK_REQUEST;
 		pkt.chunk_num = queue_item->chunk_num;
 		pkt.file_str_len = queue_item->file_str_len;
 		pkt.data_len = queue_item->data_len;
+		pkt.job_id = (int)(long)queue_item->data;
 
 		send(peer->socketfd, &pkt, sizeof(pkt),0);
 		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
 
 		format_printf(network_format,"NETWORK -- sent request for chunk %s %d to client %d ", queue_item->file_name, pkt.chunk_num, peer->id);
 
-		// I manually stored the number of expected chunks in the data field. whatever.
-		int requests = -1;
-		for (int i = 0; i < (int)(long)queue_item->data; i++) {
-			requests = increment_conn_record(cnt, peer->id);
-		}
-
-		format_printf(network_format, "(%d outstanding requests)\n", requests);
+		// I manually stored the request ID in the data field pointer
+		int requests = requests = increment_conn_record(cnt, peer->id);
+		format_printf(network_format, "Request ID: %d (%d outstanding requests)\n", (int)(long)queue_item->data, requests);
 
 		// if(pkt.chunk_num == 99999){
 		// 	// get number of chunks necessary and then request that many chunks
@@ -1574,6 +1578,7 @@ void check_send_chunk_q(_CNT_t * cnt) {
 		}
 
 		c2c_pkt_t pkt;
+		pkt.
 		pkt.type = CHUNK;
 		pkt.chunk_num = queue_item->chunk_num;
 		pkt.file_str_len = queue_item->file_str_len;

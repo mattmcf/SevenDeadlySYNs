@@ -269,6 +269,8 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	} else {
 		/* iterate over additions to see if we need to request files */
 		/* delete any files that we need to update, or remove flat out */
+
+		// MATT FLAG -- should blow out pending work requests
 		RemoveFileDeletions(deletions);
 	}
 
@@ -333,7 +335,6 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			}
 
 			/* re make that deleted file */
-			//char *expanded_path = append_DSRoot(path, dartsync_dir);
 			ChunkyFile *file = chunkyfile_new_for_writing_to_path(expanded_path, len, mod_time);
 			if (!file){
 				printf("UpdateLocalFilesystem: chunkyfile_new_empty() failed()\n");
@@ -344,42 +345,47 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 			// ADD CHUNKYFILE TO HASH TABLE!!!!!!!!!!
 			filetable_set_chunkyfile(ft, path, file);
 
-			/* figure out how many chunks we need to request */
-			int total_chunks = chunkyfile_num_chunks(file);
-			if (total_chunks < 1) {
-				fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
-				chunkyfile_write(file);
-				continue;
-			}
+			// /* figure out how many chunks we need to request */
+			// int total_chunks = chunkyfile_num_chunks(file);
+			// if (total_chunks < 1) {
+			// 	fprintf(stderr,"chunkyfile %s has no chunks!\n", expanded_path);
+			// 	chunkyfile_write(file);
+			// 	continue;
+			// }
 
-			/* for each chunk, find a peer who has it, and request it */
-			for (int i = 0; i < total_chunks; i++){ //???
-				/* get the peers who have the chunk that we want */
-				printf("UpdateLocalFilesystem: looking for peers with %s's chunk %d\n", path, i);
-				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
-				if (!peers){
-					printf("UpdateLocalFilesystem: filetable_get_peers_who_have_file_chunk() failed\n");
-					continue;
-				}
+			// /* for each chunk, find a peer who has it, and request it */
+			// for (int i = 0; i < total_chunks; i++){ //???
+			// 	/* get the peers who have the chunk that we want */
+			// 	printf("UpdateLocalFilesystem: looking for peers with %s's chunk %d\n", path, i);
+			// 	Queue *peers = filetable_get_peers_who_have_file_chunk(ft, path, i);
+			// 	if (!peers){
+			// 		printf("UpdateLocalFilesystem: filetable_get_peers_who_have_file_chunk() failed\n");
+			// 		continue;
+			// 	}
 
-				/* randomly select one peer to get the chunk from */
-				int peer_id;
-				do {
-					int list_id = (rand()*100) % queue_length(peers);
-					peer_id = (int)(long)queue_get(peers, list_id);
-				} while (peer_id == myID);
+			// 	/* randomly select one peer to get the chunk from */
+			// 	int peer_id;
+			// 	do {
+			// 		int list_id = (rand()*100) % queue_length(peers);
+			// 		peer_id = (int)(long)queue_get(peers, list_id);
+			// 	} while (peer_id == myID);
 
-				/* make the request to get that chunk */
-				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
-						i, path, peer_id);
-				send_chunk_request(cnt, peer_id, path, i, 1);
-			}
+			// 	/* make the request to get that chunk */
+			// 	printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
+			// 			i, path, peer_id);
+
+			// 	enqueue_pending_chunk(cnt, path, i);
+			// 	//send_chunk_request(cnt, peer_id, path, i, 1);
+			// }
 
 			/* get ready for next iteration */
 			path = NULL;
 			free(expanded_path);
 			expanded_path = NULL;
 		}
+
+		/* MATT FLAG -- enqueue all of the chunks we need */
+		filetable_add_filesystem(filetable, additions, NEED_DATA);
 
 		filesystemiterator_destroy(add_iterator);
 	}
@@ -448,7 +454,9 @@ void CheckLocalFilesystem()
 
 		// update the file table
 		filetable_remove_filesystem(ft, dels);
-		filetable_add_filesystem(ft, adds, myID);
+
+		// MATT FLAG -- don't enqueue work requests
+		filetable_add_filesystem(ft, adds, myID, HAVE_DATA);
 
 		/* update the pointer to our *current* filesystem */
 		filesystem_destroy(cur_fs);
@@ -565,7 +573,12 @@ int GetFileAdditions(FileSystem *additions, int author_id){
 
 		/* get all chunks */
 		printf("Send chunk request for file %s\n", path);
-		send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS, total_chunks);
+
+		//send_chunk_request(cnt, author_id, path, GET_ALL_CHUNKS, total_chunks);
+		// enqueue all chunk requests
+		for (int i = 0; i < total_chunks; i++) {
+			enqueue_pending_chunk(cnt, path, i);
+		}
 
 		path = NULL;
 	}
@@ -591,6 +604,27 @@ int CheckFileSystem(FileSystem *fs){
 	filesystemiterator_destroy(iterator);
 	return -1;
 }
+
+int check_work_queue(CNT * cnt, FileTable * ft) {
+	printf("work queue in not implemented!\n");
+
+	// scan file table
+
+	// for each file that has pending work requests and less than MAX_PENDING_REQUESTS
+		// pop off 2x (MAX_PENDING REQUEST - outstanding requests)
+		// shuffle
+		// issue the first half of the requests (increment requests outstanding)
+		// send_chunk_request(cnt, peer_id, path, i, 1);
+		// requeue the second half of the requests
+
+}
+
+int enqueue_work_request(FileTable * filetable, char * path, int chunk) {
+	// get File Table Entry
+
+	// 
+}
+
 
 /* ------------------------------- main -------------------------------- */
 int main(int argv, char* argc[]){
@@ -760,6 +794,10 @@ int main(int argv, char* argc[]){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 			printf("CLIENT MAIN: received chunk %d for file %s (expanded: %s\n", chunk_id, filepath, expanded_path);
 
+
+			// MATT FLAG -- DOES REQUEST MATCH AN OUTSTANDING REQUEST ID?
+
+
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
 			if (!file){
@@ -767,34 +805,40 @@ int main(int argv, char* argc[]){
 				continue;
 			}
 
+
+
 			/* if len is -1, then we received a rejection response */
 			if (-1 == len){	// how should I handle this???
 				printf("CLIENT MAIN: receive_chunk got a rejection response\n");
 
-				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, filepath, chunk_id);
-				if (!peers){
-					printf("CLIENT MAIN: filetable_get_peers_who_have_file_chunk() failed\n");
-					continue;
-				}
+				// MATT FLAG -- REQUEUE THE REQUEST
+				enqueue_work_request(filetable, path, chunk);
+				printf("Must requeue request\n");
 
-				/* randomly select one peer to get the chunk from */
-				int new_id;
-				do {
-					int list_id = (rand()*100) % queue_length(peers);
-					new_id = (int)(long)queue_get(peers, list_id);
-				} while (new_id == myID);
+				// Queue *peers = filetable_get_peers_who_have_file_chunk(ft, filepath, chunk_id);
+				// if (!peers){
+				// 	printf("CLIENT MAIN: filetable_get_peers_who_have_file_chunk() failed\n");
+				// 	continue;
+				// }
 
-				/* make the request to get that chunk */
-				printf("CLIENT MAIN: requesting chunk %d of %s from %d\n",
-						chunk_id, expanded_path, new_id);
-				send_chunk_request(cnt, new_id, filepath, chunk_id, 1);
-				continue;
+				// /* randomly select one peer to get the chunk from */
+				// int new_id;
+				// do {
+				// 	int list_id = (rand()*100) % queue_length(peers);
+				// 	new_id = (int)(long)queue_get(peers, list_id);
+				// } while (new_id == myID);
+
+				// /* make the request to get that chunk */
+				// printf("CLIENT MAIN: requesting chunk %d of %s from %d\n",
+				// 		chunk_id, expanded_path, new_id);
+				// send_chunk_request(cnt, new_id, filepath, chunk_id, 1);
+				// continue;
 			}
 
 			/* set the correct chunk */
 			chunkyfile_set_chunk(file, chunk_id, chunk_data, len);
 
-			// TODO -- SEND THE FILE ACQ TO THE TRACKER
+			// SEND THE FILE ACQ TO THE TRACKER
 			send_chunk_got(cnt, filepath, chunk_id);
 
 			if (chunkyfile_all_chunks_written(file)){
@@ -853,7 +897,8 @@ int main(int argv, char* argc[]){
 			filesystem_plus_equals(cur_fs, additions);
 
 			/* the originator of this diff has the master, so tell the filetable */
-			filetable_add_filesystem(ft, additions, peer_id);
+			// MATT FLAG -- ENQUEUE ALL WORK REQUESTS
+			filetable_add_filesystem(ft, additions, peer_id, NEED_DATA);
 
 			/* get the file additions from peers, and update the filesystem */
 			GetFileAdditions(additions, peer_id);
@@ -887,6 +932,9 @@ int main(int argv, char* argc[]){
 			UpdateLocalFilesystem(master);
 			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
+
+		/* MATT FLAG -- DO REQUEST WORK HERE */
+		check_work_queue();
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
