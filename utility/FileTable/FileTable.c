@@ -106,6 +106,7 @@ int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* 
 		JOB_ID = 1;
 	}
 	
+	printf("Queued %d / %d requests. %d elements in work queue.\n", queue_length(entry->outstanding_requests), max_pending_reqests, queue_length(entry->work_queue));
 	if (queue_length(entry->outstanding_requests) < max_pending_reqests && queue_length(entry->work_queue) > 0)
 	{
 		*chunk = (int)(long)queue_pop(entry->work_queue);
