@@ -962,7 +962,6 @@ void * clt_network_start(void * arg) {
 		// printf("Poll queues\n");
 		poll_queues(cnt);
 		//sleep(1);
-		format_printf(network_format,"network looping\n");
 	}
 
 	return (void *)1;

@@ -903,8 +903,6 @@ int main(int argv, char* argc[]){
 
 		/* sleep for the dynamic amount of time */
 		usleep(sleep_time);
-
-		printf("looping\n");
 	}
 }
 
