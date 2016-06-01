@@ -289,6 +289,10 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				printf("UpdateLocalFilesystem: no chunks for file\n");
 				continue;
 			}
+			if (len == -1){
+				printf("UpdateLocalFilesystem: directory. don't send\n");
+				continue;
+			}
 			for (int i = 0; i < num_chunks; i++){
 				send_chunk_got(cnt, path, i);
 			}

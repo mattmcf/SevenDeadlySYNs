@@ -26,9 +26,9 @@ int main()
 	*/
 	
 	FileTable* ft = filetable_new();
-	FileSystem* fs1 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/simulator_code/");
-	FileSystem* fs2 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/src/");
-	FileSystem* fs3 = filesystem_new("/Users/McFarland/Programming/Compiler-cs57/myCompiler/tests/");
+	FileSystem* fs1 = filesystem_new("/Users/jacob/dartsync/sdp");
+	FileSystem* fs2 = filesystem_new("/Users/jacob/dartsync/testdir");
+	FileSystem* fs3 = filesystem_new("/Users/jacob/dartsync/testdir copy");
 
 	filetable_add_filesystem(ft, fs1, 0);
 	filetable_add_filesystem(ft, fs2, 1);
@@ -54,9 +54,9 @@ int main()
 	
 	printf("%d\n", length);
 	
-	//filetable_print(ftds);
+	filetable_print(ftds);
 
-	filetable_remove_peer(ft, 2);
+	filetable_remove_peer(ftds, 2);
 
 	filetable_print(ftds);
 
