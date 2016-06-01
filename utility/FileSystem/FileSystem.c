@@ -171,9 +171,11 @@ void file_print(File* file, int nameWidth, int digitsWidth, int depth, Queue* qu
 		{
 			sprintf(buffer, "  |");
 			push_string(queue, buffer);
+			queue_spop(queue);
 		}
 		sprintf(buffer, "-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
 		push_string(queue, buffer);
+		queue_spop(queue);
 	}
 }
 File* file_copy(File* file)
@@ -314,9 +316,11 @@ void folder_print(Folder* folder, int depth, char* linebreak, Queue* queue)
 	{
 		sprintf(buffer, "  |");
 		push_string(queue, buffer);
+		queue_spop(queue);
 	}
 	sprintf(buffer, "-%s%s", f->name, linebreak);
 	push_string(queue, buffer);
+	queue_spop(queue);
 	
 	int maxLength = 0;
 	int maxDigits = 0;
@@ -690,7 +694,12 @@ void filesystem_print(FileSystem* filesystem)
 	folder_print(fs->root, 0, "\n", queue);
 	
 	char* data = (char*)malloc(queue_length(queue) * sizeof(char));
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		data[i] = (char)(long)queue_get(queue, i);
+	}
 	printf("%s\n", data);
+	
 	free(data);
 }
 void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1, QueueSearchFunction equalsFunc)
