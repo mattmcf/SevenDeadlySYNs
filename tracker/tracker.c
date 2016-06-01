@@ -448,10 +448,11 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 		return -1;
 	}
 
+	Queue * files_to_prune = queue_new();
+
 	/* save current fs state for comparison later */
 	char * prune_path;
 	ChunkyFile * prune_file;
-	int pruned_files = 0;
 	while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
 		prune_file = filetable_get_chunkyfile(filetable, prune_path);
 
@@ -460,8 +461,7 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 			Queue * owners = filetable_get_peers_who_have_file_chunk(filetable, prune_path, i);
 			if (queue_length(owners) == 0) {
 				printf("PRUNE FILE TABLE -- nobody owns chunk %d of file %s -- PRUNE IT!\n", i, prune_path);
-				filesystem_remove_file_at_path(fs, prune_path);
-				pruned_files++;
+				queue_push(files_to_prune, prune_path);
 				break;
 			}
 		}
@@ -469,8 +469,16 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	filetableiterator_destroy(fti);
 
-	/* send up updated master */
-	if (pruned_files > 0) {
+	if (queue_length(files_to_prune) > 0) {
+
+		while (queue_length(files_to_prune) > 0) {
+			char * prune_path = queue_pop(files_to_prune);
+			filesystem_remove_file_at_path(fs, prune_path);
+			// remove from file table by path...
+
+		}	
+
+		// send out master to everybody
 		printf("CLIENT MAIN -- PRUNED %d FILES\n", pruned_files);
 		for (int j = 0; j < peerTableSize; j++) {
 			if (peerTable->peerIDs[j] != -1) {
@@ -478,7 +486,9 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 				send_master(network, peerTable->peerIDs[j], fs);
 			}
 		}
-	} 	// end pruned master distribution
+	}
+
+	queue_destroy(files_to_prune);
 
 	return 1;
 }
