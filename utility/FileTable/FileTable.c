@@ -326,7 +326,7 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	queue_push(chunk, (void*)(long)peer);
 }
 
-int remove_peer(int elementp, int userData)
+int remove_peer(void* elementp, void* userData)
 {
 	return elementp != userData;
 }
