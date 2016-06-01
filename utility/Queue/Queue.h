@@ -46,6 +46,8 @@ void queue_apply(Queue* qp, QueueApplyFunction af);
 Queue* queue_filter(Queue* qp, QueueFilterFunction filter, void* userData);
 Queue* queue_map(Queue* qp, QueueMapFunction map);
 
+void queue_shuffle(Queue* qp);
+
 /* search a queue using a supplied boolean function, returns an element */
 void* queue_search(Queue* qp, QueueSearchFunction sf, void* skeyp);
 

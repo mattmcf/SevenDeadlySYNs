@@ -111,6 +111,15 @@ Queue* get_path_components(char* path)
 	return components;
 }
 
+void push_string(Queue* queue, char* str)
+{
+	for (char* ptr = str; *ptr; ptr++)
+	{
+		queue_push(queue, (void*)(long)(*ptr));
+	}
+	queue_push(queue, (void*)0);
+}
+
 // ******************************** File ********************************
 
 typedef struct
@@ -150,18 +159,26 @@ int file_get_size(File* file)
 	_File* f = (_File*)file;
 	return f->size;
 }
-void file_print(File* file, int nameWidth, int digitsWidth, int depth)
+void file_print(File* file, int nameWidth, int digitsWidth, int depth, char* newline, Queue* queue)
 {
 	_File* f = (_File*)file;
 		
+	char buffer[4096];
 		
 	if (!(f->is_folder))
 	{
 		for (int i = 0; i < depth; i++)
 		{
-			printf("  |");
+			sprintf(buffer, "  |");
+			push_string(queue, buffer);
+			queue_spop(queue);
 		}
-		printf("-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+		sprintf(buffer, "-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
+		push_string(queue, buffer);
+		queue_spop(queue);
+		queue_spop(queue);
+		push_string(queue, newline);
+		queue_spop(queue);
 	}
 }
 File* file_copy(File* file)
@@ -292,15 +309,21 @@ int folder_equals(void* elementp, void* keyp)
 	
 	return strcmp(f0->name, f1->name) == 0;
 }
-void folder_print(Folder* folder, int depth)
+void folder_print(Folder* folder, int depth, char* linebreak, Queue* queue)
 {
 	_Folder* f = (_Folder*)folder;
 		
+	char buffer[4096];
+		
 	for (int i = 0; i < depth; i++)
 	{
-		printf("  |");
+		sprintf(buffer, "  |");
+		push_string(queue, buffer);
+		queue_spop(queue);
 	}
-	printf("-%s\n", f->name);
+	sprintf(buffer, "-%s%s", f->name, linebreak);
+	push_string(queue, buffer);
+	queue_spop(queue);
 	
 	int maxLength = 0;
 	int maxDigits = 0;
@@ -313,11 +336,11 @@ void folder_print(Folder* folder, int depth)
 	
 	for (int i = 0; i < queue_length(f->files); i++)
 	{
-		file_print(queue_get(f->files, i), maxLength, maxDigits, depth + 1);
+		file_print(queue_get(f->files, i), maxLength, maxDigits, depth + 1, linebreak, queue);
 	}
 	for (int i = 0; i < queue_length(f->folders); i++)
 	{
-		folder_print(queue_get(f->folders, i), depth + 1);
+		folder_print(queue_get(f->folders, i), depth + 1, linebreak, queue);
 	}
 } 
 Queue* folder_get_folders(Folder* folder)
@@ -668,10 +691,68 @@ void filesystem_print(FileSystem* filesystem)
 	assert(filesystem);
 	_FileSystem* fs = (_FileSystem*)filesystem;
 	
+	Queue* queue = queue_new();
 	printf("Printing filesystem at: %s\n", fs->root_path == NULL ? "NULL" : fs->root_path);
 	assert(fs->root);
-	folder_print(fs->root, 0);
+	folder_print(fs->root, 0, "\n", queue);
+	
+	char* data = (char*)malloc((queue_length(queue) + 1) * sizeof(char));
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		data[i] = (char)(long)queue_get(queue, i);
+	}
+	data[queue_length(queue)] = 0;
+	printf("%s\n", data);
+	
+	free(data);
 }
+char* filesystem_generate_html(FileSystem* filesystem)
+{
+	assert(filesystem);
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	
+	Queue* queue = queue_new();
+	assert(fs->root);
+	
+	push_string(queue, "<pre>");
+	queue_spop(queue);
+	
+	folder_print(fs->root, 0, "<br>", queue);
+	
+	char* data = (char*)malloc((queue_length(queue) + 1) * sizeof(char));
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		data[i] = (char)(long)queue_get(queue, i);
+	}
+	
+	push_string(queue, "</pre>");
+	queue_spop(queue);
+	
+	data[queue_length(queue)] = 0;
+	
+	return data;
+}
+char* filesystem_generate_string(FileSystem* filesystem)
+{
+	assert(filesystem);
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	
+	Queue* queue = queue_new();
+	assert(fs->root);
+		
+	folder_print(fs->root, 0, "\n", queue);
+	
+	char* data = (char*)malloc((queue_length(queue) + 1) * sizeof(char));
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		data[i] = (char)(long)queue_get(queue, i);
+	}
+		
+	data[queue_length(queue)] = 0;
+	
+	return data;
+}
+
 void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1, QueueSearchFunction equalsFunc)
 {
 	_FileSystem* fs0 = (_FileSystem*)filesystem0;
@@ -757,14 +838,6 @@ void filesystem_remove_file_at_path(FileSystem* filesystem, char* path)
 #define FOLDER_START (0xFE)
 #define FOLDER_END (0xFD)
 
-void push_string(Queue* queue, char* str)
-{
-	for (char* ptr = str; *ptr; ptr++)
-	{
-		queue_push(queue, (void*)(long)(*ptr));
-	}
-	queue_push(queue, (void*)0);
-}
 void filesystem_serialize_helper(_Folder* folder, Queue* data)
 {
 	queue_push(data, (void*)FOLDER_START);

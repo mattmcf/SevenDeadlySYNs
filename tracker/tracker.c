@@ -72,7 +72,7 @@ int main() {
 	filesystem_print(fs);
 
 	filetable = filetable_new();
-	filetable_add_filesystem(filetable, fs, 0);
+	filetable_add_filesystem(filetable, fs, 0, 0);
 	
 	filetable_print(filetable);
 
@@ -199,7 +199,7 @@ int main() {
 		
 		usleep(sleep_time);
    		
-		printf("Restarting loop.\n");
+		//printf("Restarting loop.\n");
 	}
 
 	if (closeTracker()<0) {
@@ -438,7 +438,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);
-	filetable_add_filesystem(filetable, additions, updatePusher);
+	filetable_add_filesystem(filetable, additions, updatePusher, 0);
 	printf("File table updated\n");
 	filetable_print(filetable);
 	// broadcast out update to all peers
@@ -478,8 +478,11 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	/* save current fs state for comparison later */
 	char * prune_path;
-	while ((prune_path = filetableiterator_path_next(fti)) != NULL) 
+	FileTableEntry * fte;
+	while ((fte = filetableiterator_next(fti)) != NULL) 
 	{
+		prune_path = fte->path;
+
 		/* go through all chunks to find owners count */
 		for (int i = 0; i < filetable_get_num_chunks(filetable, prune_path); i++) 
 		{
@@ -759,6 +762,9 @@ void handle_directory_request(int out_fd, int dir_fd, char *filename){
 	// written(out_fd, buf, strlen(buf));
 	sprintf(buf, "</tbody></table></body></html>");
     written(out_fd, buf, strlen(buf));
+	
+	char* filetable_html = filesystem_generate_html(fs);
+    written(out_fd, filetable_html, strlen(filetable_html));
 }
 
 // utility function to get the MIME (Multipurpose Internet Mail Extensions) type
