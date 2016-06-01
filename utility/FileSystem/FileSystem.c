@@ -159,7 +159,7 @@ int file_get_size(File* file)
 	_File* f = (_File*)file;
 	return f->size;
 }
-void file_print(File* file, int nameWidth, int digitsWidth, int depth, Queue* queue)
+void file_print(File* file, int nameWidth, int digitsWidth, int depth, char* newline, Queue* queue)
 {
 	_File* f = (_File*)file;
 		
@@ -175,6 +175,9 @@ void file_print(File* file, int nameWidth, int digitsWidth, int depth, Queue* qu
 		}
 		sprintf(buffer, "-%-*s %*lu %s", nameWidth, f->name, digitsWidth, f->size, ctime(&(f->last_modified)));
 		push_string(queue, buffer);
+		queue_spop(queue);
+		queue_spop(queue);
+		push_string(queue, newline);
 		queue_spop(queue);
 	}
 }
@@ -333,7 +336,7 @@ void folder_print(Folder* folder, int depth, char* linebreak, Queue* queue)
 	
 	for (int i = 0; i < queue_length(f->files); i++)
 	{
-		file_print(queue_get(f->files, i), maxLength, maxDigits, depth + 1, queue);
+		file_print(queue_get(f->files, i), maxLength, maxDigits, depth + 1, linebreak, queue);
 	}
 	for (int i = 0; i < queue_length(f->folders); i++)
 	{
