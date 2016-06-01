@@ -18,7 +18,20 @@ int main()
 	queue_push(queue, (void*)'e');
 	queue_push(queue, (void*)'f');
 	
-	Queue* filtered = queue_filter(queue, filter, (void*)1);
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		printf("%c\n", (char)queue_get(queue, i));
+	}
+	
+	printf("\n");
+	
+	queue_shuffle(queue);
+	
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		printf("%c\n", (char)queue_get(queue, i));
+	}
+	
 	
 	/*
 	queue_remove(queue, NULL, (void*)d);
@@ -27,10 +40,6 @@ int main()
 	queue_remove(queue, NULL, (void*)f);
 	queue_remove(queue, NULL, (void*)a);
 	*/
-	for (int i = 0; i < queue_length(filtered); i++)
-	{
-		printf("%c\n", (char)queue_get(filtered, i));
-	}
 	
 	queue_destroy(queue);
 	
