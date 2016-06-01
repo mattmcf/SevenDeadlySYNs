@@ -20,32 +20,9 @@ int main()
 	
 	printf("\n\n*****************************\n\nTesting Iterator\n");
 	
-	for (int i = 0; i < 2; i++)
-	{
-		FileSystemIterator* fsi = filesystemiterator_new(fs, 0);
-		char* ipath = NULL;
-		int ilength;
-		time_t imod_time;
-		while ((ipath = filesystemiterator_next(fsi, &ilength, &imod_time)))
-		{
-			if (ilength < 0)
-			{
-				format_printf(blueid, "%s\n", ipath);
-			}
-			else
-			{
-				printf("%s\n", ipath);
-			}
-		}
-		filesystemiterator_destroy(fsi);
+	filesystem_print(fs);
+	filesystem_print_list(fs);
 		
-		if (i == 0)
-		{
-			printf("Removing /sdp/license.txt\n");
-			filesystem_remove_file_at_path(fs, "/sdp/license.txt");
-			printf("\n");
-		}
-	}
 	printf("\n\n*****************************\n\nTesting Serialization\n");
 	
 	
