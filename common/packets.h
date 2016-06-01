@@ -88,6 +88,7 @@ typedef struct client_data {
 
 // client to client queues
 typedef struct chunk {
+	int job_id;
 	int client_id;
 	int chunk_num;
 	int file_str_len;
