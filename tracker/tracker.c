@@ -39,7 +39,7 @@ FileTable* filetable;
 peer_table* peerTable;
 int peerTableSize = 16;
 static volatile int keepRunning = 1;
-char * emailAddress = "Adam.W.Grounds.16@dartmouth.edu";
+char * emailAddress = "Adam.Grounds.sae.16@gmail.com";
 
 void intHandler(int dummy) {
     keepRunning = 0;
@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
 	int peerID = -1;
 
 	if (argc == 2){
+		memset(emailAddress, 0, sizeof(emailAddress));
 		strcpy(emailAddress, argv[1]);
 	}
 
