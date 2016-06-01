@@ -771,7 +771,7 @@ int main(int argv, char* argc[]){
 			if (-1 == len){	// how should I handle this???
 				printf("CLIENT MAIN: receive_chunk got a rejection response\n");
 
-				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, filepath, i);
+				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, filepath, chunk_id);
 				if (!peers){
 					printf("CLIENT MAIN: filetable_get_peers_who_have_file_chunk() failed\n");
 					continue;
