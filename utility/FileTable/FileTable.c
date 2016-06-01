@@ -401,10 +401,11 @@ void filetable_print_file(FileTableEntry* entry)
 }
 void filetable_print(FileTable* filetable)
 {
+	/*
 	_FileTable* ft = (_FileTable*)filetable;
 	
 	format_printf(PRINT_FMT, "Printing File Table...\n");
-	hashtable_apply(ft->table, (HashTableApplyFunction)filetable_print_file);	
+	hashtable_apply(ft->table, (HashTableApplyFunction)filetable_print_file);	*/
 }
 
 ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path)

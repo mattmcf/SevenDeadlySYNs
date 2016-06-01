@@ -452,15 +452,14 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	/* save current fs state for comparison later */
 	char * prune_path;
-	ChunkyFile * prune_file;
-	while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
-		
-		prune_file = filetable_get_peers_who_have_file_chunk(filetable, prune_path);
-
+	while ((prune_path = filetableiterator_path_next(fti)) != NULL) 
+	{
 		/* go through all chunks to find owners count */
-		for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
+		for (int i = 0; i < filetable_get_num_chunks(filetable, prune_path); i++) 
+		{
 			Queue * owners = filetable_get_peers_who_have_file_chunk(filetable, prune_path, i);
-			if (queue_length(owners) == 0) {
+			if (queue_length(owners) == 0) 
+			{
 				printf("PRUNE FILE TABLE -- nobody owns chunk %d of file %s -- PRUNE IT!\n", i, prune_path);
 				queue_push(files_to_prune, prune_path);
 				break;
