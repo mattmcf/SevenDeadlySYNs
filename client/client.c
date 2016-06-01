@@ -38,6 +38,7 @@ FileSystem *prev_fs = NULL;
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
 int myID = 0;
+int sleep_time;
 
 /* ------------------------------- TODO -------------------------------- */
 
@@ -674,13 +675,15 @@ int main(int argv, char* argc[]){
 	filesystem_print(cur_fs);
 	filetable_print(ft);
 	while (1){
-		sleep(POLL_STATUS_DIFF);
+		/* if this doesn't get changed down the loop, then it will wait for this time */
+		sleep_time = POLL_STATUS_DIFF_LONG;
 
 		/* get any new clients first */
 		// printf("CLIENT MAIN: checking for new clients\n");
 		while (-1 != (peer_id = recv_peer_added(cnt))){
 			printf("CLIENT MAIN: new peer %d\n", peer_id);
 			peer_id = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* figure out if any clients have dropped from the network */
@@ -690,6 +693,7 @@ int main(int argv, char* argc[]){
 			/* delete from file table */
 			filetable_remove_peer(ft, peer_id);
 			peer_id = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* check to see if any requests for files have been made to you */
@@ -744,6 +748,7 @@ int main(int argv, char* argc[]){
 			filepath = NULL;
 			free(expanded_path);
 			expanded_path = NULL;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* poll for any received chunks */
@@ -755,16 +760,34 @@ int main(int argv, char* argc[]){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 			printf("CLIENT MAIN: received chunk %d for file %s (expanded: %s\n", chunk_id, filepath, expanded_path);
 
-			/* if len is -1, then we received a rejection response */
-			if (-1 == len){	// how should I handle this???
-				printf("CLIENT MAIN: receive_chunk got a rejection response\n");
-				continue;
-			}
-
 			// GET THE CHUNKYFILE FROM THE HASH TABLE!!!!!
 			ChunkyFile* file = filetable_get_chunkyfile(ft, filepath);
 			if (!file){
 				printf("CLIENT MAIN: failed to get chunkfile from ft on receive_chunk\n");
+				continue;
+			}
+
+			/* if len is -1, then we received a rejection response */
+			if (-1 == len){	// how should I handle this???
+				printf("CLIENT MAIN: receive_chunk got a rejection response\n");
+
+				Queue *peers = filetable_get_peers_who_have_file_chunk(ft, filepath, chunk_id);
+				if (!peers){
+					printf("CLIENT MAIN: filetable_get_peers_who_have_file_chunk() failed\n");
+					continue;
+				}
+
+				/* randomly select one peer to get the chunk from */
+				int list_id = (rand()*100) % queue_length(peers);
+				int new_id = (int)(long)queue_get(peers, list_id);
+				if (new_id == myID){
+					new_id = (int)(long)queue_get(peers, list_id);
+				}
+
+				/* make the request to get that chunk */
+				printf("CLIENT MAIN: requesting chunk %d of %s from %d\n",
+						chunk_id, expanded_path, new_id);
+				send_chunk_request(cnt, new_id, filepath, chunk_id, 1);
 				continue;
 			}
 
@@ -793,6 +816,7 @@ int main(int argv, char* argc[]){
 			chunk_data = NULL;
 			free(expanded_path);
 			expanded_path = NULL;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* check for chunk aquisition updates and add them to our file table */
@@ -803,6 +827,7 @@ int main(int argv, char* argc[]){
 
 			filetable_set_that_peer_has_file_chunk(ft, filepath, peer_id, chunk_id);
 			peer_id = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* poll for any diffs, if they exist then we need to make updates to 
@@ -844,6 +869,7 @@ int main(int argv, char* argc[]){
 			additions = NULL;
 			deletions = NULL;
 			peer_id = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* poll to see if there are any changes to the master file system 
@@ -859,14 +885,17 @@ int main(int argv, char* argc[]){
 			filesystem_print(master);
 
 			UpdateLocalFilesystem(master);
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		/* check the local filesystem for changes that we need to push
 		 * to master */
 		// printf("CLIENT MAIN: checking local file system\n");
 		CheckLocalFilesystem();
-	}
 
+		/* sleep for the dynamic amount of time */
+		usleep(sleep_time);
+	}
 }
 
 
