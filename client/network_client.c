@@ -931,23 +931,19 @@ void * clt_network_start(void * arg) {
 	int connected = 1;
 	while (connected) 
 	{
-		//printf("\t\t\tlisten\n");
 		if (clt_network_listen(cnt, 0.01) < 0) 
 		{
 			format_printf(err_format, "network client failed to select amongst inputs\n");
 			connected = 0;
 			continue;
 		}
-		// printf("\t\t\tnew connects\n");
 		clt_network_process_new_connections(cnt);
-		// printf("\t\t\ttracker message\n");
 		if (clt_network_handle_tracker_messages(cnt) != 1)
 		{
 			fprintf(stderr, "failed to handle tracker message. Ending.\n");
 			connected = 0;
 			continue;
 		}
-		// printf("\t\t\tlisten\n");
 		clt_network_handle_peer_messages(cnt);
 
 		/* send heart beat if necessary */
@@ -959,9 +955,8 @@ void * clt_network_start(void * arg) {
 		}
 
 		/* poll queues for messages from client logic */
-		// printf("Poll queues\n");
 		poll_queues(cnt);
-		//sleep(1);
+		
 		format_printf(network_format,"network looping\n");
 	}
 
@@ -1101,6 +1096,7 @@ int increment_conn_record(_CNT_t * cnt, int client_id) {
 	conn_rec_t record;
 	record.client_id = client_id;
 	conn_rec_t * entry = hashtable_get_element(cnt->request_table, &record);
+	
 	if (!entry) {
 		// make a conn record 
 		conn_rec_t * new_record = (conn_rec_t *)malloc(sizeof(conn_rec_t));
