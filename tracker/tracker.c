@@ -456,8 +456,11 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	/* save current fs state for comparison later */
 	char * prune_path;
-	while ((prune_path = filetableiterator_next(fti)->path) != NULL) 
+	FileTableEntry * fte;
+	while ((fte = filetableiterator_next(fti)) != NULL) 
 	{
+		prune_path = fte->path;
+
 		/* go through all chunks to find owners count */
 		for (int i = 0; i < filetable_get_num_chunks(filetable, prune_path); i++) 
 		{
