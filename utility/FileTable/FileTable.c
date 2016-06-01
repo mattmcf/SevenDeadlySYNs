@@ -326,7 +326,7 @@ void filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, in
 	queue_push(chunk, (void*)(long)peer);
 }
 
-int remove_peer(int elementp, int userData)
+int remove_peer(void* elementp, void* userData)
 {
 	return elementp != userData;
 }
@@ -409,7 +409,39 @@ void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file
 	}
 }
 
+/* ------------------ ITERATOR ------------------ */
 
+typedef struct
+{
+	HashTableIterator* iterator;
+} _FileTableIterator;
+
+FileTableIterator* filetableiterator_new(FileTable* filetable)
+{
+	_FileTable * ft = (_FileTable*)filetable;
+
+	_FileTableIterator* fti = (_FileTableIterator *)malloc(sizeof(_FileTableIterator));
+
+	fti->iterator = hashtableiterator_new(ft->table);
+	return (FileTableIterator *)fti;
+}
+
+// returns path
+char * filetableiterator_path_next(FileTableIterator* iterator)
+{
+	_FileTableIterator * fti = (_FileTableIterator *)iterator;
+	FileTableEntry * fte = (FileTableEntry *)hashtableiterator_next(fti->iterator);
+
+	return (fte != NULL) ? fte->path : NULL;
+}
+
+void filetableiterator_destroy(FileTableIterator* iterator) 
+{
+	_FileTableIterator * fti = (_FileTableIterator *)iterator;
+
+	hashtableiterator_destroy(fti->iterator);
+	return;
+}
 
 
 

@@ -1073,7 +1073,7 @@ int disconnect_from_peer(peer_t * peer, int id) {
 		return -1;
 
 	if (peer->socketfd > 0) {
-		format_printf(network_format,"NETWORK -- closing connection to peer %d at %s\n", id, inet_ntoa(*(struct in_addr *)&peer->ip_addr));
+		format_printf(network_format,"\nNETWORK -- closing connection to peer %d at %s\n", id, inet_ntoa(*(struct in_addr *)&peer->ip_addr));
 		close(peer->socketfd);
 		peer->socketfd = -1;
 
@@ -1320,14 +1320,14 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				if ( (request_fulfilled = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
 					disconnect_from_peer(peer, peer->id);
 				}
-				format_printf(network_format, "(waiting for %d more responses)\n",request_fulfilled);
+				format_printf(network_format, "(waiting for %d more responses)\n", request_fulfilled);
 
 				notify_chunk_received(cnt, queue_item);
 				break;
 
 			case REQ_REJECT:
 
-				format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d\n", file_name_buf, pkt.chunk_num, peer->id);
+				format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d", file_name_buf, pkt.chunk_num, peer->id);
 				queue_item->client_id = peer->id;
 				queue_item->file_str_len = pkt.file_str_len;
 
@@ -1343,7 +1343,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				if ( (request_fulfilled2 = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
 					disconnect_from_peer(peer, peer->id);
 				}
-				format_printf(network_format, "(waiting for %d more responses)\n",request_fulfilled2);
+				format_printf(network_format, "(waiting for %d more responses)\n", request_fulfilled2);
 
 				notify_error_received(cnt, queue_item);
 				break;
@@ -1532,7 +1532,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 			requests = increment_conn_record(cnt, peer->id);
 		}
 
-		format_printf(network_format, "(%d outstanding requests)\n",requests);
+		format_printf(network_format, "(%d outstanding requests)\n", requests);
 
 		// if(pkt.chunk_num == 99999){
 		// 	// get number of chunks necessary and then request that many chunks

@@ -64,4 +64,12 @@ void filetable_print(FileTable* filetable);
 ChunkyFile* filetable_get_chunkyfile(FileTable* filetable, char* path);
 void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file);
 
+/* ------------------ ITERATOR ------------------ */
+
+typedef struct FileTableIterator FileTableIterator;
+
+FileTableIterator* filetableiterator_new(FileTable* filetable);
+char * filetableiterator_path_next(FileTableIterator* iterator);
+void filetableiterator_destroy(FileTableIterator* iterator);
+
 #endif
