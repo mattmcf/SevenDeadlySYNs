@@ -1327,7 +1327,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				// disconnect from peer if all requests have been fulfilled
 				int request_fulfilled = -1;
 				if ( (request_fulfilled = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
-					disconnect_from_peer(peer, peer->id);
+					//disconnect_from_peer(peer, peer->id);
 				}
 				format_printf(chunk_format, "(waiting for %d more responses)\n", request_fulfilled);
 
@@ -1353,7 +1353,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				// disconnect from peer if all requests have been fulfilled
 				int request_fulfilled2 = -1;
 				if ( (request_fulfilled2 = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
-					disconnect_from_peer(peer, peer->id);
+					//disconnect_from_peer(peer, peer->id);
 				}
 				format_printf(chunk_format, "(waiting for %d more responses)\n", request_fulfilled2);
 
