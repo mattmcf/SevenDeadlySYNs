@@ -580,7 +580,7 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	}
 
 	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
-	queue_item->job_id = request_id
+	queue_item->job_id = request_id;
 	queue_item->client_id = peer_id;
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_name = strdup(filepath);
@@ -630,7 +630,7 @@ int send_chunk(CNT * thread_block, int peer_id, char * file_name, int chunk_id, 
 
 
 // send chunk request error response : ME_2_CLT_SEND_ERROR
-int send_chunk_rejection(CNT * thread_block, int peer_id, char *filepath, int chunk_id) {
+int send_chunk_rejection(CNT * thread_block, int peer_id, char *filepath, int chunk_id, int request_id) {
 	if (!thread_block || !filepath) {
 		format_printf(err_format, "send_chunk_rejection error: null arguments\n");
 		return -1;
@@ -644,6 +644,7 @@ int send_chunk_rejection(CNT * thread_block, int peer_id, char *filepath, int ch
 	}
 
 	chunk_data_t * queue_item = (chunk_data_t *)malloc(sizeof(chunk_data_t));
+	queue_item->job_id = request_id;
 	queue_item->client_id = peer_id;
 	queue_item->chunk_num = chunk_id;
 	queue_item->file_str_len = strlen(filepath) + 1; 	// include null terminator

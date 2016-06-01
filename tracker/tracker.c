@@ -72,7 +72,7 @@ int main() {
 	filesystem_print(fs);
 
 	filetable = filetable_new();
-	filetable_add_filesystem(filetable, fs, 0);
+	filetable_add_filesystem(filetable, fs, 0, 0);
 	
 	filetable_print(filetable);
 
@@ -417,7 +417,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_plus_equals(fs, additions);
 	printf("Updating file table\n");
 	filetable_remove_filesystem(filetable, deletions);
-	filetable_add_filesystem(filetable, additions, updatePusher);
+	filetable_add_filesystem(filetable, additions, updatePusher, 0);
 	printf("File table updated\n");
 	filetable_print(filetable);
 	// broadcast out update to all peers
@@ -456,7 +456,7 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	/* save current fs state for comparison later */
 	char * prune_path;
-	while ((prune_path = filetableiterator_path_next(fti)) != NULL) 
+	while ((prune_path = filetableiterator_next(fti)->path) != NULL) 
 	{
 		/* go through all chunks to find owners count */
 		for (int i = 0; i < filetable_get_num_chunks(filetable, prune_path); i++) 
