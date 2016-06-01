@@ -17,9 +17,9 @@ typedef struct
 	Queue* outstanding_requests;
 } FileTableEntry;
 
-int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, long* job_id);
+int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, int* job_id);
 void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk);
-long filetable_find_and_remove_job_id(FileTable* filetable, char* path, long job_id);
+int filetable_find_and_remove_job_id(FileTable* filetable, char* path, int job_id);
 
 // Creates a new file table
 //	ret	: (not claimed) the new file table
@@ -86,7 +86,7 @@ void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file
 typedef struct FileTableIterator FileTableIterator;
 
 FileTableIterator* filetableiterator_new(FileTable* filetable);
-FileTableEntry* filetableiterator_path_next(FileTableIterator* iterator);
+FileTableEntry* filetableiterator_next(FileTableIterator* iterator);
 void filetableiterator_destroy(FileTableIterator* iterator);
 
 #endif

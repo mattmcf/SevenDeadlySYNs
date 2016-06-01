@@ -98,9 +98,9 @@ void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk)
 
 // returns 1
 //	if outstanding request < max pending request & there are pending requests
-int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, long* job_id)
+int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, int* job_id)
 {
-	static long JOB_ID = 0;
+	static int JOB_ID = 0;
 	if (JOB_ID == 0)
 	{
 		JOB_ID = 1;
@@ -126,7 +126,7 @@ int find_id(int i, int j)
 {
 	return i == j;
 }
-long filetable_find_and_remove_job_id(FileTable* filetable, char* path, long job_id)
+int filetable_find_and_remove_job_id(FileTable* filetable, char* path, int job_id)
 {
 	_FileTable* ft = (_FileTable*)filetable;
 	
@@ -134,7 +134,7 @@ long filetable_find_and_remove_job_id(FileTable* filetable, char* path, long job
 	search.path = path;
 	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
 	
-	return (long)queue_remove(fte->outstanding_requests, (QueueSearchFunction)find_id, (void*)job_id);
+	return (long)queue_remove(fte->outstanding_requests, (QueueSearchFunction)find_id, (void*)(long)job_id);
 }
 
 void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer, int needs_data)
@@ -509,7 +509,7 @@ FileTableIterator* filetableiterator_new(FileTable* filetable)
 }
 
 // returns path
-FileTableEntry* filetableiterator_path_next(FileTableIterator* iterator)
+FileTableEntry* filetableiterator_next(FileTableIterator* iterator)
 {
 	return hashtableiterator_next((HashTableIterator*)iterator);
 }
