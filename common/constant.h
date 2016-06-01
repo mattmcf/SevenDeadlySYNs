@@ -12,7 +12,8 @@
 #define CLIENT_LISTENING_PORT 7681
 
 // time to sleep while polling for status diff
-#define POLL_STATUS_DIFF	5
+#define POLL_STATUS_DIFF_LONG	5000000
+#define POLL_STATUS_DIFF_SHORT	100000
 // minimum time (seconds) that a client needs to talk to tracker before being considered dead
 #define DIASTOLE 10 
 

@@ -1252,7 +1252,6 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 	peer_t * peer = get_peer_by_socket(cnt->peer_table, sockfd);
 
 	c2c_pkt_t pkt;
-	printf("safe recv 1\n");
 	int returnValue = safe_recv(sockfd, &pkt, sizeof(pkt), 0);
 	if (returnValue == -1){
 		format_printf(err_format,"recv failed on socket %d\n", sockfd);
@@ -1265,12 +1264,10 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 		if (pkt.file_str_len > 0) {
 			file_name_buf = (char *)malloc(pkt.file_str_len);
 			int recv_file_str_len;
-			printf("safe recv 2\n");
 			if ((recv_file_str_len = safe_recv(sockfd, file_name_buf, pkt.file_str_len, 0)) != pkt.file_str_len) {
 				format_printf(err_format,"didn't recv full file str on socket %d\n", sockfd);
 				return -1;
 			}
-			printf("safe recv 3\n");
 		}
 
 		if (pkt.data_len > 0) {
