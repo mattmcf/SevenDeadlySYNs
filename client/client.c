@@ -363,11 +363,11 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				}
 
 				/* randomly select one peer to get the chunk from */
-				int list_id = (rand()*100) % queue_length(peers);
-				int peer_id = (int)(long)queue_get(peers, list_id);
-				while (peer_id == myID){
+				int peer_id;
+				do {
+					int list_id = (rand()*100) % queue_length(peers);
 					peer_id = (int)(long)queue_get(peers, list_id);
-				}
+				} while (peer_id == myID);
 
 				/* make the request to get that chunk */
 				printf("UpdateLocalFilesystem: requesting chunk %d of %s from %d\n",
@@ -778,11 +778,11 @@ int main(int argv, char* argc[]){
 				}
 
 				/* randomly select one peer to get the chunk from */
-				int list_id = (rand()*100) % queue_length(peers);
-				int new_id = (int)(long)queue_get(peers, list_id);
-				if (new_id == myID){
+				int new_id;
+				do {
+					int list_id = (rand()*100) % queue_length(peers);
 					new_id = (int)(long)queue_get(peers, list_id);
-				}
+				} while (new_id == myID);
 
 				/* make the request to get that chunk */
 				printf("CLIENT MAIN: requesting chunk %d of %s from %d\n",
