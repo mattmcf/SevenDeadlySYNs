@@ -407,7 +407,6 @@ int sendUpdates(int peerID){
 
 int sendUpdateEmail(){
 	char cmd[100];  // to hold the command.
-    char to[100];
     char to[] = "Adam.Grounds.sae.16@gmail.com";// email id of the recepient.
     char body[] = "DartSync was updated";    // email body.
     char tempFile[100];     // name of tempfile.
