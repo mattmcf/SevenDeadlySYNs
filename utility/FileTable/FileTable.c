@@ -281,6 +281,17 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 	return NULL;
 }
 
+int filetable_get_num_chunks(FileTable* filetable, char* path)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	
+	FileTableEntry search;
+	search.path = path;
+	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
+	
+	return queue_length(fte->chunks);
+}
+
 Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path, int chunk)
 {
 	_FileTable* ft = (_FileTable*)filetable;

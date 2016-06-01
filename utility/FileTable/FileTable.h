@@ -46,6 +46,8 @@ void filetable_remove_filesystem(FileTable* filetable, FileSystem* filesystem);
 //	ret : (claimed) The queue of peers that have the given chunk (or NULL if problem)
 Queue* filetable_get_peers_who_have_file_chunk(FileTable* filetable, char* path, int chunk);
 
+int filetable_get_num_chunks(FileTable* filetable, char* path);
+
 // Set that a specific chunk of a specific file has been acquired by a peer.
 //	filetable	: (not claimed) The file table
 //	path		: (not claimed) The path to the file
