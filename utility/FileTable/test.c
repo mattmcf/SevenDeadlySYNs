@@ -30,13 +30,18 @@ int main()
 	FileSystem* fs2 = filesystem_new("/Users/jacob/dartsync/testdir");
 	FileSystem* fs3 = filesystem_new("/Users/jacob/dartsync/testdir copy");
 
-	filetable_add_filesystem(ft, fs1, 10);
-	filetable_add_filesystem(ft, fs2, 11);
-	filetable_add_filesystem(ft, fs3, 12);
+	filetable_add_filesystem(ft, fs1, 0);
+	filetable_add_filesystem(ft, fs2, 1);
+	filetable_add_filesystem(ft, fs3, 2);
 
-	filetable_add_filesystem(ft, fs1, 11);
-	filetable_add_filesystem(ft, fs2, 12);
-	filetable_add_filesystem(ft, fs3, 10);
+	FileTableIterator * fti1 = filetableiterator_new(ft);
+	char * path;
+	int i = 0;
+	while ( (path = filetableiterator_path_next(fti1)) != NULL) {
+		filetable_set_that_peer_has_file_chunk(ft, path, i % 3, 0);
+		filetable_set_that_peer_has_file_chunk(ft, path, (i + 1) % 3, 0);
+	}
+	filetableiterator_destroy(fti1);
 	
 	char* data;
 	int length;
@@ -51,19 +56,17 @@ int main()
 	
 	//filetable_print(ftds);
 
-	filetable_remove_peer(ft, 12);
+	filetable_remove_peer(ft, 2);
 
 	filetable_print(ftds);
 
-	FileTableIterator * fti = filetableiterator_new(ftds);
-
-	char * path;
-	int i = 0;
-	while ( (path = filetableiterator_path_next(fti)) != NULL) {
-		printf("%d: %s\n", i++, path);
-	}
-	
-	filetableiterator_destroy(fti);
+	// FileTableIterator * fti = filetableiterator_new(ftds);
+	// char * path;
+	// int j = 0;
+	// while ( (path = filetableiterator_path_next(fti)) != NULL) {
+	// 	printf("%d: %s\n", i++, path);
+	// }
+	// filetableiterator_destroy(fti);
 
 	return 0;
 }
