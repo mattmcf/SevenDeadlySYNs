@@ -356,6 +356,19 @@ void  filetable_remove_peer(FileTable* filetable, int id)
 	hashtableiterator_destroy(hti);
 }
 
+void filetable_remove_file(FileTable* filetable, char* path)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	
+	FileTableEntry search;
+	search.path = path;
+	FileTableEntry* removed = hashtable_remove_element(ft->table, &search);
+	if (removed)
+	{
+		filetableentry_destroy(removed);		
+	}
+}
+
 void filetable_print_id(int id)
 {
 	printf("%d ", id);

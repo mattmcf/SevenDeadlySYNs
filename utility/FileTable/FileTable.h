@@ -58,6 +58,8 @@ void   filetable_set_that_peer_has_file_chunk(FileTable* filetable, char* path, 
 //	id			: (static) The peer to remove
 void   filetable_remove_peer(FileTable* filetable, int id);
 
+void filetable_remove_file(FileTable* filetable, char* path);
+
 // Prints the file table. 
 void filetable_print(FileTable* filetable);
 
