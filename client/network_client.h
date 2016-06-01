@@ -77,7 +77,7 @@ FileTable * recv_master_ft(CNT * thread_block, int * length_deserialized);
  * 		TODO - figure out how to combine this with chunky file and
  *		how to expand on it to allow for transerring an entire file
  */
-int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_id);
+int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_id, int *request_id);
 
 /* client calls this to receive a chunk update from the network 
  * 	cnt - (not claimed) thread block
@@ -91,7 +91,7 @@ int receive_chunk_request(CNT *cnt, int *peer_id, char **filepath,  int *chunk_i
  *	Note!!! If recieve_chunk returns 1 and data_len == -1, then that's a rejection response!
  *
  */
-int receive_chunk(CNT *cnt, int *peer_id, char **file_name, int *chunk_id, int *data_len, char **data);
+int receive_chunk(CNT *cnt, int *peer_id, char **file_name, int *chunk_id, int *data_len, char **data, int *request_id);
 
 /* ----- sending ----- */
 
@@ -125,7 +125,7 @@ int send_request_for_master(CNT * cnt);
  * 		TODO - figure out how to combine this with chunky file and
  * 		how to expand on it to allow for transerring an entire file
  */
-int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id, int num_chunks);
+int send_chunk_request(CNT *cnt, int peer_id, char *filepath, int chunk_id, int request_id);
 
 /* client calls this to send a chunk update to another client 
  * 	cnt - current state of the network 

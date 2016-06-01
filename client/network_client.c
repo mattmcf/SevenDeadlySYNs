@@ -570,10 +570,7 @@ int send_chunk_request(CNT * thread_block, int peer_id, char *filepath, int chun
 	if (!thread_block || !filepath) {
 		format_printf(err_format, "send_chunk_request error: null cnt or filepath\n");
 		return -1;
-	} else if (num_chunks < 0) {
-		format_printf(err_format, "send_chunk_request error: no chunks!\n");
-		return -1;
-	}
+	} 
 
 	_CNT_t * cnt = (_CNT_t *)thread_block;
 
@@ -1335,7 +1332,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 
 				format_printf(network_format,"NETWORK -- received chunk request rejection (%s, %d) from peer %d : Request Id: %d -- ", 
 					file_name_buf, pkt.chunk_num, peer->id, pkt.job_id);
-				
+
 				queue_item->job_id = pkt.job_id;
 				queue_item->client_id = peer->id;
 				queue_item->file_str_len = pkt.file_str_len;
@@ -1539,7 +1536,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 
 		// I manually stored the request ID in the data field pointer
 		int requests = requests = increment_conn_record(cnt, peer->id);
-		format_printf(network_format, "Request ID: %d (%d outstanding requests)\n", (int)(long)queue_item->data, requests);
+		format_printf(network_format, "Request Id: %d (%d outstanding requests)\n", queue_item->job_id, requests);
 
 		// if(pkt.chunk_num == 99999){
 		// 	// get number of chunks necessary and then request that many chunks
