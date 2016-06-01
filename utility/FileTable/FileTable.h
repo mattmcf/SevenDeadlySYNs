@@ -16,8 +16,10 @@ typedef struct
 	Queue* work_queue;
 	Queue* outstanding_requests;
 } FileTableEntry;
+
 int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, long* job_id);
 void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk);
+long filetable_find_and_remove_job_id(FileTable* filetable, char* path, long job_id);
 
 // Creates a new file table
 //	ret	: (not claimed) the new file table
