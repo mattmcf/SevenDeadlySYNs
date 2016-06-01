@@ -20,6 +20,7 @@ typedef struct
 int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, int* job_id);
 void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk);
 int filetable_find_and_remove_job_id(FileTable* filetable, char* path, int job_id);
+void filetable_enqueue_work_for_filesystem(FileTable* filetable, FileSystem* filesystem);
 
 // Creates a new file table
 //	ret	: (not claimed) the new file table

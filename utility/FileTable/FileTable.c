@@ -137,6 +137,39 @@ int filetable_find_and_remove_job_id(FileTable* filetable, char* path, int job_i
 	return (long)queue_remove(fte->outstanding_requests, (QueueSearchFunction)find_id, (void*)(long)job_id);
 }
 
+void filetable_enqueue_work_for_filesystem(FileTable* filetable, FileSystem* filesystem)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	FileSystemIterator* fsi = filesystemiterator_relative_new(filesystem, 1);
+	
+	FileTableEntry fte;
+	int length;
+	time_t mod_time;
+	while ((fte.path = filesystemiterator_next(fsi, &length, &mod_time)))
+	{
+		if (length < 0)
+		{
+			continue;
+		}
+		
+		FileTableEntry* entry = hashtable_get_element(ft->table, &fte);
+		if (!entry)
+		{
+			printf("Adding work for file (%s) that is not in the filetable.\n", fte.path);
+			assert(0);
+		}
+		
+		int numChunks = num_chunks_for_size(length);
+		for (int i = 0; i < numChunks; i++)
+		{
+			queue_push(entry->work_queue, (void*)(long)i);
+		}
+		queue_shuffle(entry->work_queue);
+	}
+	
+	filesystemiterator_destroy(fsi);
+}
+
 void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer, int needs_data)
 {
 	_FileTable* ft = (_FileTable*)filetable;
