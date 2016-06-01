@@ -267,6 +267,7 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 			}
 			case END_TABLE:
 			{
+				i += 1;
 				*bytesRead = i;
 				return (FileTable*)deser;
 			}
@@ -343,10 +344,12 @@ void  filetable_remove_peer(FileTable* filetable, int id)
 	FileTableEntry* fte;
 	while ((fte = hashtableiterator_next(hti)))
 	{
+		printf("%s\n", fte->path);
 		for (int i = 0; i < queue_length(fte->chunks); i++)
 		{
 			Queue* old = queue_get(fte->chunks, i);
-			queue_set(fte->chunks, queue_filter(old, (QueueFilterFunction)remove_peer, (void*)(long)id), i);
+			Queue* filtered = queue_filter(old, (QueueFilterFunction)remove_peer, (void*)(long)id);
+			queue_set(fte->chunks, filtered, i);			
 			queue_destroy(old);
 		}
 	}

@@ -54,9 +54,9 @@ int main()
 	
 	printf("%d\n", length);
 	
-	//filetable_print(ftds);
+	filetable_print(ftds);
 
-	filetable_remove_peer(ft, 2);
+	filetable_remove_peer(ftds, 2);
 
 	filetable_print(ftds);
 
