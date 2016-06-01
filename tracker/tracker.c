@@ -39,6 +39,7 @@ FileTable* filetable;
 peer_table* peerTable;
 int peerTableSize = 16;
 static volatile int keepRunning = 1;
+char * emailAddress;
 
 void intHandler(int dummy) {
     keepRunning = 0;
@@ -63,9 +64,13 @@ char * tilde_expand(char * original_path) {
   	return expanded_string;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
+
+	if (argc == 2){
+		strcpy(emailAddress, argv[1]);
+	}
 
 	// create file system
 	fs = filesystem_new(NULL);
@@ -407,7 +412,8 @@ int sendUpdates(int peerID){
 
 int sendUpdateEmail(){
 	char cmd[100];  // to hold the command.
-    char to[] = "Adam.grounds.sae.16@gmail.com"; // email id of the recepient.
+    char to[100];
+    strcpy(to, emailAddress);// email id of the recepient.
     char body[] = "DartSync was updated";    // email body.
     char tempFile[100];     // name of tempfile.
 
