@@ -1,10 +1,10 @@
 # SevenDeadlySYNs
 Dartmouth CS 60 - Final Project
 
-Adam Grounds
-Dave Harmon
-Jacob Weiss
-Matt McFarland
+* Adam Grounds
+* Dave Harmon
+* Jacob Weiss
+* Matt McFarland
 
 ## To Make Project
 Type `make` which will produce the `./client/client_app` and `./tracker/tracker_app` executables.
