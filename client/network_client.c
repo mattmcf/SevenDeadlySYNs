@@ -927,7 +927,7 @@ void * clt_network_start(void * arg) {
 	int connected = 1;
 	while (connected) 
 	{
-		// printf("\t\t\tlisten\n");
+		//printf("\t\t\tlisten\n");
 		if (clt_network_listen(cnt, 0.01) < 0) 
 		{
 			format_printf(err_format, "network client failed to select amongst inputs\n");

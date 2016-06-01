@@ -199,7 +199,7 @@ int main() {
 		
 		usleep(sleep_time);
    		
-		printf("Restarting loop.\n");
+		//printf("Restarting loop.\n");
 	}
 
 	if (closeTracker()<0) {
