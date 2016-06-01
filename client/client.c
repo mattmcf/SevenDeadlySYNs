@@ -17,7 +17,8 @@
 #include <wordexp.h> // for shell expansion of ~
 #include <string.h> // strdup
 #include <limits.h>
-
+#include <sys/time.h>
+	 
 /* -------------------------- Local Libraries -------------------------- */
 #include "client.h"
 #include "network_client.h"
@@ -41,6 +42,8 @@
 CNT* cnt;
 FileSystem *cur_fs;
 FileSystem *prev_fs = NULL;
+struct timeval prev_time;
+
 FileTable *ft;
 char * dartsync_dir; 	// global of absolute dartsync_dir path
 int myID = 0;
@@ -379,8 +382,21 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 	filesystem_destroy(deletions);
 }
 
+unsigned long microseconds_between(struct timeval* t0, struct timeval* t1)
+{
+	return (t1->tv_sec - t0->tv_sec) * 1000000 + (t1->tv_usec - t0->tv_usec);
+}
+
 void CheckLocalFilesystem()
 {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	if (microseconds_between(&prev_time, &now) < 5000000)
+	{
+		return;
+	}
+	prev_time = now;
+	
 	FileSystem *new_fs = filesystem_new(dartsync_dir);
 	FileSystem *adds = NULL, *dels = NULL;
 
@@ -607,6 +623,8 @@ int check_work_queue(CNT * cnt, FileTable * ft) {
 
 /* ------------------------------- main -------------------------------- */
 int main(int argv, char* argc[]){
+
+	gettimeofday(&prev_time, NULL);
 
 	/* arg check */
 	if ( !(argv == 2 || argv == 3) ){
