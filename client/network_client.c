@@ -962,6 +962,7 @@ void * clt_network_start(void * arg) {
 		// printf("Poll queues\n");
 		poll_queues(cnt);
 		//sleep(1);
+		format_printf(network_format,"network looping\n");
 	}
 
 	return (void *)1;
@@ -1326,7 +1327,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				// disconnect from peer if all requests have been fulfilled
 				int request_fulfilled = -1;
 				if ( (request_fulfilled = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
-					//disconnect_from_peer(peer, peer->id);
+					disconnect_from_peer(peer, peer->id);
 				}
 				format_printf(chunk_format, "(waiting for %d more responses)\n", request_fulfilled);
 
@@ -1352,7 +1353,7 @@ int handle_peer_msg(int sockfd, _CNT_t * cnt) {
 				// disconnect from peer if all requests have been fulfilled
 				int request_fulfilled2 = -1;
 				if ( (request_fulfilled2 = decrement_conn_record(cnt, peer->id)) == 0) { //CHANGEDHERE
-					//disconnect_from_peer(peer, peer->id);
+					disconnect_from_peer(peer, peer->id);
 				}
 				format_printf(chunk_format, "(waiting for %d more responses)\n", request_fulfilled2);
 
@@ -1539,7 +1540,7 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		format_printf(chunk_format,"NETWORK -- sent request for chunk %s %d to client %d ", queue_item->file_name, pkt.chunk_num, peer->id);
 
 		// I manually stored the request ID in the data field pointer
-		int requests = requests = increment_conn_record(cnt, peer->id);
+		int requests = increment_conn_record(cnt, peer->id);
 		format_printf(chunk_format, "Request Id: %d (%d outstanding requests)\n", queue_item->job_id, requests);
 
 		free(queue_item->file_name);
