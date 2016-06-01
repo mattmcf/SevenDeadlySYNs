@@ -693,11 +693,12 @@ void filesystem_print(FileSystem* filesystem)
 	assert(fs->root);
 	folder_print(fs->root, 0, "\n", queue);
 	
-	char* data = (char*)malloc(queue_length(queue) * sizeof(char));
+	char* data = (char*)malloc((queue_length(queue) + 1) * sizeof(char));
 	for (int i = 0; i < queue_length(queue); i++)
 	{
 		data[i] = (char)(long)queue_get(queue, i);
 	}
+	data[queue_length(queue)] = 0;
 	printf("%s\n", data);
 	
 	free(data);
