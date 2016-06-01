@@ -732,6 +732,26 @@ char* filesystem_generate_html(FileSystem* filesystem)
 	
 	return data;
 }
+char* filesystem_generate_string(FileSystem* filesystem)
+{
+	assert(filesystem);
+	_FileSystem* fs = (_FileSystem*)filesystem;
+	
+	Queue* queue = queue_new();
+	assert(fs->root);
+		
+	folder_print(fs->root, 0, "\n", queue);
+	
+	char* data = (char*)malloc((queue_length(queue) + 1) * sizeof(char));
+	for (int i = 0; i < queue_length(queue); i++)
+	{
+		data[i] = (char)(long)queue_get(queue, i);
+	}
+		
+	data[queue_length(queue)] = 0;
+	
+	return data;
+}
 
 void filesystem_minus_equals_diff(FileSystem* filesystem0, FileSystem* filesystem1, QueueSearchFunction equalsFunc)
 {
