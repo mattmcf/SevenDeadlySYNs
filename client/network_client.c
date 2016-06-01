@@ -956,8 +956,7 @@ void * clt_network_start(void * arg) {
 
 		/* poll queues for messages from client logic */
 		poll_queues(cnt);
-		
-		format_printf(network_format,"network looping\n");
+		//sleep(1);
 	}
 
 	return (void *)1;
