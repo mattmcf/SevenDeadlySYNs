@@ -880,7 +880,7 @@ void clt_network_handle_peer_messages(_CNT_t* cnt)
 				format_printf(network_format,"\nclient network received message from peer on socket %d\n", fd);
 				if (handle_peer_msg(fd, cnt) != 1) 
 				{
-					format_printf(err_format, "Error receiving from socket %d -- Ending session\n", fd);
+					format_printf(network_format, "Socket %d closed -- Ending session\n", fd);
 
 					// clean up existing peer connection data
 					peer_t * dead_peer = get_peer_by_socket(cnt->peer_table, fd);

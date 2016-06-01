@@ -736,6 +736,9 @@ void handle_directory_request(int out_fd, int dir_fd, char *filename){
 	}
 	sprintf(buf, "</tbody></table></body></html>");
     written(out_fd, buf, strlen(buf));
+	
+	char* filetable_html = filesystem_generate_html(fs);
+    written(out_fd, filetable_html, strlen(filetable_html));
 }
 
 // utility function to get the MIME (Multipurpose Internet Mail Extensions) type
