@@ -57,6 +57,8 @@ int filesystemUpdateBroadcast(FileSystem * additions, FileSystem * deletions, TN
 update file system and peer table to reflect that the peer now has new file
 */
 
+// prunes filesystem and sends out updated master
+int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft);
 
 // identifies files that the peer needs and sends table of files and clients
 int sendUpdates(int peerID);
