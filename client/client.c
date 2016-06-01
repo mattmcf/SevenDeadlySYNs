@@ -365,7 +365,7 @@ void UpdateLocalFilesystem(FileSystem *new_fs){
 				/* randomly select one peer to get the chunk from */
 				int list_id = (rand()*100) % queue_length(peers);
 				int peer_id = (int)(long)queue_get(peers, list_id);
-				if (peer_id == myID){
+				while (peer_id == myID){
 					peer_id = (int)(long)queue_get(peers, list_id);
 				}
 
