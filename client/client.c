@@ -701,16 +701,23 @@ int main(int argv, char* argc[]){
 			char *expanded_path = append_DSRoot(filepath, dartsync_dir);
 
 			/* get the chunk that they are requesting */
-			ChunkyFile *file = chunkyfile_new_for_reading_from_path(expanded_path);
-			//ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
+			ChunkyFile *file = filetable_get_chunkyfile(ft, filepath);
+			
+			if (!file)
+			{
+				file = chunkyfile_new_for_reading_from_path(expanded_path);
 
-			if (!file){	
-				printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
+				if (!file)
+				{	
+					printf("chunkyfile_new_for_reading_from_path() failed on %s\n", expanded_path);
 
-				/* send an error response */
-				send_chunk_rejection(cnt, peer_id, filepath, chunk_id, request_id);
-				peer_id = -1;
-				continue;
+					/* send an error response */
+					send_chunk_rejection(cnt, peer_id, filepath, chunk_id, request_id);
+					peer_id = -1;
+					continue;
+				}
+				
+				filetable_set_chunkyfile(ft, filepath, file);
 			}
 
 			printf("CLIENT MAIN: sending chunk (%s, %d) to peer %d", expanded_path, chunk_id, peer_id);
@@ -723,7 +730,7 @@ int main(int argv, char* argc[]){
 			send_chunk(cnt, peer_id, filepath, chunk_id, chunk_text, chunk_len, request_id);
 
 			/* destroy that chunky file */
-			chunkyfile_destroy(file);
+			//chunkyfile_destroy(file);
 
 			peer_id = -1;
 			filepath = NULL;
