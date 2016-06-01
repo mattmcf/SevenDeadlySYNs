@@ -455,7 +455,7 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 	ChunkyFile * prune_file;
 	while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
 		
-		prune_file = filetable_get_peers_who_have_file_chunk(filetable, prune_path);
+		prune_file = filetable_get_chunkyfile(filetable, prune_path);
 
 		/* go through all chunks to find owners count */
 		for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
