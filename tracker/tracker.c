@@ -404,6 +404,27 @@ int sendUpdates(int peerID){
 // ****************************************************************
 //						Update mode Fucntionality	
 // ****************************************************************
+
+int sendUpdateEmail(){
+	char cmd[100];  // to hold the command.
+    char to[] = "Adam.Grounds.sae.16@gmail.com";// email id of the recepient.
+    char body[] = "DartSync was updated";    // email body.
+    char tempFile[100];     // name of tempfile.
+
+    strcpy(tempFile,tempnam("/tmp","sendmail")); // generate temp file name.
+
+    FILE *fp = fopen(tempFile,"w"); // open it for writing.
+    fprintf(fp,"%s\n",body);        // write body to it.
+    fclose(fp);             // close it.
+
+    sprintf(cmd,"sendmail %s < %s",to,tempFile); // prepare command.
+    printf("%s\n", cmd);
+    system(cmd);     // execute it.
+    printf("Sent EMAIL!!\n");
+    return 1;
+}
+
+
 int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSystem *deletions){
 	// update file system
 
@@ -426,6 +447,7 @@ int updateNetwork(TNT* network, int updatePusher, FileSystem *additions, FileSys
 	filesystem_print(fs);
 	filesystem_destroy(additions);
 	filesystem_destroy(deletions);
+	sendUpdateEmail();
 	// while file table update is not complete:
 	// use this: TKR_2_CLT_FILE_ACQ and CLT_2_TKR_CLIENT_GOT
 		// if acquisition update
@@ -499,6 +521,8 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 
 	return 1;
 }
+
+
 
 
 // ****************************************************************
@@ -734,6 +758,8 @@ void handle_directory_request(int out_fd, int dir_fd, char *filename){
         	written(out_fd, buf, strlen(buf));
 		}
 	}
+	// sprintf(buf, filesystem_get_web_print(fs)); 
+	// written(out_fd, buf, strlen(buf));
 	sprintf(buf, "</tbody></table></body></html>");
     written(out_fd, buf, strlen(buf));
 	
@@ -1006,7 +1032,7 @@ int checkargs(int argc, char* argv[]){
 void * webBrowser(){
 	printf("In file browser\n");
     struct sockaddr_in clientaddr;
-    int default_port = 10467, listenfd, sockfd;
+    int default_port = 21346, listenfd, sockfd;
     
     // // user input checking
     // if (checkargs(argc, argv) == -1){
