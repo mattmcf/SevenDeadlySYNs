@@ -8,6 +8,17 @@
 
 typedef struct FileTable FileTable;
 
+typedef struct
+{
+	char* path;
+	ChunkyFile* file;
+	Queue* chunks;
+	Queue* work_queue;
+	Queue* outstanding_requests;
+} FileTableEntry;
+int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, long* job_id);
+void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk);
+
 // Creates a new file table
 //	ret	: (not claimed) the new file table
 FileTable* filetable_new();
@@ -32,7 +43,7 @@ FileTable* filetable_deserialize(char* data, int* bytesRead);
 //	filetable : (not claimed) The file table to add to
 //	filesystem : (not claimed) The filesystem to add
 //	peer : (static) The peer to initialize all the added files to
-void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer);
+void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer, int needs_data);
 
 // Removes all the files from the provided filesystem from the file table
 //	filetable : (not claimed) The file table to remove from
@@ -73,7 +84,7 @@ void filetable_set_chunkyfile(FileTable* filetable, char* path, ChunkyFile* file
 typedef struct FileTableIterator FileTableIterator;
 
 FileTableIterator* filetableiterator_new(FileTable* filetable);
-char * filetableiterator_path_next(FileTableIterator* iterator);
+FileTableEntry* filetableiterator_path_next(FileTableIterator* iterator);
 void filetableiterator_destroy(FileTableIterator* iterator);
 
 #endif

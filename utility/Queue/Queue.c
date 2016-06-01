@@ -139,6 +139,21 @@ void* queue_pop(Queue* qp)
 	return element;
 }
 
+void queue_swap(Queue* qp, int i, int j)
+{
+	void* tmp = queue_get(qp, i);
+	queue_set(qp, queue_get(qp, j), i);
+	queue_set(qp, tmp, j);
+}
+
+void queue_shuffle(Queue* qp)
+{
+	for (int i = queue_length(qp) - 1; i > 0; i--)
+	{
+		int j = rand() % i;
+		queue_swap(qp, i, j);
+	}
+}
 
 void* queue_get(Queue* qp, int index)
 {

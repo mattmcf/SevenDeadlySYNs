@@ -17,17 +17,12 @@ typedef struct
 	HashTable* table;
 } _FileTable;
 
-typedef struct
-{
-	char* path;
-	ChunkyFile* file;
-	Queue* chunks;
-} FileTableEntry;
-
 void filetableentry_destroy(FileTableEntry* fte)
 {
 	queue_apply(fte->chunks, (QueueApplyFunction)queue_destroy);
 	queue_destroy(fte->chunks);
+	queue_destroy(fte->work_queue);
+	queue_destroy(fte->outstanding_requests);
 	free(fte->path);
 	free(fte);
 	if (fte->file)
@@ -90,7 +85,40 @@ void filetable_destroy(FileTable* filetable)
 	free(ft);
 }
 
-void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer)
+void filetable_enqueue_work_request(FileTable* filetable, char* path, int chunk)
+{
+	_FileTable* ft = (_FileTable*)filetable;
+	
+	FileTableEntry search;
+	search.path = path;
+	FileTableEntry* fte = hashtable_get_element(ft->table, &search);
+	
+	queue_push(fte->work_queue, (void*)(long)chunk);
+}
+
+// returns 1
+//	if outstanding request < max pending request & there are pending requests
+int filetableentry_get_job(FileTableEntry* entry, int max_pending_reqests, int* chunk, int* peer, long* job_id)
+{
+	static long JOB_ID = 0;
+	
+	if (queue_length(entry->outstanding_requests) < max_pending_reqests && queue_length(entry->work_queue) > 0)
+	{
+		*chunk = (int)(long)queue_pop(entry->work_queue);
+		*job_id = JOB_ID++;
+		
+		Queue* peers_with_chunk = queue_get(entry->chunks, *chunk);
+		int num_peers_with_chunk = queue_length(peers_with_chunk);
+		assert(num_peers_with_chunk);
+		*peer = (int)(long)queue_get(peers_with_chunk, rand() % num_peers_with_chunk);
+		queue_push(entry->outstanding_requests, (void*)(long)(*job_id));
+		
+		return 1;
+	}
+	return 0;
+}
+
+void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int peer, int needs_data)
 {
 	_FileTable* ft = (_FileTable*)filetable;
 	FileSystemIterator* fsi = filesystemiterator_relative_new(filesystem, 1);
@@ -116,6 +144,18 @@ void filetable_add_filesystem(FileTable* filetable, FileSystem* filesystem, int 
 		FileTableEntry* newEntry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
 		newEntry->path = copy_string(fte.path);
 		newEntry->chunks = queue_new();
+		newEntry->work_queue = queue_new();
+		newEntry->outstanding_requests = queue_new();
+		
+		if (needs_data)
+		{
+			for (int i = 0; i < numChunks; i++)
+			{
+				queue_push(newEntry->work_queue, (void*)(long)i);
+			}
+			queue_shuffle(newEntry->work_queue);
+		}
+		
 		newEntry->file = NULL;
 		for (int i = 0; i < numChunks; i++)
 		{
@@ -231,6 +271,8 @@ FileTable* filetable_deserialize(char* data, int* bytesRead)
 			{
 				entry = (FileTableEntry*)malloc(sizeof(FileTableEntry));
 				entry->chunks = queue_new();
+				entry->work_queue = queue_new();
+				entry->outstanding_requests = queue_new();
 				entry->file = NULL;
 				i += 1;
 				entry->path = copy_string(data + i);
@@ -448,10 +490,9 @@ FileTableIterator* filetableiterator_new(FileTable* filetable)
 }
 
 // returns path
-char * filetableiterator_path_next(FileTableIterator* iterator)
+FileTableEntry* filetableiterator_path_next(FileTableIterator* iterator)
 {
-	FileTableEntry* fte = hashtableiterator_next((HashTableIterator*)iterator);
-	return fte ? fte->path : NULL;
+	return hashtableiterator_next((HashTableIterator*)iterator);
 }
 
 void filetableiterator_destroy(FileTableIterator* iterator) 
