@@ -1528,7 +1528,6 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		pkt.chunk_num = queue_item->chunk_num;
 		pkt.file_str_len = queue_item->file_str_len;
 		pkt.data_len = queue_item->data_len;
-		pkt.job_id = (int)(long)queue_item->data;
 
 		send(peer->socketfd, &pkt, sizeof(pkt),0);
 		send(peer->socketfd, queue_item->file_name, pkt.file_str_len,0);
