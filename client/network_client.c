@@ -1539,25 +1539,6 @@ void check_req_chunk_q(_CNT_t * cnt) {
 		int requests = requests = increment_conn_record(cnt, peer->id);
 		format_printf(network_format, "Request Id: %d (%d outstanding requests)\n", queue_item->job_id, requests);
 
-		// if(pkt.chunk_num == 99999){
-		// 	// get number of chunks necessary and then request that many chunks
-		// 	int numberOfChunks = 0;
-		// 	char * path = append_DS(queue_item->file_name);
-		// 	struct stat st;
-  //   		stat(path, &st); 
-  //   		if (st.st_size % 1024 == 0){
-  //   			numberOfChunks = st.st_size/1024;
-  //   		}else{
-  //   			numberOfChunks = st.st_size/1024 + 1;
-  //   		}
-  //   		for (int i = 0; i < numberOfChunks; i++){
-    			
-  //   		}
-
-		// }else{
-		// 	increment_conn_record(cnt, peer->id);
-		// }
-
 		free(queue_item->file_name);
 		free(queue_item);
 	}
@@ -1569,7 +1550,7 @@ void check_send_chunk_q(_CNT_t * cnt) {
 	chunk_data_t * queue_item;
 	while ( (queue_item = asyncqueue_pop(q)) != NULL) {
 
-		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d (file str len: %d, data len: %d) Request Id: \n", 
+		format_printf(network_format,"NETWORK -- sending chunk (%s, %d) to client %d (file str len: %d, data len: %d) Request Id: %d\n", 
 			queue_item->file_name, queue_item->chunk_num, queue_item->client_id, queue_item->file_str_len, queue_item->data_len, queue_item->job_id);
 
 		peer_t * peer = get_peer_by_id(cnt->peer_table, queue_item->client_id);
