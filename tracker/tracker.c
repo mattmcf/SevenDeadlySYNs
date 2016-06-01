@@ -454,7 +454,8 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 	char * prune_path;
 	ChunkyFile * prune_file;
 	while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
-		prune_file = filetable_get_chunkyfile(filetable, prune_path);
+		
+		prune_file = filetable_get_peers_who_have_file_chunk(filetable, prune_path);
 
 		/* go through all chunks to find owners count */
 		for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
@@ -474,12 +475,12 @@ int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
 		while (queue_length(files_to_prune) > 0) {
 			char * prune_path = queue_pop(files_to_prune);
 			filesystem_remove_file_at_path(fs, prune_path);
-			// remove from file table by path...
 
+			// prune path is freed here because it is a reference within the filetable entry
+			filetable_remove_file(ft, prune_path);
 		}	
 
 		// send out master to everybody
-		printf("CLIENT MAIN -- PRUNED %d FILES\n", pruned_files);
 		for (int j = 0; j < peerTableSize; j++) {
 			if (peerTable->peerIDs[j] != -1) {
 				printf("CLIENT MAIN -- sending pruned master to client %d\n", peerTable->peerIDs[j]);
