@@ -143,64 +143,15 @@ int main() {
 			filetable_remove_peer(filetable, peerID);
 			printf("\tRemoved peer %d from table.\n", peerID);
 
+			printf("\tSend peer removed\n");
+			lostPeerBroadcast(peerID, network);
+
 			/* scan through file table -- 
 			 * if there's a file whose chunks don't have a single owner, then we should
 			 * delete that file from the filesystem 
 			 */
-			 // start ---
-			 FileTableIterator * fti = filetableiterator_new(filetable);
-			 if (!fti) {
-			 	fprintf(stderr, "prune filetable error: couldn't create iterator\n");
-			 }
+			prune_filesystem(network, fs, filetable);
 
-			/* save current fs state for comparison later */
-			FileSystem* preprune_fs = filesystem_copy(fs);
-
-			char * prune_path;
-			ChunkyFile * prune_file;
-			while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
-				prune_file = filetable_get_chunkyfile(filetable, prune_path);
-
-				/* go through all chunks to find owners */
-				//int should_be_removed = 0;
-				for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
-					Queue * owners = filetable_get_peers_who_have_file_chunk(filetable, prune_path, i);
-					if (queue_length(owners) == 0) {
-						printf("PRUNE FILE TABLE -- nobody owns chunk %d of file %s -- REMOVE IT!\n", i, prune_path);
-						filesystem_remove_file_at_path(fs, prune_path);
-						break;
-					}
-				}
-
-				// /* remove that file -- prune path*/
-				// if (should_be_removed == 1) {
-				// 	filesystem_remove_file_at_path(fs, prune_path);
-				// }
-
-				/* reset */
-				//should_be_removed = 0;
-			}
-
-			FileSystem * postprune_adds, * postprune_dels;
-			filesystem_diff(preprune_fs, fs, &postprune_adds, &postprune_dels);
-			if (!filesystem_is_empty(postprune_dels)) {
-				printf("CLIENT MAIN -- PRUNING FILES\n");
-				filetable_print(postprune_dels);
-
-				for (j = 0; j < peerTable->peerTableSize; j++) {
-					
-				}
-			}
-
-			filesystem_destroy(preprune_fs);
-			filesystem_destroy(postprune_adds);
-			filesystem_destroy(postprune_dels);
-			 // --- end 
-
-
-
-			printf("\tSend peer removed\n");
-			lostPeerBroadcast(peerID, network);
 			filesystem_print(fs);
 			filetable_print(filetable);
 			peerID = -1;
@@ -388,7 +339,7 @@ int closeTracker(){
 // broadcast to all peers that there is a new peer
 int newPeerBroadcast(int newPeerID, TNT *network){
 	for (int i = 0; i < peerTableSize; i++){
-		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID&& peerTable->peerIDs[i] != 0 ){
+		if(peerTable->peerIDs[i] != -1 && peerTable->peerIDs[i] != newPeerID && peerTable->peerIDs[i] != 0 ){
 			if(send_peer_added(network, peerTable->peerIDs[i], newPeerID)<0){ //HOW DO WE INDICATE WHAT PEER SHOULD RECEIVE
 				printf("Failed to send new peer update to peer %d\n", peerTable->peerIDs[i]);
 			}
@@ -484,8 +435,53 @@ int isNetworkUpdated(){
 	return 1;
 }
 
+// prunes filesystem
+int prune_filesystem(TNT* network, FileSystem * fs, FileTable * ft) {
+	if (!network || !fs || !ft) {
+		fprintf(stderr,	"prune_filesystem error: null arguments\n");
+		return -1;
+	}
 
+	FileTableIterator * fti = filetableiterator_new(ft);
+	if (!fti) {
+		fprintf(stderr, "prune filetable error: couldn't create iterator\n");
+		return -1;
+	}
 
+	/* save current fs state for comparison later */
+	char * prune_path;
+	ChunkyFile * prune_file;
+	int pruned_files = 0;
+	while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
+		prune_file = filetable_get_chunkyfile(filetable, prune_path);
+
+		/* go through all chunks to find owners count */
+		for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
+			Queue * owners = filetable_get_peers_who_have_file_chunk(filetable, prune_path, i);
+			if (queue_length(owners) == 0) {
+				printf("PRUNE FILE TABLE -- nobody owns chunk %d of file %s -- PRUNE IT!\n", i, prune_path);
+				filesystem_remove_file_at_path(fs, prune_path);
+				pruned_files++;
+				break;
+			}
+		}
+	} 	// end FileSystem scan
+
+	filetableiterator_destroy(fti);
+
+	/* send up updated master */
+	if (pruned_files > 0) {
+		printf("CLIENT MAIN -- PRUNED %d FILES\n", pruned_files);
+		for (int j = 0; j < peerTableSize; j++) {
+			if (peerTable->peerIDs[j] != -1) {
+				printf("CLIENT MAIN -- sending pruned master to client %d\n", peerTable->peerIDs[j]);
+				send_master(network, peerTable->peerIDs[j], fs);
+			}
+		}
+	} 	// end pruned master distribution
+
+	return 1;
+}
 
 
 // ****************************************************************
