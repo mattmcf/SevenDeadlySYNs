@@ -147,6 +147,57 @@ int main() {
 			 * if there's a file whose chunks don't have a single owner, then we should
 			 * delete that file from the filesystem 
 			 */
+			 // start ---
+			 FileTableIterator * fti = filetableiterator_new(filetable);
+			 if (!fti) {
+			 	fprintf(stderr, "prune filetable error: couldn't create iterator\n");
+			 }
+
+			/* save current fs state for comparison later */
+			FileSystem* preprune_fs = filesystem_copy(fs);
+
+			char * prune_path;
+			ChunkyFile * prune_file;
+			while ((prune_path = filetableiterator_path_next(fti)) != NULL) {
+				prune_file = filetable_get_chunkyfile(filetable, prune_path);
+
+				/* go through all chunks to find owners */
+				//int should_be_removed = 0;
+				for (int i = 0; i < chunkyfile_num_chunks(prune_file); i++) {
+					Queue * owners = filetable_get_peers_who_have_file_chunk(filetable, prune_path, i);
+					if (queue_length(owners) == 0) {
+						printf("PRUNE FILE TABLE -- nobody owns chunk %d of file %s -- REMOVE IT!\n", i, prune_path);
+						filesystem_remove_file_at_path(fs, prune_path);
+						break;
+					}
+				}
+
+				// /* remove that file -- prune path*/
+				// if (should_be_removed == 1) {
+				// 	filesystem_remove_file_at_path(fs, prune_path);
+				// }
+
+				/* reset */
+				//should_be_removed = 0;
+			}
+
+			FileSystem * postprune_adds, * postprune_dels;
+			filesystem_diff(preprune_fs, fs, &postprune_adds, &postprune_dels);
+			if (!filesystem_is_empty(postprune_dels)) {
+				printf("CLIENT MAIN -- PRUNING FILES\n");
+				filetable_print(postprune_dels);
+
+				for (j = 0; j < peerTable->peerTableSize; j++) {
+					
+				}
+			}
+
+			filesystem_destroy(preprune_fs);
+			filesystem_destroy(postprune_adds);
+			filesystem_destroy(postprune_dels);
+			 // --- end 
+
+
 
 			printf("\tSend peer removed\n");
 			lostPeerBroadcast(peerID, network);
