@@ -598,9 +598,9 @@ int check_work_queue(CNT * cnt, FileTable * ft) {
 
 		}
 
+		filetableiterator_destroy(fti);
 	}
 
-	filetableiterator_destroy(fti);
 	return 1;
 }
 
