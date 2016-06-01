@@ -67,10 +67,6 @@ int main() {
 	signal(SIGINT, intHandler);
 	int peerID = -1;
 
-	struct timespec tim, tim2;
-   	tim.tv_sec = 5;
-   	tim.tv_nsec = 0;
-
 	// create file system
 	fs = filesystem_new(NULL);
 	filesystem_print(fs);
@@ -97,6 +93,8 @@ int main() {
 	// main thread
 	while(keepRunning){
 
+		int sleep_time = POLL_STATUS_DIFF_LONG;
+		
 		// If there is a new peer in the Queue
 			// get peerID and add peer to peer table
 			// broadcast to all other peers that there is a new peer
@@ -110,6 +108,7 @@ int main() {
 			printf("\tSend peer added\n");
 			newPeerBroadcast(peerID, network);
 			peerID = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		// If a peer requests master
@@ -128,6 +127,7 @@ int main() {
 			}
 			printf(" Sent (to peer %d)!\n", peerID);
 			peerID = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 		// printf("\tcheck master request peer: %d\n", peerID);
 
@@ -155,6 +155,7 @@ int main() {
 			filesystem_print(fs);
 			filetable_print(filetable);
 			peerID = -1;
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 
 		// See if any clients have a chunk acquisition update to deseminate
@@ -176,6 +177,7 @@ int main() {
 			filetable_set_that_peer_has_file_chunk(filetable, file_got, peer_got_id, chunk_got);
 			filetable_print(filetable);
 			memset(&file_got, '\0', PATH_MAX+1);
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 		//free(file_got);
 
@@ -191,9 +193,11 @@ int main() {
 			printf("File Update Received\n");
 			updateNetwork(network, *clientID, additions, deletions);
 			printf("\tFinished updating file system\n");
+			sleep_time = POLL_STATUS_DIFF_SHORT;
 		}
 		free(clientID);
-		nanosleep(&tim , &tim2);   
+		
+		usleep(sleep_time);
    		
 		printf("Restarting loop.\n");
 	}
