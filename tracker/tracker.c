@@ -39,7 +39,7 @@ FileTable* filetable;
 peer_table* peerTable;
 int peerTableSize = 16;
 static volatile int keepRunning = 1;
-char * emailAddress;
+char * emailAddress = "Adam.W.Grounds.16@dartmouth.edu";
 
 void intHandler(int dummy) {
     keepRunning = 0;
