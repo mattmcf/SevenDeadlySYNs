@@ -726,9 +726,6 @@ char* filesystem_generate_html(FileSystem* filesystem)
 	}
 	
 	push_string(queue, "</pre>");
-	queue_spop(queue);
-	
-	data[queue_length(queue)] = 0;
 	
 	return data;
 }

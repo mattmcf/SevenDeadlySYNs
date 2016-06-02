@@ -1,0 +1,72 @@
+\jsection{Network}
+	
+The client and tracker logic threads are separated from all actual network functions by asynchronous queues that the tracker and client logic threads can use like APIs. These asynchronous queues deliver information received by the network thread to the logic thread and deliver network requests to the network thread to disseminate. By separating the logic from the actual network calls, we can preserve a simple two thread but asynchronous communication model between the logic and the network.
+The advantage of these communication queues is that each thread can focus on reacting to incoming data and acting appropriately. The single thread model also prevents Heisenbugs from developing. 
+
+\jsubsection{Client <-> Network Communications}
+
+\jsubsubsection{Client <- Tracker (Incoming)}
+
+	\begin{itemize}
+		\item Receive a master file system from the tracker
+		\item Receive a master file table from the tracker
+		\item Receive an update to the file system from the tracker (peer changed something)
+		\item Receive a new peer added message / receive a peer deleted message
+		\item Receive a peer acquisition update message
+	\end{itemize}
+ 
+\jsubsubsection{Client -> Tracker (Outgoing)}
+
+	\begin{itemize}
+		\item Send a chunk acquisition update
+		\item Send a request for master file system and file table
+		\item Send locally updated files
+	\end{itemize}
+
+\jsubsubsection{Client <- Client (Incoming)}
+
+\begin{itemize}
+	\item Receive a chunk request
+	\item Receive a chunk (request fulfilled or rejected)
+\end{itemize}
+
+\jsubsubsection{Client -> Client (Outgoing)}
+
+\begin{itemize}
+	\item Send a chunk request
+	\item Respond to chunk request by sending chunk or rejection response
+\end{itemize}
+
+\jsubsection{Client Network Operation}
+The network thread continually scans it's set of open socket descriptions with a select() call. After a timeout period, if no data is received on any of the sockets, then all of the queues from the logic thread are checked. (If there is data on the open sockets, then that data is processed before moving into the communication queues.)
+
+The set of open socket connection will include the following connections. If the network thread is servicing a client, the network will always maintain a connection to the tracker. The network will also leave a listening socket open for new peer connections. If there are any existing client connections, those sockets will also be watched. 
+
+The client network thread also automatically sends a heartbeat message to the tracker every 6 seconds to assert it's "alive" status.
+
+\jsubsection{When a Client Connection is Made}
+When the client logic makes a chunk request, the logic must specify a peer to request a chunk from. The network thread inspects its record of that peer, and if no connection exists, a connection is opened. A record of the number of requests made on a connection is kept. For every response, that record of requests is decremented until the outstanding requests reach zero, at which point, the originator of the requests will close the client to client connection.
+
+\jsubsection{Tracker <-> Network Communications}
+
+\jsubsection{Tracker <- Client (Incoming)}
+\begin{itemize}
+	\item Receive file system update
+	\item Receive request for master file system and master file table
+	\item Receive a file acquisition update from a client
+	\item Receive notice that a client has joined or left a network
+\end{itemize}
+
+\jsubsection{Tracker -> Client (Outgoing)}
+\begin{itemize}
+	\item Distribute a file acquisition update of a client
+	\item Distribute a file system update to clients
+	\item Distribute information about a new peer or lost peer
+	\item Send master file system and master file table
+\end{itemize}
+
+\jsubsection{Tracker Network Operation}
+
+The tracker thread scans its set of open socket connections for new data to process and then checks each of the request queues from the tracker logic to the network thread. The tracker keeps an open socket devoted to listening for new client as well as open connection to each existing client in the network. 
+
+The tracker network thread keeps the master peer list of clients. This master peer list contains information about each client including: id (the identifier given to the logic side of things), the ip address, the time last alive, and the socket. (The tracker network thread periodically scans all of the open client connections and terminates any client that hasn't sent a heartbeat within a 6 second time frame.)

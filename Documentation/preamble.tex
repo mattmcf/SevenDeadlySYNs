@@ -1,0 +1,241 @@
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[none]{hyphenat}
+\usepackage{mathtools}
+\usepackage{color}
+\usepackage{fancyvrb}
+\usepackage[margin=2cm,bmargin=2.25cm]{geometry}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{afterpage}
+\usepackage{etoolbox}
+\renewcommand{\baselinestretch}{1.33} 
+\usepackage[x11names]{xcolor}
+\usepackage{changepage}
+\usepackage{lipsum}
+\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage{blindtext}
+\usepackage{enumitem}
+\usepackage{pgffor}
+\usepackage{pgfmath}
+\usepackage{xstring}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{hyperref} % Must load last
+\usepackage{ifoddpage}
+\usepackage[normalem]{ulem}
+\useunder{\uline}{\ul}{}
+
+\pdfoptionpdfminorversion=7
+
+% Deal with pesky underscores
+\catcode`_=12
+\begingroup\lccode`~=`_\lowercase{\endgroup\let~\sb}
+\mathcode`_="8000
+
+\setlength{\footskip}{1.25cm}
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+\let\endchangemargin=\endlist 
+
+\graphicspath{{/Users/jacob/Dropbox/Dartmouth/Senior/Thesis/graphics/}}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{rdkgreen}{rgb}{0,0.4,0}
+\definecolor{dkblue}{rgb}{0.15,0.3,0.9}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{purple}{rgb}{0.55,0.24,0.66}
+\definecolor{darkgray}{rgb}{0.2,0.2,0.2}
+\definecolor{pink}{rgb}{0.7,0.2,0.6}
+\definecolor{teal}{rgb}{0.3,0.5,0.5}
+
+\newlength{\seplinewidth}
+\newlength{\seplinesep}
+\newlength{\sepindent}
+\setlength{\seplinewidth}{0.5mm}
+\setlength{\seplinesep}{2mm}
+\colorlet{sepline}{rdkgreen}
+\newcommand*{\sepline}{%
+  \vspace{-12pt}
+  \hspace{\sepindent}\vbox{%
+    \begingroup % because of color
+      \color{sepline}%
+      \hrule width\dimexpr\linewidth-\sepindent height\seplinewidth
+    \endgroup
+  }\vskip\seplinewidth\vspace{5pt}
+}
+
+\newtoggle{InString}{}% Keep track of if we are within a string
+\togglefalse{InString}% Assume not initally in string
+
+\newcommand*{\ColorIfNotInString}[1]{\iftoggle{InString}{#1}{\color{dkblue}#1}}%
+\newcommand*{\ProcessQuote}[1]{#1\iftoggle{InString}{\global\togglefalse{InString}}{\global\toggletrue{InString}}}%
+
+\lstset{literate=*
+    {"}{{{\ProcessQuote{"}}}}1% Disable coloring within double quotes
+    {'}{{{\ProcessQuote{'}}}}1% Disable coloring within single quote
+    {0}{{{\ColorIfNotInString{0}}}}1
+    {1}{{{\ColorIfNotInString{1}}}}1
+    {2}{{{\ColorIfNotInString{2}}}}1
+    {3}{{{\ColorIfNotInString{3}}}}1
+    {4}{{{\ColorIfNotInString{4}}}}1
+    {5}{{{\ColorIfNotInString{5}}}}1
+    {6}{{{\ColorIfNotInString{6}}}}1
+    {7}{{{\ColorIfNotInString{7}}}}1
+    {8}{{{\ColorIfNotInString{8}}}}1
+    {9}{{{\ColorIfNotInString{9}}}}1
+    {.0}{{\ColorIfNotInString{.0}}}2% Following is to ensure that only periods
+    {.1}{{\ColorIfNotInString{.1}}}2% followed by a digit are changed.
+    {.2}{{\ColorIfNotInString{.2}}}2%
+    {.3}{{\ColorIfNotInString{.3}}}2%
+    {.4}{{\ColorIfNotInString{.4}}}2%
+    {.5}{{\ColorIfNotInString{.5}}}2%
+    {.6}{{\ColorIfNotInString{.6}}}2%
+    {.7}{{\ColorIfNotInString{.7}}}2%
+    {.8}{{\ColorIfNotInString{.8}}}2%
+    {.9}{{\ColorIfNotInString{.9}}}2%
+	{\ }{{\ }}1
+}
+
+\lstdefinelanguage{Swift}{
+  keywords=[1]{class, deinit, enum, extension, func, import, init, inout, internal, let, operator, private, protocol, public, static, struct, subscript, typealias, var},
+  keywordstyle=[1]\color{pink}\bfseries,
+  keywords=[2]{break, case, continue, default, defer, do, else, fallthrough, for, guard, if, in, repeat, return, switch, where, while},
+  keywordstyle=[2]\color{pink}\textbf,
+  keywords=[3]{Int, Float, Double, Bool},
+  keywordstyle=[3]\color{purple}\bfseries,
+  keywords=[4]{as, catch, dynamicType, false, is, nil, rethrows, super, self, Self, throw, throws, true, try, __COLUMN__, __FILE__, __FUNCTION__, __LINE__},
+  keywordstyle=[4]\color{pink}\textbf,
+  keywords=[5]{associativity, convenience, dynamic, didSet, final, get, infix, indirect, lazy, left, mutating, none, nonmutating, optional, override, postfix, precedence, prefix, Protocol, required, right, set, Type, unowned, weak, willSet},
+  keywordstyle=[5]\color{pink}\textbf,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{dkgreen}\ttfamily,
+  stringstyle=\color{red}\ttfamily,
+  morestring=[b]',
+  morestring=[b]"
+}
+
+
+\lstset{frame=tb,
+  language=Swift,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\scriptsize\ttfamily},
+  numbers=left,                   
+  numbersep=10pt,    
+  numberstyle=\scriptsize\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+}
+
+%Increase indents for sections
+\titlespacing*{\section}
+{0pt}{20pt}{0pt}
+\titlespacing*{\subsection}
+{50pt}{20pt}{0pt}
+\titlespacing*{\subsubsection}
+{75pt}{20pt}{0pt}
+
+\newcommand{\varname}[1]{\fontseries{b}\selectfont\texttt{#1}\fontseries{m}\selectfont}
+\newcommand{\jsection}[1]{\setlength{\sepindent}{0pt}\section{#1}\sepline}
+\newcommand{\jsubsection}[1]{\setlength{\sepindent}{50pt}\subsection{#1}\sepline}
+\newcommand{\jsubsubsection}[1]{\setlength{\sepindent}{75pt}\subsubsection{#1}\sepline}
+\newcommand{\japititle}[1]{\setlength{\sepindent}{75pt}\subsubsection*{\texttt{#1}}\sepline}
+\newcommand{\forcetab}{\\\protect\phantom{ABCD}}
+\fvset{tabsize=4}
+
+\newenvironment{absolutelynopagebreak}
+  {\par\nobreak\vfil\penalty0\vfilneg
+   \vtop\bgroup}
+  {\par\xdef\tpd{\the\prevdepth}\egroup
+   \prevdepth=\tpd}	
+
+\def\japivar{}
+\newtoggle{hasargs}
+\newtoggle{hasreturn}
+\newtoggle{hasreturndescription}
+\newenvironment{japi}[4]
+{
+	\global\togglefalse{hasargs}
+	\global\togglefalse{hasreturn}
+	\global\togglefalse{hasreturndescription}
+	{\let\textcolor\relax
+	{\let\forcetab\relax
+	    \IfStrEq{#1}{}{%
+		    \xdef\japivar{#2(}%
+	    }{%
+		    \xdef\japivar{\textcolor{dkblue}{#1} #2(}%
+	    }
+		\foreach \i/\j/\k/\l [count=\ni] in {#3}
+		{
+			\global\toggletrue{hasargs}
+		    \ifnum\ni=1%
+		        \xdef\japivar{\japivar{\textcolor{dkblue}{\i} \j}}
+		    \else%
+			\IfStrEq{\l}{yes}
+			{
+		        \xdef\japivar{\japivar{, \forcetab\textcolor{dkblue}{\i} \j}}
+			}
+			{
+		        \xdef\japivar{\japivar{, \textcolor{dkblue}{\i} \j}}
+			}
+		    \fi%		
+		}
+		\xdef\japivar{\japivar)}
+	}
+	}
+	\begin{absolutelynopagebreak}	
+	\japititle{\japivar}
+	\addcontentsline{toc}{subsubsection}{\japivar}
+	\hfill
+	\begin{minipage}{\dimexpr\textwidth-50pt}	
+		\IfStrEq{#1}{void}{}
+		{
+			\global\toggletrue{hasreturn}
+		}
+		\IfStrEq{#4}{}{}
+		{
+			\global\toggletrue{hasreturndescription}
+		}
+		
+		\ifboolexpr{togl{hasargs} or (togl{hasreturn} and togl{hasreturndescription})}
+		{	
+			\begin{description}[align=right, labelwidth=100pt]
+				\itemsep0em
+				\foreach \i/\j/\k in {#3}
+				{
+					\item[\texttt{\j}] \k
+				}
+				\ifboolexpr{togl{hasreturn} and togl{hasreturndescription}}
+				{
+					\item[\texttt{Return}] #4
+				}
+				{}
+			\end{description}
+		}{}
+}
+{
+		\par
+		\phantom{end space}
+	\end{minipage}
+	\end{absolutelynopagebreak}
+}		
+
+\fontseries{m}\selectfont
