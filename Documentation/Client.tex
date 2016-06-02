@@ -1,9 +1,53 @@
 \jsection{Client}
 	
-	Write about this section here!
+	One of our groups major design choices for this project was to split the logic and the network calls and handling into two different threads.  This allowed our group to abstract system calls into a different thread of execution and create a system that can react to multiple different inputs rather than block on one system call.  This also means that client logic does not stop if the tracker crashes, so if the network thread receives chunks and then the tracker crashes then it will not shut down the logic and the logic will be able to save its working set of data.  This section will explain the logic portion of the client and the network section will detail the network functionality.
+
+	\jsubsection{How To Build and Run the Client}
+
+	Our DartSync project team chose to split the executables for the tracker and client.  However, we still build with one Makefile.  To build the entire project, execute ``make'' from the command terminal in our top level folder, or to simply make the client you can execute ``make client'' from the command terminal also in our top level folder.  \\
+
+	To run the client, simply call either ./client/client_app \{Tracker IP address\} \{Folder To Sync\}from the top level folder, or just call ./client_app from the /client/ folder.  The input is as follows:
 	
-	\jsubsection{Subsection title!}
-	
-	This is a subsection!
+	\begin{itemize}
+		\item \{Tracker IP address\} (required) - the IP address of the tracker network that you would like to connect to.  The address is parsed to check for validity, and connected to before continuing with the logic code to make sure that the input is valid.
+		\item \{Folder To Sync\} (optional) - the folder to sync, if you do not provide a command line input for this, then the program will default to the creation and use of a ``~/dart_sync'' folder.  If the provided folder is invalid, then the client exits and if the client fails to create ``~/dart_sync'' then it exits.
+	\end{itemize}
+
+	\jsubsection{Main Loop Structure}
+
+	After checking inputs, the client starts the network thread and connects to the tracker logic. After this, the client will make requests to the tracker for the master filesystem structure and the master filetable structure. Once the client receives the master filesystem and filetable and matches its own local state to this master state by deleting any untracked files, letting the tracker know what it has that matches the master, and making requests for files it doesn't have, it will then begin monitoring the main loop.  The main loop consists of several calls that check queues until they are empty or monitor other important structures.  If there are changes in any of these calls then the client reacts accordingly:
+
+	\begin{enumerate}
+		\item recv_peer_added() - returns the client ID of a new peer that has joined the network or NULL if there is nothing in the queue and therefore there are no new clients that the network thread knows about.  New peer updates are received from the tracker and are used by the network side to create a new mapping of peer id to peer IP address for any future connections that need to be made.  We simply print an acknowledgement that the peer has dropped, it is not used unless it has a chunk in the filetable that we need.
+		\item recv_peer_deleted() - returns the client ID of a peer that has dropped out of the network or NULL if there are no peers to remove.  If there is a peer to remove, then we iterate over the file table and remove them from the chunk ownership list if they have that chunk.
+		\item receive_chunk_request() - If this returns 1 then a peer has requested a chunk from us.  We check to make sure that we have it (if we don't then we send a failure message) and then send them the chunk they requested.  If this call returns -1 then there are no pending chunk requests.
+		\item receive_chunk() - If this returns 1 then there was a chunk waiting for us on the queue and we need to insert it into the chunkyfile and acknowledge that we do not need to rerequest.  Once all outstanding chunks for a file are received, we save the file to disk.  If this returns -1 then there were no pending chunks on the queue.  
+		\item receive_chunk_got() - If this returns 1 then we received an acknowledgement from the tracker that a client received a chunk and it is OK to request it from them.  If this returns -1 then there were no pending chunk acquisition updates on the queue.
+		\item recv_diff() - If this returns 1 then we received a filesystem diff initiated by another peer from the tracker.  We first remove any file deletions from the local disk, the file system struct, and the file table struct, and then we add any additions to the filesystem and file tables structs and write the new empty files to disk and make chunk requests for all the chunks.  If this returns -1 then there were no pending diffs on the queue.
+		\item recv_master() - This should only return 1 if the connection to the tracker is reset for some reason, the tracker will resend the master filesystem and we need to match up with it. If it returns -1 then it means there was no problem and there is nothing on the queue.
+		\item check_work_queue() - 
+		\item CheckLocalFilesystem() - This is a void return function that will check to see if there are any local changes to the filesystem.  If there are then it will push the diff to the tracker who will distribute the change to the rest of the peers in the network.  If there are no local changes then the function will do clean up and continue with execution of the main loop.
+	\end{enumerate}
+
+	\jsubsection{Work Queue}
+
+	%Jacob plz
+
+	\jsubsection{Output}
+
+	Other than writing file system updates to disk, the only output of the client executable is print statements to the command terminal.  These statements describe an event that occurred or an action that the logic is taking to react to that event.
+
+	\begin{enumerate}
+		\item (``CLIENT MAIN: '' statements): anything beginning with ``CLIENT MAIN: '' is a reaction to some event that occured that matches the previously enumerated main loop items.  The only statement that breaks this trend is ``CLIENT MAIN: sending chunk (\%s, \%d) to peer \%d''.  This statement lets the user know that it received a request for chunk \%d of file \%s and is sending it to client \%d.  
+			\begin{itemize}
+				\item EX: ``CLIENT MAIN: received a diff from author \%d'' lets the user know that the client recieved a diff off the queue from peer \%d and will begin responding to it.
+			\end{itemize}
+		\item The other print statements describe what a function is doing to react to that such as sending a request for a chunk.  One example is 
+			\begin{itemize}
+				\item EX: ``RemoveFileDeletions: found deletion at: \%s'' lets the user know that the client funciton RemoveFileDeletions was called after responding to a diff and found a deletion at the local absolute path \%s.  The program then deletes this file.
+			\end{itemize}
+	\end{enumerate}
+
+
 	
 	
