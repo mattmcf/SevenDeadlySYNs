@@ -49,3 +49,7 @@ testdir5/test.c
 testdir5/test.mp4
 
 testdir5/The Sound of Two Black Holes Colliding.mp4
+
+*.aux
+*.log
+*.toc
