@@ -1,9 +1,63 @@
 \jsection{Data Structures}
 	
-	Write about this section here!
+	In order to accomplish the task of creating a networked filesystem, we implemented and used quite a few different data structures. In this section, the most important and interesting data structures will be discussed. 
 	
-	\jsubsection{Subsection title!}
+	\jsubsection{Queue}
+		In order to more easily and safely store and handle dynamic memory, I implemented a packed dynamic circular queue data structure. This data structure allows structures to be pushed and popped off of either end, allowing to fill the roll of a normal packed array, a stack or a queue. Due its safety and versatility, the Queue structure is used throughout the project.
+		
+	\jsubsubsection{AsyncQueue}
 	
-	This is a subsection!
+		The AsyncQueue simply provides a wrapper around a Queue that performs mutex locks around dangerous operations. AsyncQueues are perfect for ensuring that communication between multiple threads is safe and easy to reason about. 
+		
+	\jsubsection{FileSystem}
+	
+		One of the goals of this project was to create a cross-platform solution, and relying on iNotify for files system updates is not a cross platform solution. So instead of using iNotify, we implemented an object (struct plus associated functions) whose job was to handle the file system in a cross platform manner. It has several key features:
+		
+		\begin{itemize}
+			\item It can take a snapshot of the current state of a directory (and all subdirectories).
+			\item It can perform a diff between two FileSystems, returning the additions and deltions as FileSystems.
+			\item It can be iterated through, at each iteration returning the path to the file or directory.
+			\item It can be serialized and deserialized for passing over the network.
+		\end{itemize}
+		
+		\jsubsubsection{Snapshots}
+		
+			FileSystem can take a snapshot of the current state of a file system on disk. To do this, it recursively iterates over each file and folder in a directory, adding each of their names, as well as their size and most recent modification date to the structure. At the end of the process, the FileSystem struct contains all the information necessary to represent the most recent state of the folder being watched. 
+			
+		\jsubsubsection{Diffs}
+		
+			FileSystem performs diffs by defining one other operation, FileSystem subtraction. When one FileSystem (A) is subtracted from another (B), all the files that are in A and in B are removed from A. Since there is no such thing as a negative file, anything in B but not in A is ignored. What is left in A is a subset of files, let us call them C, such that A - C = B. In effect, if A was the previous state of the file system and B is the current state, then C are all the files that were removed. By reversing this process (but using the same exact subtract operation), we can also determine the files that were added (D) in between snapshots A and B. Consequently, any file in both C and D was modified. 
+			
+		\jsubsubsection{Iteration}
+		
+			Due to its recursive nature, iterating through a data structure such as the FileSystem poses some problems. To solve these problems, FileSystem has an iterator that when created, recursively constructs a Queue of all of the paths to all of the files that it contains. This way, the structure becomes simple to iterate over.
+		
+		\jsubsubsection{(De)Serialization}
+		
+			Instead of transferring a FileTable over the network, our implementation transfers FileSystems. Due to its recursive structure, a FileSystem can be serialized much more efficiently than a FileTable. This decreases network traffic during updates. FileSystem provides simple serialization and deserialization functions that are used to do this.
+		
+	\jsubsection{FileTable}
+	
+		The FileTable, at its heart, is simply a HashTable that maps paths of files to data about those files. It is necessary to maintain such a structure because finding files in a FileSystem is slow compared to finding them in a HashTable. The FileTable contains information about where every chunk of every file is located, and also contains the Queues of information that pertain to acquiring chunks of said file. FileTables can be serialized. Doing so takes significantly more space than serializing a FileSystem. However, the information contained in the FileTable only needs to be transfered over the network once when a client enters the network. 
+	
+	\jsubsection{HashTable}
+	
+		We implemented a generic hash table structure that we used to map various values to other ones throughout our implementation. Most notably, the HashTable is used in the FileTable, but it is used in other places as well.
+	
+	\jsubsection{ChunkyFile}
+	
+		In order to handle reading and writing files a chunk at a time, we created a structure called ChunkyFile. A ChunkyFile is capable of reading a file into memory and accessing it one chunk at a time. You can also create an empty ChunkyFile for writing chunks to. Once all the chunks have been written, the file gets written to the disk.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
