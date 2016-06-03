@@ -5,7 +5,7 @@
 	\jsubsection{Queue}
 		In order to more easily and safely store and handle dynamic memory, I implemented a packed dynamic circular queue data structure. This data structure allows structures to be pushed and popped off of either end, allowing to fill the roll of a normal packed array, a stack or a queue. Due its safety and versatility, the Queue structure is used throughout the project.
 		
-	\jsubsubsection{AsyncQueue}
+	\jsubsection{AsyncQueue}
 	
 		The AsyncQueue simply provides a wrapper around a Queue that performs mutex locks around dangerous operations. AsyncQueues are perfect for ensuring that communication between multiple threads is safe and easy to reason about. 
 		
