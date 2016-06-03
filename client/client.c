@@ -592,8 +592,10 @@ int CheckFileSystem(FileSystem *fs){
 	return -1;
 }
 
-int check_work_queue(CNT * cnt, FileTable * ft) {
-	if (!cnt || !ft) {
+int check_work_queue(CNT * cnt, FileTable * ft) 
+{
+	if (!cnt || !ft) 
+	{
 		return -1;
 	}
 
@@ -602,21 +604,20 @@ int check_work_queue(CNT * cnt, FileTable * ft) {
 
 	// scan file table
 	FileTableIterator * fti = filetableiterator_new(ft);
-	if (fti) {
-		
+	if (fti) 
+	{
 		/* iterate over all file table entries */
-		while ( (fte = filetableiterator_next(fti)) != NULL) {
-
+		while ( (fte = filetableiterator_next(fti)) != NULL) 
+		{
 			/* get jobs */
-			while (filetableentry_get_job(fte, MAX_PENDING_REQUESTS, &chunk, &dest_id, &job_id) == 1) {
+			while (filetableentry_get_job(fte, MAX_PENDING_REQUESTS, &chunk, &dest_id, &job_id) == 1) 
+			{
 				send_chunk_request(cnt, dest_id, fte->path, chunk, job_id);
 			}
 
 		}
-
 		filetableiterator_destroy(fti);
 	}
-
 	return 1;
 }
 

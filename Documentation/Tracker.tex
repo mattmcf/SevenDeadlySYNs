@@ -1,9 +1,49 @@
 \jsection{Tracker}
+
+\jsubsection{How To Build and Run the Client}
+
+	Our DartSync project team chose to split the executables for the tracker and client.  However, we still build with one Makefile.  To build the entire project, execute ``make'' from the command terminal in our top level folder, or to simply make the client you can execute ``make tracker'' from the command terminal also in our top level folder.  \\
+
+	To run the tracker, simply call either ./tracker/tracker_app
 	
-	Write about this section here!
+\jsubsection{Tracker Design}
+	Tracker Design:
+
+The tracker design is based on responding to inputs. The tracker receives messages from the tracker-network layer and responds accordingly. The messages are received on queues and all of the queues are polled on a set interval. When a queue has something on it, the tracker will handle all messages on that queue before moving onto a different queue. The queues are:
+
+\jsubsubsection{Receiving queues} 
+\begin{itemize}
+\item \textbf{Get peer current state:} if peer needs to let tracker know its state
+\item \textbf{Peer updated file:} if a peer updated a file, this queue contains the filesystem difference
+\item \textbf{New peer:} a peer has joined the network
+\item \textbf{Peer left:} a peer has logged out of the network
+\item \textbf{Peer got file chunk:} peer acquired a chunk, need to update the file table
+\item \textbf{Peer request for master file system:} peer needs the master file system
+\end{itemize}
+
+\jsubsubsection{Sending queues} 
+\begin{itemize}
+\item \textbf{Peer transaction update:} if a misc message needs to get to peer
+\item \textbf{Peer acquired file chunk:} Let all peers know to update their file table
+\item \textbf{Send peer file system:} send a file system difference to a peer
+\item \textbf{Broadcast new peer:} let everyone know to update their peer table
+\item \textbf{Broadcast peer left:} let everyone know to update their peer table
+\item \textbf{Send master filesystem:} send the master filesystem to a new peer
+\item \textbf{Send master file table:} send the master file table to a new peer
+\end{itemize}
+
+\jsubsection{Operation}
+
+As the tracker polls each of these queues, the tracker will respond accordingly to whatever the message is. Because the network layer only pipes along messages, if a message needs to be broadcast out to all peers, the tracker will push an individual message for each peer that the message needs to go to. Everything stored in the tracker’s file system and file table is stored as a relative path meaning if the absolute path is Users/adamgrounds/Documents/SevenDeadlySYNs/dart_sync/test.txt, the tracker will only store test.txt. This makes the file paths easy to send to all peers and it stems from the common directory. 
+
+The tracker is also responsible for handling the web server. It has a listening port that browsers can request data from. When a request comes in, the tracker responds with the current filesystem and a table of the peers in the network. Although the interface is simple, it give the basic information needed to monitor the network. 
+
+The asynchronous queue method of communicating with the network allows for fewer threads and networking calls. The only threads are the tracker logic itself and the tracker network, which runs on a thread called by the tracker logic. 
+
+
 	
-	\jsubsection{Subsection title!}
+\jsubsection{Output}
 	
-	This is a subsection!
+	The output of the tracker is just command line updates to let the user know that state of the tracker. When a queue is acted upon, there will be command line notifications. The tracker is also capable of email notifications and will email the owner of tracker upon file system updates.
 	
 	
