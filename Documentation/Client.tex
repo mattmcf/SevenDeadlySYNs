@@ -6,10 +6,10 @@
 
 	Our DartSync project team chose to split the executables for the tracker and client.  However, we still build with one Makefile.  To build the entire project, execute ``make'' from the command terminal in our top level folder, or to simply make the client you can execute ``make client'' from the command terminal also in our top level folder.  \\
 
-	To run the client, simply call either ./client/client_app \{Tracker IP address\} \{Folder To Sync\}from the top level folder, or just call ./client_app from the /client/ folder.  The input is as follows:
+	To run the client, simply call either ./client/client_app \{Tracker IP address\} \{Folder To Sync\} from the top level folder, or just call ./client_app from the /client/ folder.  The input is as follows:
 	
 	\begin{itemize}
-		\item \{Tracker IP address\} (required) - the IP address of the tracker network that you would like to connect to.  The address is parsed to check for validity, and connected to before continuing with the logic code to make sure that the input is valid.
+		\item \{Tracker IP address\} (required) - the IPv4 address of the tracker network that you would like to connect to.  The address is parsed to check for validity, and connected to before continuing with the logic code to make sure that the input is valid.
 		\item \{Folder To Sync\} (optional) - the folder to sync, if you do not provide a command line input for this, then the program will default to the creation and use of a ``\textasciitilde/dart_sync'' folder.  If the provided folder is invalid, then the client exits and if the client fails to create ``\textasciitilde/dart_sync'' then it exits.
 	\end{itemize}
 
